@@ -48,12 +48,14 @@ Build "LexiMaster," a high-quality educational platform for students, guardians,
 
 ## Bug Fixes
 - **2026-03-07:** Fixed student login failure — existing students missing student_code field and had 6-digit PINs. Added startup migration + relaxed PIN validation.
+- **2026-03-07:** Fixed story generation error — `generate_story()` was missing `virtues` parameter in its function signature, causing "unexpected keyword argument" error.
 
 ## Feature Additions
 - **2026-03-07:** Reset PIN — Guardians can regenerate a student's PIN from the dashboard.
 - **2026-03-07:** Student Progress Dashboard — reading stats, vocabulary mastery (pie chart), assessment history (bar chart), story history, word banks, virtues. Uses recharts.
 - **2026-03-07:** Export Student Data — JSON download + printable HTML report with Print/Save as PDF.
 - **2026-03-07:** Teacher Portal — register/login, classroom sessions with 6-digit join codes, session lifecycle management, class roster, class-wide analytics with leaderboard.
+- **2026-03-07:** Student Session Join — students can enter a 6-digit session code in their Academy dashboard to join a teacher's classroom session.
 
 ## Backlog
 - Refactor monolithic server.py into modular route/model/service files
