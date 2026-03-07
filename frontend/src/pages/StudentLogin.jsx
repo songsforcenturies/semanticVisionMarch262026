@@ -21,8 +21,8 @@ const StudentLogin = () => {
       return;
     }
 
-    if (pin.length !== 9) {
-      toast.error('PIN must be 9 digits');
+    if (pin.length < 6) {
+      toast.error('PIN must be at least 6 digits');
       return;
     }
 
@@ -73,13 +73,13 @@ const StudentLogin = () => {
           
           <BrutalInput
             variant="pin"
-            label="9-Digit PIN"
+            label="PIN"
             type="text"
             required
             maxLength={9}
             value={pin}
             onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-            placeholder="•••••••••"
+            placeholder="••••••"
           />
 
           <BrutalButton
@@ -87,7 +87,7 @@ const StudentLogin = () => {
             variant="amber"
             fullWidth
             size="lg"
-            disabled={loading || !studentCode || pin.length !== 9}
+            disabled={loading || !studentCode || pin.length < 6}
           >
             {loading ? 'Logging in...' : 'Enter Academy'}
           </BrutalButton>
