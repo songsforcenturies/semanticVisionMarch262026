@@ -1,0 +1,91 @@
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { BrutalButton, BrutalInput, BrutalCard } from '@/components/brutal';
+import { toast } from 'sonner';
+import { BookOpen } from 'lucide-react';
+
+const GuardianLogin = () => {
+  const navigate = useNavigate();
+  const { login } = useAuth();
+  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const result = await login(formData.email, formData.password);
+
+    if (result.success) {
+      toast.success('Welcome back!');
+      navigate('/portal');
+    } else {
+      toast.error(result.error || 'Login failed');
+    }
+
+    setLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-50 p-4">
+      <BrutalCard shadow="xl" className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-3 mb-4">
+            <BookOpen size={48} className="text-indigo-600" />
+            <h1 className="text-4xl font-black uppercase">LexiMaster</h1>
+          </div>
+          <h2 className="text-2xl font-black uppercase">Guardian Login</h2>
+          <p className="mt-2 font-medium text-gray-600">
+            Access your student portal
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <BrutalInput
+            label="Email Address"
+            type="email"
+            required
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            placeholder="guardian@example.com"
+          />
+
+          <BrutalInput
+            label="Password"
+            type="password"
+            required
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            placeholder="••••••••"
+          />
+
+          <BrutalButton
+            type="submit"
+            variant="indigo"
+            fullWidth
+            disabled={loading}
+          >
+            {loading ? 'Logging in...' : 'Login'}
+          </BrutalButton>
+
+          <div className="text-center">
+            <p className="font-medium">
+              Don't have an account?{' '}
+              <Link to="/register" className="text-indigo-600 font-bold hover:underline">
+                Register here
+              </Link>
+            </p>
+            <p className="mt-4 font-medium">
+              <Link to="/student-login" className="text-amber-600 font-bold hover:underline">
+                Student? Login with PIN →
+              </Link>
+            </p>
+          </div>
+        </form>
+      </BrutalCard>
+    </div>
+  );
+};
+
+export default GuardianLogin;
