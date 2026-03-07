@@ -7,6 +7,7 @@ import logging
 from pathlib import Path
 from typing import List, Optional
 from datetime import datetime, timezone
+from pydantic import BaseModel
 
 # Import models and auth
 from models import (
@@ -103,10 +104,13 @@ async def login(credentials: UserLogin):
     }
 
 
+class StudentPinLogin(BaseModel):
+    pin: str
+
 @api_router.post("/auth/student-login")
-async def student_login(pin: str):
+async def student_login(data: StudentPinLogin):
     """PIN-based login for students"""
-    student = await db.students.find_one({"access_pin": pin, "status": "active"})
+    student = await db.students.find_one({"access_pin": data.pin, "status": "active"})
     if not student:
         raise HTTPException(status_code=401, detail="Invalid PIN or inactive student")
     
