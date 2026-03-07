@@ -1,60 +1,80 @@
 # LexiMaster - Product Requirements Document
 
-## Problem Statement
-Build "LexiMaster," an educational platform for students, guardians, and teachers focusing on vocabulary building and character education through AI-generated stories. The platform supports multi-lingual content, religious/cultural personalization, brand sponsorship monetization, and robust payment/billing infrastructure.
+## Original Problem Statement
+Build "LexiMaster," a high-quality educational platform for students, guardians, and teachers, focusing on vocabulary building and character education through AI-generated stories. Multi-role system (Guardian, Teacher, Student, Admin, Brand Partner), wallet/payment system, brand sponsorship model, and self-service brand partner portal.
 
 ## Architecture
-- **Backend:** FastAPI + MongoDB + JWT + WebSockets + Stripe (via emergentintegrations)
-- **Frontend:** React 18 + Tailwind CSS + Shadcn/UI + React Query + Recharts
-- **AI:** Emergent LLM Key + OpenRouter (configurable) for story/assessment/word definitions
-- **Auth:** JWT for guardians, teachers, admins; code+PIN for students
-- **Payments:** Stripe for wallet top-ups and donations
+- **Backend:** FastAPI + MongoDB (Motor async), JWT Auth, WebSockets
+- **Frontend:** React 18, TypeScript, Tailwind CSS, Shadcn/UI, React Router, React Query
+- **AI:** OpenAI (Emergent LLM Key), OpenRouter
+- **Payments:** Stripe
+- **i18n:** react-i18next with 20 languages
 
-## User Roles
-- **Master Admin** (allen@songsforcenturies.com): Full system control
-- **Delegated Admin**: Can create/edit word banks and manage subscriptions
-- **Guardian**: Manages students, purchases word banks, sets preferences
-- **Teacher**: Creates classroom sessions, views analytics
-- **Student**: Reads stories, takes assessments
+## What's Been Implemented
 
-## Completed Features
-- [x] JWT Authentication for all roles
-- [x] Student Management (CRUD, PIN reset)
-- [x] Word Bank Marketplace with wallet-based purchases
-- [x] AI Story Generation with belief/culture/language/brand params
-- [x] Written Answer Assessment with AI Evaluation
-- [x] Automated Reading Timer
-- [x] Guardian Spelling Controls
-- [x] Teacher Portal & Live Classroom Sessions (WebSocket)
-- [x] Admin Cost Tracking & LLM Configuration
-- [x] Wallet System + Stripe Payments
-- [x] Digital Coupon System (4 types)
-- [x] Admin Delegation System
-- [x] Subscription Plans Management
-- [x] Comprehensive Admin Statistics Dashboard
-- [x] Referral System (invite & earn)
-- [x] Click-to-Define Words (AI dictionary)
-- [x] Religious/Belief System Preferences (20+ denominations)
-- [x] Cultural Context Settings (13 backgrounds)
-- [x] Multi-Language Support (20 languages)
-- [x] Admin Billing/ROI Configuration (3 pricing models)
-- [x] Admin Feature Flags (9 toggles)
-- [x] Sponsor a Reader Donation System
-- [x] Brand Sponsorship System (admin CRUD, analytics, impressions)
-- [x] Classroom Sponsorships (businesses sponsor schools)
-- [x] Guardian Ad Preferences (opt-in/out per student)
-- [x] Brand Integration in AI Stories (natural product placements)
-- [x] Brand Analytics Dashboard (impressions, revenue, budget tracking)
+### Core Platform (Complete)
+- [x] Multi-role auth: Guardian, Teacher, Student, Admin, Brand Partner
+- [x] AI-powered story generation (personalized with virtues, belief, culture, language)
+- [x] AI-evaluated written assessments
+- [x] Story reader with click-to-define words
+- [x] Automated reading timer
+- [x] 60/30/10 vocabulary learning system
 
-## Key Collections
-users, students, subscriptions, word_banks, narratives, assessments, read_logs, cost_logs, spelling_logs, system_config, classroom_sessions, wallet_transactions, payment_transactions, coupons, coupon_redemptions, subscription_plans, referrals, donations, brands, brand_impressions, classroom_sponsorships
+### Guardian Portal (Complete)
+- [x] Full CRUD student management
+- [x] Spelling controls & ad preferences
+- [x] Marketplace for word banks
+- [x] Wallet system with Stripe
+- [x] Referral program
 
-## Backlog (P2/P3)
-- [ ] Refactor monolithic server.py into modular routers
-- [ ] PayPal/CashApp integration
-- [ ] Student Gamification (XP, badges, leaderboard)
+### Teacher Portal (Complete)
+- [x] Classroom session management
+- [x] Real-time student tracking
+
+### Admin Portal (Complete)
+- [x] System-wide settings & feature flags
+- [x] AI provider config (Emergent vs OpenRouter)
+- [x] Cost tracking, coupons, subscription plans
+- [x] Billing/ROI configuration
+- [x] Brand sponsorship management
+- [x] User role management
+
+### Brand Partner Portal (Complete - Feb 2026)
+- [x] Self-service registration & approval workflow
+- [x] Campaign management & analytics dashboard
+- [x] Budget management with Stripe integration
+- [x] Impression tracking & reporting
+
+### Wallet & Payment System (Complete)
+- [x] Wallet with Stripe top-up
+- [x] Coupon redemption
+- [x] Admin coupon/plan management
+
+### Multi-lingual UI Support (Complete - Mar 2026)
+- [x] 20 languages: English, Spanish, French, Chinese, Hindi, Arabic, Bengali, Portuguese, Russian, Japanese, German, Korean, Turkish, Vietnamese, Italian, Thai, Polish, Dutch, Swahili, Malay
+- [x] Language switcher component on all public & portal pages
+- [x] localStorage persistence (leximaster_lang)
+- [x] RTL support for Arabic
+- [x] Translation coverage: Landing, Auth (all login/register pages), Guardian Portal, Teacher Portal, Brand Portal, Donate Page
+
+### Other Features (Complete)
+- [x] Referral system with wallet rewards
+- [x] Public donation page ("Sponsor a Reader")
+- [x] Brand sponsorship in-story ads with parental controls
+
+## Prioritized Backlog
+
+### P0 - High Priority
+- [ ] Accessibility features (deaf/HoH users)
+- [ ] Refactor `backend/server.py` into modular FastAPI routers
+
+### P1 - Medium Priority
+- [ ] Expand payment integrations (PayPal, Google/Apple Pay, CashApp/Venmo)
+- [ ] Granular admin analytics
+
+### P2 - Low Priority
+- [ ] AdminPortal.jsx component extraction
+- [ ] Student gamification (XP, badges, leaderboard)
 - [ ] COPPA/FERPA compliance review
 - [ ] Automated recurring subscription billing
-- [ ] Accessibility for deaf/HoH users
-- [ ] Full multi-lingual UI (stories multilingual, UI English only)
 - [ ] Regional feature delegation
