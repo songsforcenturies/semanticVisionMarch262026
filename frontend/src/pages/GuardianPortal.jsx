@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
-import { useNavigate, Routes, Route } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
-import { BrutalButton, BrutalCard } from '@/components/brutal';
+import { BrutalButton } from '@/components/brutal';
 import { LogOut, Users, ShoppingBag, TrendingUp, Home, Wallet, Share2 } from 'lucide-react';
 import StudentsTab from '@/components/guardian/StudentsTab';
 import MarketplaceTab from '@/components/guardian/MarketplaceTab';
 import ProgressTab from '@/components/guardian/ProgressTab';
 import WalletTab from '@/components/guardian/WalletTab';
 import ReferralTab from '@/components/guardian/ReferralTab';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const GuardianPortal = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('students');
 
   const handleLogout = () => {
@@ -20,70 +23,46 @@ const GuardianPortal = () => {
   };
 
   const tabs = [
-    { id: 'students', label: 'Students', icon: Users, color: 'indigo' },
-    { id: 'marketplace', label: 'Marketplace', icon: ShoppingBag, color: 'emerald' },
-    { id: 'wallet', label: 'Wallet', icon: Wallet, color: 'amber' },
-    { id: 'referral', label: 'Invite & Earn', icon: Share2, color: 'rose' },
-    { id: 'progress', label: 'Progress', icon: TrendingUp, color: 'rose' },
+    { id: 'students', label: t('guardian.students'), icon: Users, color: 'indigo' },
+    { id: 'marketplace', label: t('guardian.marketplace'), icon: ShoppingBag, color: 'emerald' },
+    { id: 'wallet', label: t('guardian.wallet'), icon: Wallet, color: 'amber' },
+    { id: 'referral', label: t('guardian.inviteEarn'), icon: Share2, color: 'rose' },
+    { id: 'progress', label: t('guardian.progress'), icon: TrendingUp, color: 'rose' },
   ];
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white border-b-6 border-black brutal-shadow-md">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate('/')}
-                className="p-3 border-4 border-black bg-indigo-100 brutal-shadow-sm hover:brutal-shadow-md transition-all brutal-active"
-                title="Home"
-              >
+              <button onClick={() => navigate('/')} className="p-3 border-4 border-black bg-indigo-100 brutal-shadow-sm hover:brutal-shadow-md transition-all brutal-active" title={t('common.home')}>
                 <Home size={24} />
               </button>
               <div>
-                <h1 className="text-4xl font-black uppercase">LexiMaster Portal</h1>
-                <p className="text-lg font-medium mt-1">Welcome, {user?.full_name}!</p>
+                <h1 className="text-4xl font-black uppercase" data-testid="portal-title">{t('guardian.portalTitle')}</h1>
+                <p className="text-lg font-medium mt-1" data-testid="welcome-user">{t('guardian.welcomeUser', { name: user?.full_name })}</p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <BrutalButton
-                variant="default"
-                size="sm"
-                onClick={() => navigate('/admin')}
-                className="flex items-center gap-1"
-                data-testid="admin-link"
-              >
-                Admin
-              </BrutalButton>
-              <BrutalButton
-                variant="dark"
-                onClick={handleLogout}
-                className="flex items-center gap-2"
-              >
+            <div className="flex gap-2 items-center">
+              <LanguageSwitcher />
+              <BrutalButton variant="default" size="sm" onClick={() => navigate('/admin')} data-testid="admin-link">{t('common.admin')}</BrutalButton>
+              <BrutalButton variant="dark" onClick={handleLogout} className="flex items-center gap-2">
                 <LogOut size={20} />
-                Logout
+                {t('common.logout')}
               </BrutalButton>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Tab Navigation */}
       <div className="container mx-auto px-4 py-6">
         <div className="flex gap-4 mb-8 flex-wrap">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
-              <BrutalButton
-                key={tab.id}
-                variant={isActive ? tab.color : 'default'}
-                size="lg"
-                onClick={() => setActiveTab(tab.id)}
-                className="flex items-center gap-2"
-                data-testid={`tab-${tab.id}`}
-              >
+              <BrutalButton key={tab.id} variant={isActive ? tab.color : 'default'} size="lg" onClick={() => setActiveTab(tab.id)} className="flex items-center gap-2" data-testid={`tab-${tab.id}`}>
                 <Icon size={24} />
                 {tab.label}
               </BrutalButton>
@@ -91,7 +70,6 @@ const GuardianPortal = () => {
           })}
         </div>
 
-        {/* Tab Content */}
         <div>
           {activeTab === 'students' && <StudentsTab />}
           {activeTab === 'marketplace' && <MarketplaceTab />}

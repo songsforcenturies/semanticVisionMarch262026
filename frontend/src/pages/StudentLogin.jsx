@@ -1,112 +1,78 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { BrutalButton, BrutalInput, BrutalCard } from '@/components/brutal';
 import { toast } from 'sonner';
-import { BookOpen } from 'lucide-react';
+import { Zap } from 'lucide-react';
 import HomeHeader from '@/components/HomeHeader';
 
 const StudentLogin = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { studentLogin } = useAuth();
-  const [studentCode, setStudentCode] = useState('');
-  const [pin, setPin] = useState('');
+  const [formData, setFormData] = useState({ studentCode: '', pin: '' });
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!studentCode.trim()) {
-      toast.error('Please enter your Student Code');
-      return;
-    }
-
-    if (pin.length < 6) {
-      toast.error('PIN must be at least 6 digits');
-      return;
-    }
-
     setLoading(true);
-
-    const result = await studentLogin(studentCode.toUpperCase().trim(), pin);
-
+    const result = await studentLogin(formData.studentCode, formData.pin);
     if (result.success) {
-      toast.success(`Welcome back, ${result.student.full_name}!`);
-      navigate('/academy');
+      navigate('/student');
     } else {
-      toast.error(result.error || 'Invalid credentials');
-      setPin('');
+      toast.error(result.error || t('auth.loginFailed'));
     }
-
     setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-yellow-50">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50">
       <HomeHeader showAuth={false} />
-      
       <div className="flex items-center justify-center p-4 py-12">
         <BrutalCard shadow="xl" className="w-full max-w-md bg-amber-50">
-
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-4">
-            <BookOpen size={48} className="text-amber-600" />
-            <h1 className="text-4xl font-black uppercase">LexiMaster</h1>
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-3 mb-4">
+              <Zap size={48} className="text-amber-600" />
+              <h1 className="text-4xl font-black uppercase">LexiMaster</h1>
+            </div>
+            <h2 className="text-2xl font-black uppercase text-amber-600" data-testid="student-login-title">{t('auth.studentLogin')}</h2>
+            <p className="mt-2 font-medium text-gray-600">{t('auth.enterCodePin')}</p>
           </div>
-          <h2 className="text-2xl font-black uppercase text-amber-600">Student Login</h2>
-          <p className="mt-2 font-medium text-gray-600">
-            Enter your Student Code and PIN
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <BrutalInput
-            label="Student Code"
-            type="text"
-            required
-            value={studentCode}
-            onChange={(e) => setStudentCode(e.target.value.toUpperCase())}
-            placeholder="STU-ABC123"
-            className="uppercase"
-            autoFocus
-            data-testid="student-code-input"
-          />
-          
-          <BrutalInput
-            variant="pin"
-            label="PIN"
-            type="text"
-            required
-            maxLength={9}
-            value={pin}
-            onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-            placeholder="Enter your PIN"
-            data-testid="student-pin-input"
-          />
-
-          <BrutalButton
-            type="submit"
-            variant="amber"
-            fullWidth
-            size="lg"
-            disabled={loading || !studentCode || pin.length < 6}
-            data-testid="student-login-submit"
-          >
-            {loading ? 'Logging in...' : 'Enter Academy'}
-          </BrutalButton>
-
-          <p className="text-center text-xs font-medium text-gray-500 mt-2" data-testid="pin-hint">
-            PIN may be 6 or 9 digits depending on when your account was created
-          </p>
-
-          <div className="text-center">
-            <p className="font-medium text-sm text-gray-600">
-              Ask your guardian for your Student Code and PIN
-            </p>
-          </div>
-        </form>
-      </BrutalCard>
-    </div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <BrutalInput
+              label={t('auth.studentCode')}
+              type="text"
+              required
+              value={formData.studentCode}
+              onChange={(e) => setFormData({ ...formData, studentCode: e.target.value.toUpperCase() })}
+              placeholder="ABC-1234"
+              data-testid="student-code-input"
+            />
+            <div>
+              <BrutalInput
+                label={t('auth.pin')}
+                type="password"
+                required
+                value={formData.pin}
+                onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
+                placeholder="••••••"
+                data-testid="student-pin-input"
+              />
+              <p className="text-sm text-gray-500 mt-1 font-medium">{t('auth.pinHint')}</p>
+            </div>
+            <BrutalButton type="submit" variant="amber" fullWidth disabled={loading} data-testid="student-login-submit">
+              {loading ? t('common.loggingIn') : t('auth.enterAcademy')}
+            </BrutalButton>
+            <div className="text-center space-y-2">
+              <p className="text-sm font-bold text-gray-500">{t('auth.askGuardian')}</p>
+              <p className="font-medium">
+                <Link to="/login" className="text-indigo-600 font-bold hover:underline">{t('auth.guardianLoginLink')}</Link>
+              </p>
+            </div>
+          </form>
+        </BrutalCard>
+      </div>
     </div>
   );
 };

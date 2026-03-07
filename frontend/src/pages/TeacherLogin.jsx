@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { BrutalButton, BrutalInput, BrutalCard } from '@/components/brutal';
 import { toast } from 'sonner';
@@ -8,6 +9,7 @@ import HomeHeader from '@/components/HomeHeader';
 
 const TeacherLogin = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { login } = useAuth();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
@@ -18,14 +20,14 @@ const TeacherLogin = () => {
     const result = await login(formData.email, formData.password);
     if (result.success) {
       if (result.user.role !== 'teacher') {
-        toast.error('This account is not a teacher account');
+        toast.error(t('auth.notTeacherAccount'));
         setLoading(false);
         return;
       }
-      toast.success('Welcome back, Teacher!');
+      toast.success(t('auth.welcomeTeacher'));
       navigate('/teacher-portal');
     } else {
-      toast.error(result.error || 'Login failed');
+      toast.error(result.error || t('auth.loginFailed'));
     }
     setLoading(false);
   };
@@ -40,12 +42,12 @@ const TeacherLogin = () => {
               <GraduationCap size={48} className="text-teal-600" />
               <h1 className="text-4xl font-black uppercase">LexiMaster</h1>
             </div>
-            <h2 className="text-2xl font-black uppercase text-teal-600">Teacher Login</h2>
-            <p className="mt-2 font-medium text-gray-600">Access your classroom portal</p>
+            <h2 className="text-2xl font-black uppercase text-teal-600" data-testid="teacher-login-title">{t('auth.teacherLogin')}</h2>
+            <p className="mt-2 font-medium text-gray-600">{t('auth.accessClassroom')}</p>
           </div>
           <form onSubmit={handleSubmit} className="space-y-6">
             <BrutalInput
-              label="Email Address"
+              label={t('common.email')}
               type="email"
               required
               value={formData.email}
@@ -54,7 +56,7 @@ const TeacherLogin = () => {
               data-testid="teacher-email-input"
             />
             <BrutalInput
-              label="Password"
+              label={t('common.password')}
               type="password"
               required
               value={formData.password}
@@ -63,15 +65,15 @@ const TeacherLogin = () => {
               data-testid="teacher-password-input"
             />
             <BrutalButton type="submit" variant="emerald" fullWidth disabled={loading} data-testid="teacher-login-submit">
-              {loading ? 'Logging in...' : 'Login'}
+              {loading ? t('common.loggingIn') : t('common.login')}
             </BrutalButton>
-            <div className="text-center">
+            <div className="text-center space-y-2">
               <p className="font-medium">
-                Don't have a teacher account?{' '}
-                <Link to="/teacher-register" className="text-teal-600 font-bold hover:underline">Register here</Link>
+                {t('auth.noTeacherAccount')}{' '}
+                <Link to="/teacher-register" className="text-teal-600 font-bold hover:underline">{t('common.registerHere')}</Link>
               </p>
-              <p className="mt-4 font-medium">
-                <Link to="/login" className="text-indigo-600 font-bold hover:underline">Guardian Login →</Link>
+              <p className="font-medium">
+                <Link to="/login" className="text-indigo-600 font-bold hover:underline">{t('auth.guardianLoginLink')}</Link>
               </p>
             </div>
           </form>

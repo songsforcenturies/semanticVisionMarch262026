@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { brandPortalAPI } from '@/lib/api';
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput } from '@/components/brutal';
@@ -10,6 +11,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const AD_CATEGORIES = [
   'technology', 'education', 'food', 'sports', 'arts', 'health',
@@ -19,6 +21,7 @@ const AD_CATEGORIES = [
 const BrandPortal = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [campaignForm, setCampaignForm] = useState({
@@ -36,13 +39,13 @@ const BrandPortal = () => {
       pollTopup(sessionId);
       window.history.replaceState({}, '', '/brand-portal');
     } else if (payment === 'cancelled') {
-      toast.error('Payment cancelled');
+      toast.error(t('brand.paymentCancelled'));
       window.history.replaceState({}, '', '/brand-portal');
     }
   }, []);
 
   const pollTopup = async (sessionId, attempts = 0) => {
-    if (attempts >= 5) { toast.info('Payment processing. Check back shortly.'); return; }
+    if (attempts >= 5) { toast.info(t('brand.paymentProcessing')); return; }
     try {
       const res = await brandPortalAPI.getTopupStatus(sessionId);
       if (res.data.status === 'paid') {

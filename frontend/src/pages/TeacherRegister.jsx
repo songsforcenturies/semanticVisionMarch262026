@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { BrutalButton, BrutalInput, BrutalCard } from '@/components/brutal';
 import { toast } from 'sonner';
@@ -8,6 +9,7 @@ import HomeHeader from '@/components/HomeHeader';
 
 const TeacherRegister = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { register } = useAuth();
   const [formData, setFormData] = useState({ fullName: '', email: '', password: '', confirmPassword: '' });
   const [loading, setLoading] = useState(false);
@@ -15,20 +17,20 @@ const TeacherRegister = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error(t('auth.passwordMismatch'));
       return;
     }
     if (formData.password.length < 6) {
-      toast.error('Password must be at least 6 characters');
+      toast.error(t('auth.passwordTooShort'));
       return;
     }
     setLoading(true);
     const result = await register(formData.fullName, formData.email, formData.password, 'teacher');
     if (result.success) {
-      toast.success('Teacher account created!');
+      toast.success(t('auth.teacherAccountCreated'));
       navigate('/teacher-portal');
     } else {
-      toast.error(result.error || 'Registration failed');
+      toast.error(result.error || t('auth.registrationFailed'));
     }
     setLoading(false);
   };
@@ -43,12 +45,12 @@ const TeacherRegister = () => {
               <GraduationCap size={48} className="text-teal-600" />
               <h1 className="text-4xl font-black uppercase">LexiMaster</h1>
             </div>
-            <h2 className="text-2xl font-black uppercase text-teal-600">Teacher Registration</h2>
-            <p className="mt-2 font-medium text-gray-600">Create your classroom account</p>
+            <h2 className="text-2xl font-black uppercase text-teal-600">{t('auth.teacherRegistration')}</h2>
+            <p className="mt-2 font-medium text-gray-600">{t('auth.createClassroomAccount')}</p>
           </div>
           <form onSubmit={handleSubmit} className="space-y-6">
             <BrutalInput
-              label="Full Name"
+              label={t('common.fullName')}
               type="text"
               required
               value={formData.fullName}
@@ -57,7 +59,7 @@ const TeacherRegister = () => {
               data-testid="teacher-name-input"
             />
             <BrutalInput
-              label="Email Address"
+              label={t('common.email')}
               type="email"
               required
               value={formData.email}
@@ -66,7 +68,7 @@ const TeacherRegister = () => {
               data-testid="teacher-email-input"
             />
             <BrutalInput
-              label="Password"
+              label={t('common.password')}
               type="password"
               required
               value={formData.password}
@@ -75,7 +77,7 @@ const TeacherRegister = () => {
               data-testid="teacher-password-input"
             />
             <BrutalInput
-              label="Confirm Password"
+              label={t('common.confirmPassword')}
               type="password"
               required
               value={formData.confirmPassword}
@@ -84,12 +86,12 @@ const TeacherRegister = () => {
               data-testid="teacher-confirm-password-input"
             />
             <BrutalButton type="submit" variant="emerald" fullWidth disabled={loading} data-testid="teacher-register-submit">
-              {loading ? 'Creating Account...' : 'Create Teacher Account'}
+              {loading ? t('common.creatingAccount') : t('auth.createTeacherAccount')}
             </BrutalButton>
             <div className="text-center">
               <p className="font-medium">
-                Already have an account?{' '}
-                <Link to="/teacher-login" className="text-teal-600 font-bold hover:underline">Login here</Link>
+                {t('common.hasAccount')}{' '}
+                <Link to="/teacher-login" className="text-teal-600 font-bold hover:underline">{t('common.loginHere')}</Link>
               </p>
             </div>
           </form>

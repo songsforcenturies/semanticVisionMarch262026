@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { donationAPI } from '@/lib/api';
 import { useNavigate } from 'react-router-dom';
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput } from '@/components/brutal';
 import { Heart, BookOpen, Users, DollarSign, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const PRESET_AMOUNTS = [5, 10, 20, 50, 100];
 
 const DonatePage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
 
@@ -21,10 +24,10 @@ const DonatePage = () => {
     const status = params.get('status');
     const sessionId = params.get('session_id');
     if (status === 'success' && sessionId) {
-      toast.success('Thank you for your generous donation!');
+      toast.success(t('donate.donationSuccess'));
       window.history.replaceState({}, '', '/donate');
     } else if (status === 'cancelled') {
-      toast.error('Donation was cancelled');
+      toast.error(t('donate.donationCancelled'));
       window.history.replaceState({}, '', '/donate');
     }
   }, []);
@@ -41,12 +44,12 @@ const DonatePage = () => {
         window.location.href = res.data.url;
       }
     },
-    onError: (err) => toast.error(err.response?.data?.detail || 'Donation failed'),
+    onError: (err) => toast.error(err.response?.data?.detail || t('donate.donationFailed')),
   });
 
   const handleDonate = () => {
     const amt = parseFloat(amount);
-    if (!amt || amt < 1) { toast.error('Minimum donation is $1'); return; }
+    if (!amt || amt < 1) { toast.error(t('donate.minDonation')); return; }
     donateMutation.mutate({ amount: amt, message, origin_url: window.location.origin });
   };
 
