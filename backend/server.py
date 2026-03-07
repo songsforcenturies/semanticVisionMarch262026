@@ -25,6 +25,7 @@ from models import (
     Coupon, CouponType, CouponRedemption, AdminSubscriptionPlan,
     Referral, Donation, generate_referral_code,
     Brand, BrandProduct, BrandImpression, ClassroomSponsorship, BrandCampaign,
+    TargetRegion,
 )
 from auth import (
     get_password_hash, verify_password, create_access_token,
@@ -46,6 +47,12 @@ app = FastAPI(title="LexiMaster API", version="1.0.0")
 
 # Create router with /api prefix
 api_router = APIRouter(prefix="/api")
+
+# Serve uploaded files
+from fastapi.staticfiles import StaticFiles
+_upload_root = Path(__file__).parent / "uploads"
+_upload_root.mkdir(parents=True, exist_ok=True)
+app.mount("/api/uploads", StaticFiles(directory=str(_upload_root)), name="uploads")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -872,7 +879,11 @@ async def create_narrative(narrative_data: NarrativeCreate):
                 brand_cats = b.get("target_categories", [])
                 if any(c in blocked for c in brand_cats):
                     continue
-                brand_placements.append({"id": b["id"], "name": b["name"], "products": b.get("products", [])})
+                brand_placements.append({
+                    "id": b["id"], "name": b["name"], "products": b.get("products", []),
+                    "problem_statement": b.get("problem_statement", ""),
+                    "logo_url": b.get("logo_url", ""),
+                })
                 if len(brand_placements) >= 2:
                     break
         
@@ -3044,7 +3055,7 @@ def get_current_brand_partner(current_user: dict = Depends(get_current_user)):
 
 @api_router.get("/brand-portal/profile")
 async def get_brand_partner_profile(current_user: dict = Depends(get_current_brand_partner)):
-    """Get brand partner profile with linked brand info"""
+    """Get brand partner profile with linked brand info. Auto-creates brand if none linked."""
     user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0, "password_hash": 0})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -3052,6 +3063,16 @@ async def get_brand_partner_profile(current_user: dict = Depends(get_current_bra
     brand = None
     if user.get("linked_brand_id"):
         brand = await db.brands.find_one({"id": user["linked_brand_id"]}, {"_id": 0})
+
+    # Auto-create a brand if none linked yet
+    if not brand:
+        new_brand = Brand(
+            name=user.get("full_name", "My Brand"),
+            created_by=user["id"],
+        )
+        await db.brands.insert_one(new_brand.model_dump())
+        await db.users.update_one({"id": user["id"]}, {"$set": {"linked_brand_id": new_brand.id}})
+        brand = new_brand.model_dump()
 
     return {
         "user": {
@@ -3063,13 +3084,193 @@ async def get_brand_partner_profile(current_user: dict = Depends(get_current_bra
     }
 
 
+
+# ==================== BRAND PORTAL: PROFILE UPDATE ====================
+
+class BrandProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    website: Optional[str] = None
+    description: Optional[str] = None
+    problem_statement: Optional[str] = None
+    target_categories: Optional[list] = None
+    target_ages: Optional[list] = None
+    target_regions: Optional[list] = None
+    target_languages: Optional[list] = None
+    onboarding_completed: Optional[bool] = None
+
+
+@api_router.put("/brand-portal/profile")
+async def update_brand_profile(data: BrandProfileUpdate, current_user: dict = Depends(get_current_brand_partner)):
+    """Update brand profile (problem statement, targeting, etc.)"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    brand_id = user.get("linked_brand_id")
+    if not brand_id:
+        raise HTTPException(status_code=400, detail="No brand linked to your account")
+
+    update_data = {}
+    for k, v in data.model_dump().items():
+        if v is not None:
+            if k == "target_regions":
+                update_data[k] = [TargetRegion(**r).model_dump() if isinstance(r, dict) else r for r in v]
+            else:
+                update_data[k] = v
+
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    result = await db.brands.update_one({"id": brand_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Brand not found")
+
+    updated_brand = await db.brands.find_one({"id": brand_id}, {"_id": 0})
+    return updated_brand
+
+
+# ==================== BRAND PORTAL: LOGO UPLOAD ====================
+
+from fastapi import UploadFile, File
+
+# Ensure uploads directory exists
+UPLOAD_DIR = Path(__file__).parent / "uploads" / "logos"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+MAX_LOGO_SIZE = 10 * 1024 * 1024  # 10MB
+
+
+@api_router.post("/brand-portal/logo-upload")
+async def upload_brand_logo(file: UploadFile = File(...), current_user: dict = Depends(get_current_brand_partner)):
+    """Upload brand logo (max 10MB, images only)"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    brand_id = user.get("linked_brand_id")
+    if not brand_id:
+        raise HTTPException(status_code=400, detail="No brand linked to your account")
+
+    # Validate file type
+    allowed_types = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/svg+xml"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail=f"Invalid file type. Allowed: PNG, JPG, WebP, SVG")
+
+    # Read and validate size
+    contents = await file.read()
+    if len(contents) > MAX_LOGO_SIZE:
+        raise HTTPException(status_code=400, detail="File too large. Maximum size is 10MB")
+
+    # Save file
+    import uuid as _uuid
+    ext = file.filename.split(".")[-1] if "." in file.filename else "png"
+    filename = f"{brand_id}_{_uuid.uuid4().hex[:8]}.{ext}"
+    file_path = UPLOAD_DIR / filename
+
+    with open(file_path, "wb") as f:
+        f.write(contents)
+
+    logo_url = f"/api/uploads/logos/{filename}"
+    await db.brands.update_one({"id": brand_id}, {"$set": {"logo_url": logo_url}})
+
+    return {"logo_url": logo_url, "filename": filename}
+
+
+# ==================== BRAND PORTAL: PRODUCT CRUD ====================
+
+class ProductCreate(BaseModel):
+    name: str
+    description: str = ""
+    category: str = ""
+
+
+class ProductUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+
+
+@api_router.get("/brand-portal/products")
+async def list_brand_products(current_user: dict = Depends(get_current_brand_partner)):
+    """List all products for the brand"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    brand_id = user.get("linked_brand_id")
+    if not brand_id:
+        return []
+    brand = await db.brands.find_one({"id": brand_id}, {"_id": 0})
+    return brand.get("products", []) if brand else []
+
+
+@api_router.post("/brand-portal/products")
+async def add_brand_product(data: ProductCreate, current_user: dict = Depends(get_current_brand_partner)):
+    """Add a product to the brand"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    brand_id = user.get("linked_brand_id")
+    if not brand_id:
+        raise HTTPException(status_code=400, detail="No brand linked")
+
+    product = BrandProduct(name=data.name, description=data.description, category=data.category)
+    await db.brands.update_one({"id": brand_id}, {"$push": {"products": product.model_dump()}})
+
+    return product.model_dump()
+
+
+@api_router.put("/brand-portal/products/{product_id}")
+async def update_brand_product(product_id: str, data: ProductUpdate, current_user: dict = Depends(get_current_brand_partner)):
+    """Update a specific product"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    brand_id = user.get("linked_brand_id")
+    if not brand_id:
+        raise HTTPException(status_code=400, detail="No brand linked")
+
+    brand = await db.brands.find_one({"id": brand_id}, {"_id": 0})
+    if not brand:
+        raise HTTPException(status_code=404, detail="Brand not found")
+
+    products = brand.get("products", [])
+    updated = False
+    for p in products:
+        if p.get("id") == product_id:
+            if data.name is not None:
+                p["name"] = data.name
+            if data.description is not None:
+                p["description"] = data.description
+            if data.category is not None:
+                p["category"] = data.category
+            updated = True
+            break
+
+    if not updated:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    await db.brands.update_one({"id": brand_id}, {"$set": {"products": products}})
+    return {"message": "Product updated"}
+
+
+@api_router.delete("/brand-portal/products/{product_id}")
+async def delete_brand_product(product_id: str, current_user: dict = Depends(get_current_brand_partner)):
+    """Delete a product from the brand"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    brand_id = user.get("linked_brand_id")
+    if not brand_id:
+        raise HTTPException(status_code=400, detail="No brand linked")
+
+    brand = await db.brands.find_one({"id": brand_id}, {"_id": 0})
+    if not brand:
+        raise HTTPException(status_code=404, detail="Brand not found")
+
+    products = [p for p in brand.get("products", []) if p.get("id") != product_id]
+    await db.brands.update_one({"id": brand_id}, {"$set": {"products": products}})
+    return {"message": "Product deleted"}
+
+
+
 @api_router.get("/brand-portal/dashboard")
 async def get_brand_dashboard(current_user: dict = Depends(get_current_brand_partner)):
     """Get brand partner dashboard data"""
     user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
     brand_id = user.get("linked_brand_id")
+
+    # Auto-create brand if none linked
     if not brand_id:
-        return {"brand": None, "campaigns": [], "impressions": [], "stats": {}}
+        new_brand = Brand(name=user.get("full_name", "My Brand"), created_by=user["id"])
+        await db.brands.insert_one(new_brand.model_dump())
+        await db.users.update_one({"id": user["id"]}, {"$set": {"linked_brand_id": new_brand.id}})
+        brand_id = new_brand.id
 
     brand = await db.brands.find_one({"id": brand_id}, {"_id": 0})
 

@@ -566,9 +566,17 @@ class Donation(MongoBaseModel):
 # ==================== BRAND SPONSORSHIP MODELS ====================
 
 class BrandProduct(BaseModel):
+    id: str = Field(default_factory=generate_uuid)
     name: str
     description: str = ""
     category: str = ""
+
+
+class TargetRegion(BaseModel):
+    country: str = ""
+    state: str = ""
+    city: str = ""
+    zip_code: str = ""
 
 
 class Brand(MongoBaseModel):
@@ -577,15 +585,19 @@ class Brand(MongoBaseModel):
     logo_url: str = ""
     website: str = ""
     description: str = ""
+    problem_statement: str = ""  # The problem this brand solves
     products: List[BrandProduct] = Field(default_factory=list)
     target_ages: List[int] = Field(default_factory=list)
     target_categories: List[str] = Field(default_factory=list)
+    target_regions: List[TargetRegion] = Field(default_factory=list)
+    target_languages: List[str] = Field(default_factory=list)
     budget_total: float = 0.0
     budget_spent: float = 0.0
     cost_per_impression: float = 0.05
     is_active: bool = True
     total_impressions: int = 0
     total_stories: int = 0
+    onboarding_completed: bool = False
     created_by: str = ""
     created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 

@@ -150,12 +150,19 @@ LANGUAGE: Write the ENTIRE story in {language}. All chapter titles, content, and
             for bp in brand_placements:
                 products = bp.get("products", [])
                 prod_names = [p.get("name", "") for p in products if p.get("name")]
+                problem = bp.get("problem_statement", "")
+                logo = bp.get("logo_url", "")
+                desc = f"- {bp['name']}"
+                if problem:
+                    desc += f" (solves: {problem})"
                 if prod_names:
-                    brand_items.append(f"- {bp['name']}: products include {', '.join(prod_names)}")
-                else:
-                    brand_items.append(f"- {bp['name']}")
+                    desc += f" — products: {', '.join(prod_names)}"
+                if logo:
+                    desc += f" [logo: {logo}]"
+                brand_items.append(desc)
             brand_section = f"""
 BRAND INTEGRATION: Naturally weave these brands into the story as helpful solutions to problems the characters face.
+Focus on how each brand's products solve a real problem relevant to the story.
 Make brand mentions feel organic and educational, not like advertisements.
 {chr(10).join(brand_items)}
 Include 1-2 natural brand mentions across the story where they solve a problem or help the character learn."""
