@@ -81,6 +81,7 @@ const BrandPortal = () => {
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'brand-profile', label: 'Brand Profile', icon: Building2 },
     { id: 'products', label: 'Products', icon: Package },
+    { id: 'coupons', label: 'Coupons', icon: CreditCard },
     { id: 'campaigns', label: 'Campaigns', icon: Megaphone },
     { id: 'budget', label: 'Budget', icon: DollarSign },
     { id: 'impressions', label: 'Analytics', icon: Eye },
@@ -153,6 +154,7 @@ const BrandPortal = () => {
         {activeTab === 'dashboard' && <DashboardTab brand={brand} stats={stats} campaigns={campaigns} dashboard={dashboard} />}
         {activeTab === 'brand-profile' && <BrandProfileTab brand={brand} queryClient={queryClient} />}
         {activeTab === 'products' && <ProductsTab brand={brand} queryClient={queryClient} />}
+        {activeTab === 'coupons' && <BrandCouponsTab queryClient={queryClient} />}
         {activeTab === 'campaigns' && <CampaignsTab brand={brand} campaigns={campaigns} notApproved={notApproved} queryClient={queryClient} />}
         {activeTab === 'budget' && <BudgetTab stats={stats} />}
         {activeTab === 'impressions' && <AnalyticsTab brand={brand} stats={stats} dashboard={dashboard} />}
@@ -640,6 +642,115 @@ const ProductsTab = ({ brand, queryClient }) => {
           ))}
         </div>
       )}
+    </div>
+  );
+};
+
+
+// ==================== BRAND COUPONS TAB ====================
+const BrandCouponsTab = ({ queryClient }) => {
+  const [form, setForm] = useState({ code: '', value: '', expires_at: '', description: '' });
+
+  const { data: coupons = [], isLoading } = useQuery({
+    queryKey: ['brand-coupons'],
+    queryFn: async () => (await brandPortalAPI.getCoupons()).data,
+  });
+
+  const createMut = useMutation({
+    mutationFn: (data) => brandPortalAPI.createCoupon(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['brand-coupons']);
+      toast.success('Coupon created!');
+      setForm({ code: '', value: '', expires_at: '', description: '' });
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed'),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (id) => brandPortalAPI.deleteCoupon(id),
+    onSuccess: () => { queryClient.invalidateQueries(['brand-coupons']); toast.success('Coupon deleted'); },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed'),
+  });
+
+  return (
+    <div className="space-y-6" data-testid="coupons-tab">
+      <BrutalCard shadow="lg">
+        <h3 className="text-xl font-black uppercase mb-4 flex items-center gap-2">
+          <PlusCircle size={22} /> Create Coupon
+        </h3>
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          createMut.mutate({
+            code: form.code, value: parseFloat(form.value) || 0,
+            expires_at: form.expires_at || null, description: form.description,
+          });
+        }} className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <BrutalInput label="Coupon Code" value={form.code}
+              onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
+              placeholder="e.g. SAVE20" data-testid="coupon-code-input" />
+            <div>
+              <label className="block font-bold text-sm uppercase mb-2">Discount %</label>
+              <div className="flex items-center gap-2">
+                <input type="number" min="1" max="100" value={form.value}
+                  onChange={(e) => setForm({ ...form, value: e.target.value })}
+                  className="flex-1 border-4 border-black px-4 py-3 font-bold text-xl"
+                  placeholder="20" data-testid="coupon-value-input" />
+                <span className="text-2xl font-black">%</span>
+              </div>
+            </div>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <BrutalInput label="Description" value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder="Summer sale discount" data-testid="coupon-desc-input" />
+            <BrutalInput label="Expires (optional)" type="date" value={form.expires_at}
+              onChange={(e) => setForm({ ...form, expires_at: e.target.value })}
+              data-testid="coupon-expires-input" />
+          </div>
+          <BrutalButton type="submit" variant="amber" disabled={!form.code || !form.value || createMut.isPending}
+            data-testid="create-coupon-btn">
+            {createMut.isPending ? 'Creating...' : 'Create Coupon'}
+          </BrutalButton>
+        </form>
+      </BrutalCard>
+
+      <BrutalCard shadow="lg">
+        <h3 className="text-xl font-black uppercase mb-4">My Coupons ({coupons.length})</h3>
+        {coupons.length === 0 ? (
+          <div className="text-center py-8">
+            <CreditCard size={40} className="mx-auto text-gray-300 mb-3" />
+            <p className="font-bold text-gray-500">No coupons yet</p>
+            <p className="text-sm text-gray-400">Create discount coupons for your audience.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {coupons.map((c) => (
+              <div key={c.id} className="border-4 border-black p-4 flex items-center justify-between bg-white"
+                data-testid={`coupon-${c.id}`}>
+                <div>
+                  <div className="flex items-center gap-3 mb-1">
+                    <code className="bg-amber-100 border-2 border-black px-3 py-1 font-black text-lg">{c.code}</code>
+                    <BrutalBadge variant={c.is_active ? 'emerald' : 'rose'} size="sm">
+                      {c.is_active ? 'ACTIVE' : 'INACTIVE'}
+                    </BrutalBadge>
+                    <span className="text-2xl font-black text-amber-600">{c.value}% OFF</span>
+                  </div>
+                  {c.description && <p className="text-sm text-gray-600">{c.description}</p>}
+                  <p className="text-xs text-gray-400 mt-1">
+                    Used: {c.uses_count} times | {c.max_uses === 0 ? 'Unlimited' : `Max: ${c.max_uses}`}
+                    {c.expires_at && ` | Expires: ${new Date(c.expires_at).toLocaleDateString()}`}
+                  </p>
+                </div>
+                <BrutalButton variant="rose" size="sm" onClick={() => deleteMut.mutate(c.id)}
+                  data-testid={`delete-coupon-${c.id}`}>
+                  <Trash2 size={14} />
+                </BrutalButton>
+              </div>
+            ))}
+          </div>
+        )}
+      </BrutalCard>
     </div>
   );
 };

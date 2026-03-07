@@ -2386,8 +2386,8 @@ async def redeem_coupon(data: RedeemCouponRequest, current_user: dict = Depends(
         if exp < datetime.now(timezone.utc):
             raise HTTPException(status_code=400, detail="Coupon has expired")
 
-    # Check usage limit
-    if coupon["uses_count"] >= coupon["max_uses"]:
+    # Check usage limit (0 = unlimited)
+    if coupon["max_uses"] > 0 and coupon["uses_count"] >= coupon["max_uses"]:
         raise HTTPException(status_code=400, detail="Coupon usage limit reached")
 
     # Check if user already redeemed
@@ -2452,6 +2452,18 @@ async def redeem_coupon(data: RedeemCouponRequest, current_user: dict = Depends(
             )
         message = f"{int(value)} free days of premium access activated!"
 
+    elif coupon_type == "percentage_discount":
+        # Store the discount percentage for the user's next applicable purchase
+        discount_pct = min(value, 100)
+        await db.users.update_one(
+            {"id": current_user["id"]},
+            {"$set": {"active_discount": {"percentage": discount_pct, "coupon_code": code, "coupon_id": coupon["id"]}}}
+        )
+        if discount_pct >= 100:
+            message = f"100% discount applied! Your next purchase is free."
+        else:
+            message = f"{int(discount_pct)}% discount applied to your account!"
+
     else:
         raise HTTPException(status_code=400, detail="Unknown coupon type")
 
@@ -2469,6 +2481,116 @@ async def redeem_coupon(data: RedeemCouponRequest, current_user: dict = Depends(
     await db.coupons.update_one({"id": coupon["id"]}, {"$inc": {"uses_count": 1}})
 
     return {"message": message, "coupon_type": coupon_type, "value": value}
+
+
+
+# ==================== BRAND COUPON MANAGEMENT ====================
+
+def get_current_brand_partner(current_user: dict = Depends(get_current_user)):
+    """Verify user is an approved brand partner"""
+    if current_user.get("role") != "brand_partner":
+        raise HTTPException(status_code=403, detail="Brand partner access required")
+    return current_user
+
+
+class BrandCouponCreate(BaseModel):
+    code: str
+    coupon_type: str = "percentage_discount"
+    value: float  # percentage (0-100)
+    expires_at: Optional[str] = None
+    description: str = ""
+
+
+@api_router.get("/brand-portal/coupons")
+async def list_brand_coupons(current_user: dict = Depends(get_current_brand_partner)):
+    """List coupons created by this brand"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    brand_id = user.get("linked_brand_id", "")
+    coupons = await db.coupons.find(
+        {"created_by_brand_id": brand_id}, {"_id": 0}
+    ).sort("created_date", -1).to_list(100)
+    return coupons
+
+
+@api_router.post("/brand-portal/coupons")
+async def create_brand_coupon(data: BrandCouponCreate, current_user: dict = Depends(get_current_brand_partner)):
+    """Brand creates a discount coupon"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    brand_id = user.get("linked_brand_id", "")
+    if not brand_id:
+        raise HTTPException(status_code=400, detail="No brand linked")
+
+    if data.value < 0 or data.value > 100:
+        raise HTTPException(status_code=400, detail="Discount must be between 0 and 100 percent")
+
+    existing = await db.coupons.find_one({"code": data.code.upper()})
+    if existing:
+        raise HTTPException(status_code=400, detail="Coupon code already exists")
+
+    coupon = Coupon(
+        code=data.code.upper(),
+        coupon_type=CouponType.PERCENTAGE_DISCOUNT,
+        value=data.value,
+        max_uses=0,  # unlimited
+        expires_at=datetime.fromisoformat(data.expires_at) if data.expires_at else None,
+        created_by=current_user["id"],
+        created_by_brand_id=brand_id,
+        description=data.description,
+    )
+    await db.coupons.insert_one(coupon.model_dump())
+    result = coupon.model_dump()
+    return result
+
+
+@api_router.delete("/brand-portal/coupons/{coupon_id}")
+async def delete_brand_coupon(coupon_id: str, current_user: dict = Depends(get_current_brand_partner)):
+    """Brand deletes one of their coupons"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    brand_id = user.get("linked_brand_id", "")
+    result = await db.coupons.delete_one({"id": coupon_id, "created_by_brand_id": brand_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Coupon not found or not yours")
+    return {"message": "Coupon deleted"}
+
+
+# ==================== ADMIN: ADD CREDITS TO ANY USER ====================
+
+class AdminAddCredits(BaseModel):
+    user_id: str
+    amount: float
+    description: str = ""
+
+
+@api_router.post("/admin/users/{user_id}/add-credits")
+async def admin_add_credits(user_id: str, data: AdminAddCredits, current_user: dict = Depends(get_current_user)):
+    """Admin adds wallet credits to any user account"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    old_balance = user.get("wallet_balance", 0.0)
+    new_balance = round(old_balance + data.amount, 2)
+
+    await db.users.update_one({"id": user_id}, {"$set": {"wallet_balance": new_balance}})
+
+    # Record transaction
+    txn = WalletTransaction(
+        user_id=user_id,
+        type=WalletTransactionType.COUPON,
+        amount=data.amount,
+        description=data.description or f"Admin credit: +${data.amount:.2f}",
+        reference_id=f"admin_{current_user['id']}",
+        balance_after=new_balance,
+    )
+    await db.wallet_transactions.insert_one(txn.model_dump())
+
+    return {
+        "message": f"${data.amount:.2f} added to {user['full_name']} wallet",
+        "new_balance": new_balance,
+    }
 
 
 # ==================== ADMIN DELEGATION ROUTES ====================
@@ -3394,13 +3516,6 @@ async def get_active_brands_for_student(student_id: str, current_user: dict = De
 
 
 # ==================== BRAND PARTNER PORTAL ====================
-
-def get_current_brand_partner(current_user: dict = Depends(get_current_user)):
-    """Verify user is an approved brand partner"""
-    if current_user.get("role") != "brand_partner":
-        raise HTTPException(status_code=403, detail="Brand partner access required")
-    return current_user
-
 
 @api_router.get("/brand-portal/profile")
 async def get_brand_partner_profile(current_user: dict = Depends(get_current_brand_partner)):

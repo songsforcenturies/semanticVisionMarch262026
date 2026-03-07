@@ -163,6 +163,7 @@ export const adminAPI = {
   resetPassword: (id) => apiClient.post(`/admin/users/${id}/reset-password`),
   deactivateUser: (id) => apiClient.post(`/admin/users/${id}/deactivate`),
   deleteUser: (id) => apiClient.delete(`/admin/users/${id}`),
+  addCredits: (id, data) => apiClient.post(`/admin/users/${id}/add-credits`, data),
 };
 
 // ==================== WALLET API ====================
@@ -230,6 +231,9 @@ export const brandPortalAPI = {
   getStoryPreview: () => apiClient.get('/brand-portal/story-preview'),
   generateStoryPreview: () => apiClient.post('/brand-portal/story-preview'),
   getAnalytics: () => apiClient.get('/brand-portal/analytics'),
+  getCoupons: () => apiClient.get('/brand-portal/coupons'),
+  createCoupon: (data) => apiClient.post('/brand-portal/coupons', data),
+  deleteCoupon: (id) => apiClient.delete(`/brand-portal/coupons/${id}`),
 };
 
 export default apiClient;

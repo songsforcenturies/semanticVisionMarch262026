@@ -1,60 +1,79 @@
 <analysis>**original_problem_statement:**
-The user requested to build LexiMaster, a high-quality educational platform for students, guardians, and teachers, focusing on vocabulary building and character education through AI-generated stories. The project has evolved significantly through user feedback to include a multi-role system (Guardian, Teacher, Student, Admin, Brand Partner), a comprehensive wallet and payment system, advanced administrative controls for billing and content, a brand sponsorship model, and a self-service portal for brand partners.
+The user requested to build LexiMaster, a high-quality educational platform for students, guardians, and teachers, focusing on vocabulary building and character education through AI-generated stories. The project has evolved significantly through user feedback to include a multi-role system (Guardian/Parent/School, Teacher, Student, Admin, Brand Partner), a comprehensive wallet and payment system, advanced administrative controls for billing and content, a brand sponsorship model, and a self-service portal for brand partners.
 
 **PRODUCT REQUIREMENTS:**
-- **Core Platform:** A full-stack application with distinct portals for Guardians, Teachers, Students, Admins, and Brand Partners.
-- **Student Experience:** AI-powered story generation personalized with virtues, belief systems, culture, and language. Includes AI-evaluated written assessments, a story reader with click-to-define words, and an automated reading timer.
-- **Guardian Portal:** Full CRUD management for student profiles, including setting spelling controls, ad preferences, and story personalization settings. Access to a marketplace for word banks, a wallet for managing funds, and a referral system.
-- **Teacher Portal:** Management of classroom sessions with real-time student tracking.
-- **Admin Portal:** A super-user dashboard to manage system-wide settings, user roles, AI provider configuration, cost tracking, coupon and subscription plans, and brand sponsorship.
-- **Brand & Monetization System:** A complete ecosystem for brands to be woven into stories as a revenue source. This includes a self-service Brand Partner Portal for campaign management, product management, geo-targeting, and analytics. The system should embed brand logos and problem-solving narratives into stories.
-- **Payment System:** A wallet-based system where users can add funds via Stripe and redeem coupons.
+- **Core Platform:** A full-stack application with distinct portals for all user roles.
+- **User Roles & Renaming:** The Guardian role has been renamed to Parent / School throughout the UI.
+- **Admin Portal:** A super-user dashboard to manage system-wide settings, user roles (including create, edit, delete, deactivate, and password reset), AI provider configuration, cost tracking, and brand sponsorship. Admins can also add credits to any user's wallet and toggle features like parent-created word banks.
+- **Brand & Monetization System:** A complete ecosystem for brands to be woven into stories. Includes a self-service Brand Partner Portal for campaign management, product management, logo uploads, geo-targeting, analytics, and self-service coupon creation.
+- **Payment System:** A wallet-based system where users can add funds via Stripe and redeem coupons. The user has requested to add Cash App, Zelle, Venmo, and PayPal.
+- **Authentication:** JWT-based auth with email verification and a Forgot Password flow using Resend for sending reset codes.
 
 **User's preferred language**: English
 
 **what currently exists?**
-A mature full-stack application, LexiMaster, with a FastAPI/MongoDB backend and a React/TypeScript frontend. The platform implements distinct portals for all user roles. It features a working wallet system with Stripe, a referral program, a donation page, and extensive admin controls. The entire user interface now supports 20 languages via a language-switcher component. A recent bug preventing users from accessing their portals after login has been fixed. The agent was about to begin a major overhaul of the Brand Partner Portal based on new, detailed user requirements.
+A mature full-stack application, LexiMaster, with a FastAPI/MongoDB backend and a React/TypeScript frontend. The platform features robust portals for all user roles, a working wallet system, extensive admin controls, a sophisticated brand analytics dashboard, and a Forgot Password system using Resend. However, a critical and recurring bug is preventing Parent/School users from logging in, as they are immediately redirected back to the login page. The agent has made multiple unsuccessful attempts to fix this.
 
 **Last working item**:
--   **Last item agent was working:** The agent was in the initial planning phase for a complete redesign of the Brand Partner Portal. The user has requested a more sophisticated system where brands can define the problem they solve, manage a list of their products, upload a logo (max 10MB), and specify marketing regions (country, state, city, zip). The goal is to integrate the brand's problem-solving narrative and logo directly into AI-generated stories. The agent had just started by reviewing the existing  and  to understand the current implementation.
--   **Status:** IN PROGRESS
+-   **Last item agent was working:** The agent had just started implementing a new feature requested by the user: an admin-controlled toggle switch to enable or disable the ability for Parent / School users to create their own word banks. The agent was in the initial code exploration phase.
+-   **Status:** NOT STARTED
 -   **Agent Testing Done:** N
 -   **Which testing method agent to use?** both
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
-There are no pending bugs. The only in-progress item is the Brand Partner Portal redesign task.
+-   **Issue 1: Critical Login Failure for Parent/School Role (P0)**
+    -   **Description:** When a user with the Parent / School role logs in, they are immediately redirected back to the login page, creating an infinite loop that blocks access to their portal. This is a recurring, high-priority bug. The user  is also affected.
+    -   **Attempted fixes:** The agent has tried several fixes, including:
+        1.  Correcting role-based navigation logic in the login components.
+        2.  Making the  component more robust by adding a  check as a fallback for the React context.
+        3.  Modifying the  401 interceptor to prevent it from clearing auth during the login process itself.
+        None of these fixes have resolved the underlying issue for the user.
+    -   **Next debug checklist:**
+        -   **Frontend:**
+            -   : Re-examine the  401 interceptor. The redirect () is the direct cause. The trigger needs to be found.
+            -   : The logic might still have a race condition.
+            -   : Check the initial API calls made by this component and its child tabs (e.g., ). One of these calls is likely returning the 401 that triggers the redirect.
+            -   **Browser Dev Tools:** Use the browser's developer tools on the user's side (or by impersonating them) to watch the Network tab for the exact API request that fails with a 401 status. Check the console for any related errors.
+        -   **Backend:**
+            -   : Review the authentication dependencies () on all endpoints called immediately after a parent logs in (e.g., ). Ensure the token is being correctly validated for these specific routes.
+    -   **Why fix this issue and what will be achieved with the fix?** This is a critical blocker preventing an entire user segment from using the application. Fixing it will restore core functionality.
+    -   **Status:** IN PROGRESS
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?** both
+    -   **Blocked on other issue:** None. This is the primary blocker.
 
 **In progress Task List**:
--   **Task 1:** P0: Redesign and Enhance the Brand Partner Portal
-    -   **Where to resume:** The agent has reviewed the backend code. The next step is to design and implement the necessary changes. This involves:
-        1.  Modifying the backend  to include new fields for brands (, , , ) and creating a new model for brand .
-        2.  Creating new FastAPI endpoints in  for logo uploads (handling multipart/form-data with a 10MB limit), and for CRUD operations on brand products.
-        3.  Overhauling the frontend Brand Portal to create a simple, step-by-step onboarding flow for brands to input this new information.
-        4.  Updating the story generation logic to incorporate the brand's problem-solving narrative, logo, and products into the stories.
-    -   **What will be achieved with this?** A more sophisticated and valuable brand integration system that moves beyond simple advertising to embed relevant brand solutions within the educational narratives.
-    -   **Status:** IN PROGRESS
+-   **Task 1: Implement Admin Toggle for Parent-Created Word Banks (P1)**
+    -   **Where to resume:** The agent has only viewed the relevant code. The next step is to add a new boolean field (e.g., ) to a system settings collection in the DB, create an admin endpoint to toggle it, and then protect the word bank creation feature in the Parent Portal based on this flag.
+    -   **What will be achieved with this?** Admins will gain granular control over platform features, as requested.
+    -   **Status:** NOT STARTED
     -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on something:** None
+    -   **Blocked on something:** Blocked by the critical login bug (Issue 1).
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **P1: Propose Critical Refactoring:** The  file has become a large monolith. Propose a refactoring task to the user to break it into a modular structure using FastAPI's  to improve maintainability.
-    -   **P2: Accessibility Features:** Research and implement features to make the platform accessible for users who are deaf (e.g., text-to-sign-language AI, enhanced visual cues).
+    -   **P1: Finalize and Verify Coupon & Credit System:** The agent implemented a large feature for brands to create percentage-based coupons and for admins to add credits to user wallets. While the agent's self-tests passed, this feature has not been user-verified and should be reviewed now that the login bug is the priority.
+    -   **P2: Implement New Payment Gateways:** Integrate Cash App, Zelle, Venmo, and PayPal as requested by the user. This will require using the  subagent.
+    -   **P3: Propose Critical Backend Refactoring:** The  file is a large monolith. Propose a refactoring task to the user to break it into a modular structure using FastAPI's .
+
 -   **Future Tasks:**
-    -   **Expand Payment Integrations:** Implement additional payment gateways like PayPal, Google/Apple Pay, and CashApp/Venmo.
+    -   **Accessibility Features:** Research and implement features for deaf users (e.g., text-to-sign-language AI).
     -   **Granular Admin Analytics:** Expand the admin statistics dashboard to track more metrics.
 
 **Completed work in this session**
--   **Feature: Multi-lingual Support:** Integrated  and  to provide UI translations for 20 languages. A  component was added to the header, and language preference is persisted in . The feature was fully tested with the testing agent.
--   **Bug Fix: Login Redirection Failure:** Resolved a critical bug where users were redirected back to the homepage after login instead of their respective portals. The issue was traced to incorrect navigation paths in the  and  components, which were promptly corrected.
--   **Verification: Brand Partner Portal:** Confirmed the functionality of the existing Brand Partner Portal before starting new feature development.
+-   **Feature: Brand Partner Portal Overhaul:** Redesigned the portal with a step-by-step onboarding flow for brands to define their problem statement, manage products, upload a logo, and set target regions.
+-   **Feature: Brand Story Preview:** Implemented a feature for brands to see an AI-generated preview of how their brand will be integrated into a story, with caching to prevent regeneration.
+-   **Feature: Advanced Brand Analytics:** Built a comprehensive analytics dashboard for brands using Recharts, showing impressions, cost, campaign performance, and top products.
+-   **Feature: Admin User Management:** Implemented full CRUD functionality for user management in the Admin Portal, including creating users with temporary passwords, editing, deactivating, deleting, and resetting passwords.
+-   **Feature: Forgot Password Flow:** Integrated Resend to create a complete Forgot Password workflow with 6-digit codes sent via email.
+-   **Refactor: Guardian to Parent / School Renaming:** Renamed the Guardian role to Parent / School across the entire application UI, including translation files.
 
 **Earlier issues found/mentioned but not fixed**
-None.
+-   The critical login bug for Parent/School users remains unresolved despite multiple attempts.
 
 **Known issue recurrence from previous fork**
-None.
+None from the previous fork, but the login bug has become a recurring issue within this session.
 
 **Code Architecture**
 
@@ -62,82 +81,88 @@ None.
 **Key Technical Concepts**
 -   **Backend:** FastAPI, Pydantic, Motor (async MongoDB), JWT, WebSockets.
 -   **Frontend:** React 18, TypeScript, Tailwind CSS, Shadcn/UI, React Router, React Query, Axios.
--   **Internationalization:** ,  for UI translations.
--   **AI:** OpenAI API (via Emergent LLM Key), OpenRouter API (via user key).
--   **Payments:** Stripe API for checkout sessions and webhooks.
+-   **Email:** Resend API for transactional emails (password reset).
+-   **Analytics:** Recharts for data visualization on the brand dashboard.
+-   **Internationalization:** .
 
 **key DB schema**
 -   **User:** 
--   **Student:** 
--   **Brand:**  (Fields in italics are to be added)
--   **Product:** 
--   **Campaign:** 
--   **WalletTransaction:** 
+-   **Brand:** 
+-   **Coupon:** 
 
 **changes in tech stack**
--   Frontend: Added  and  for internationalization.
+-   **Backend:** Added  dependency.
+-   **Frontend:** Actively using  for brand analytics.
 
 **All files of reference**
--   **Created:**
-    -   : Configuration for the translation library.
-    -   : UI component for changing languages.
-    -   : Directory containing 20 JSON translation files.
--   **Updated:**
-    -   : Added new dependencies.
-    -   : Integrated the i18n provider.
-    -   Most page components under  and  to use translation keys instead of hardcoded strings.
-    -   , : Fixed incorrect navigation paths.
--   **To be modified for next task:**
-    -   
-    -   
-    -   
+-   **Heavily Modified:**
+    -   : Grew significantly with new endpoints for user management, password reset, brand analytics, coupons, and credits. Critical tech debt.
+    -   : Overhauled the Users tab with full management capabilities.
+    -   : Completely redesigned into a multi-tab dashboard with analytics and coupon management.
+    -   : Added many new functions and a 401 interceptor that is the likely source of the login bug.
+    -    (all 20 files): Updated to rename Guardian to Parent / School.
+-   **New:**
+    -   : New page for the password reset flow.
 
 **Areas that need refactoring**:
--   **CRITICAL:** The  file is a large monolith that urgently needs to be refactored into a modular structure using FastAPI's  to ensure maintainability and scalability. This should be proposed to the user after the current Brand Portal task.
--   The  component is also becoming large and could be broken down by extracting each tab into its own component.
+-   **CRITICAL:**  is an increasingly unmaintainable monolith. It urgently needs to be broken up using FastAPI's . This should be proposed to the user immediately after the login bug is fixed.
+-    and  have become very large and would benefit from being broken down into smaller, more manageable child components.
 
 **key api endpoints**
--   **To be created for the next task:**
-    -   : For uploading brand logos.
-    -   : To update brand details like problem statement and targeting.
-    -   : Full CRUD endpoints for managing a brand's products.
+-   **Admin User Management:**
+    -   : Create a new user.
+    -   : Update a user's details.
+    -   : Delete a user.
+    -   : Reset a user's password.
+    -   : Add funds to a user's or brand's wallet.
+-   **Auth:**
+    -   : Request a password reset code.
+    -   : Set a new password using a reset code.
+-   **Brand Portal:**
+    -   : Get detailed analytics data for charts.
+    -   : Create a new coupon for a brand.
 
 **Critical Info for New Agent**
--   The user has pivoted to a major enhancement of the Brand Partner Portal. You must follow the new, detailed requirements provided in the latest user messages. This is the top priority.
--   The implementation will require significant backend changes (data models, file uploads) and a complete frontend redesign of the brand portal to be a step-by-step onboarding experience.
--   The core concept is to make brand integrations more meaningful by focusing on the problem a brand's product solves and weaving that into the story narrative.
--   The critical refactoring of  remains an important technical debt item. Plan to propose this to the user after completing the Brand Portal enhancement.
+-   **TOP PRIORITY (BLOCKER):** Fix the login loop for Parent / School users. The user is completely blocked. Do not work on anything else until this is resolved. The issue is likely a race condition where an API call returns a 401 right after login, triggering an  interceptor that wipes the session and redirects.
+-   After fixing the login bug, the next task is to implement the admin toggle for parent-created word banks.
+-   The user has explicitly requested new payment integrations (Cash App, Zelle, Venmo, PayPal) to be a future priority.
+-   The backend  refactoring is a critical piece of technical debt that must be addressed soon to ensure the project's long-term health.
 
 **documents and test reports created in this job**
--   
--    (was updated by the previous agent)
+-    through 
+-    (was continuously updated)
 
 **Last 10 User Messages and any pending HUMAN messages**
--   **10. Ok I really need to fix this BRAND issue...**: User provided a detailed vision for a complete overhaul of the Brand Portal. Key features: brands must define the problem they solve, manage multiple products, upload logos, and define marketing regions. Stories should incorporate brand solutions. (Status: IN PROGRESS)
--   **9. I think the maximum logo upload shouldbe 10megabytes...**: User added more requirements for the Brand Portal: 10MB logo limit, ability to edit products post-onboarding, and use dropdowns for geo-targeting. (Status: IN PROGRESS)
--   **8. ok now when I login Nothing happens... Fix that problem**: User reported a critical bug where login redirects to the homepage. (Status: RESOLVED)
--   **7. brandportal first then muli lingual**: User set priorities: verify the brand portal, then build multi-lingual support. (Status: COMPLETED)
+-   **10. the reset password didnt work...**: User reported that both the direct password change by the agent and the Forgot Password feature failed. (Status: IN PROGRESS - part of login issue)
+-   **9. Under the Brand Portal The brand should be able to add a COUPONS...**: User requested a feature for brands to create coupons and for admins to add credits to any account. (Status: Implemented, verification pending)
+-   **8. ...it should be discount by percentages...**: User specified requirements for the coupon system (percentage-based, unlimited redemptions). (Status: Implemented, verification pending)
+-   **7. ...ADMIN and those that are delegated are the ones that can create word banks...**: User requested an admin toggle to control whether parents can create word banks. (Status: IN PROGRESS, last working item)
+-   **6. for some reason I cannot login to the parent /school login. It cycles back...**: User reported the critical login bug again after the agent's latest fix attempt. (Status: IN PROGRESS - CRITICAL BLOCKER)
+-   **5. ok i used my email allen@songsforcenturies.com...**: User confirmed their email and requested Forgot Password and real email verification. (Status: Implemented, but login issue persists)
+-   **4. I think the 6 digit code We can use resend**: User approved using Resend for email verification. (Status: Implemented)
+-   **3. no i just want cASH app and Zelle Solutions...**: User specified the next payment integrations they want but prioritized fixing the current login bug. (Status: Upcoming task)
+-   **2. Again when I try to log on it cylces me back to the home page**: User reported the login bug for the first time in this sequence. (Status: IN PROGRESS - CRITICAL BLOCKER)
+-   **1. ...naming of accounts. The guardian Login is really a PARENT LOGIN...**: User requested renaming Guardian to Parent/School and enhancing admin user management. (Status: Completed)
 
 **Project Health Check:**
--   **Broken:** None
+-   **Broken:** The entire Parent/School user login flow is broken.
 -   **Mocked:** None
 
 **3rd Party Integrations**
--   **OpenAI GPT** (via Emergent LLM Key) — Primary LLM for story generation, assessments, and word definitions.
--   **OpenRouter** (various models) — Alternative LLM provider, requires a User API Key.
--   **Stripe** (Payments) — Integrated for the wallet system. Uses a test key.
+-   **OpenAI GPT** (via Emergent LLM Key) — Core LLM for story generation.
+-   **OpenRouter** (various models) — Alternative LLM provider (requires User API Key).
+-   **Stripe** (Payments) — Integrated for the wallet system (uses test key).
+-   **Resend** — Used for Forgot Password emails (requires User API Key).
 
 **Testing status**
--   **Testing agent used after significant changes:** YES (for the multi-lingual feature).
+-   **Testing agent used after significant changes:** YES. The agent used the testing agent extensively, but it has not been able to catch the subtle race condition causing the login bug.
 -   **Troubleshoot agent used after agent stuck in loop:** NO
 -   **Test files created:** []
--   **Known regressions:** None.
+-   **Known regressions:** The Parent/School login flow is a major regression.
 
 **Credentials to test flow:**
--   **Admin:**  (password can be reset).
--   **Guardian/Teacher:** Register a new account from the landing page.
--   **Student:** Create via a Guardian account in the Guardian Portal.
--   **Brand Partner:** Register via the Brand Partner link. Must be approved by an Admin.
+-   **Admin:**  /  (Password was reset by the agent). The user has reported issues logging in with this account as well, which might be related to the main bug.
+-   **Parent/School:** Register a new account from the landing page. This will likely trigger the login bug.
 
 **What agent forgot to execute**
--   The agent has not yet proposed the critical refactoring of  to the user, which was a key takeaway from the previous fork. This technical debt needs to be addressed to maintain project health. It should be the next major proposal after the current Brand Portal task is complete.</analysis>
+-   The agent has consistently deferred the critical refactoring of , which is a significant piece of accumulating technical debt. This needs to be prioritized after the current blockers are resolved.</analysis>

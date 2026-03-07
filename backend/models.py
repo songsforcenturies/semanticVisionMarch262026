@@ -495,18 +495,20 @@ class CouponType(str, Enum):
     FREE_STORIES = "free_stories"
     FREE_STUDENTS = "free_students"
     WALLET_CREDIT = "wallet_credit"
+    PERCENTAGE_DISCOUNT = "percentage_discount"  # Discount by percentage (0-100%)
 
 
 class Coupon(MongoBaseModel):
     id: str = Field(default_factory=generate_uuid)
     code: str
     coupon_type: CouponType
-    value: float  # days, story count, student count, or dollar amount
-    max_uses: int = 1
+    value: float  # days, story count, student count, dollar amount, or percentage (0-100)
+    max_uses: int = 0  # 0 = unlimited
     uses_count: int = 0
     is_active: bool = True
     expires_at: Optional[datetime] = None
     created_by: str = ""
+    created_by_brand_id: str = ""  # If created by a brand partner
     description: str = ""
     created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 

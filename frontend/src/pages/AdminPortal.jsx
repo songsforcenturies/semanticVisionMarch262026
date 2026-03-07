@@ -96,6 +96,8 @@ const AdminPortal = () => {
   const [editingUser, setEditingUser] = useState(null);
   const [editForm, setEditForm] = useState({ email: '', full_name: '' });
   const [resetResult, setResetResult] = useState(null); // {email, temp_password}
+  const [creditUser, setCreditUser] = useState(null); // user to add credits to
+  const [creditAmount, setCreditAmount] = useState('');
   const [planForm, setPlanForm] = useState({
     name: '', description: '', price_monthly: '', student_seats: '10', story_limit: '-1',
   });
@@ -188,6 +190,16 @@ const AdminPortal = () => {
   const deleteUserMut = useMutation({
     mutationFn: (id) => adminAPI.deleteUser(id),
     onSuccess: () => { queryClient.invalidateQueries(['admin-users']); toast.success('User deleted'); },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed'),
+  });
+  const addCreditsMut = useMutation({
+    mutationFn: ({ id, amount, description }) => adminAPI.addCredits(id, { user_id: id, amount: parseFloat(amount), description }),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries(['admin-users']);
+      toast.success(res.data.message);
+      setCreditUser(null);
+      setCreditAmount('');
+    },
     onError: (err) => toast.error(err.response?.data?.detail || 'Failed'),
   });
   const createPlanMutation = useMutation({
@@ -590,6 +602,28 @@ const AdminPortal = () => {
               </BrutalCard>
             )}
 
+            {/* Add Credits Dialog */}
+            {creditUser && (
+              <BrutalCard shadow="lg" className="bg-emerald-50 border-emerald-400">
+                <h4 className="font-black text-lg mb-3 flex items-center gap-2">Add Credits: {creditUser.full_name}</h4>
+                <div className="flex gap-3 items-end" data-testid="add-credits-form">
+                  <div className="flex-1">
+                    <label className="block font-bold text-sm uppercase mb-2">Amount ($)</label>
+                    <input type="number" min="0.01" step="0.01" value={creditAmount}
+                      onChange={(e) => setCreditAmount(e.target.value)}
+                      className="w-full border-4 border-black px-4 py-3 font-bold text-xl" placeholder="10.00"
+                      data-testid="credit-amount-input" />
+                  </div>
+                  <BrutalButton variant="emerald" onClick={() => addCreditsMut.mutate({ id: creditUser.id, amount: creditAmount, description: `Admin credit to ${creditUser.full_name}` })}
+                    disabled={!creditAmount || parseFloat(creditAmount) <= 0 || addCreditsMut.isPending} data-testid="confirm-credits-btn">
+                    {addCreditsMut.isPending ? 'Adding...' : 'Add Credits'}
+                  </BrutalButton>
+                  <BrutalButton variant="default" onClick={() => { setCreditUser(null); setCreditAmount(''); }}>Cancel</BrutalButton>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Credits will be added directly to the user's wallet balance.</p>
+              </BrutalCard>
+            )}
+
             {/* Edit User Dialog */}
             {editingUser && (
               <BrutalCard shadow="lg" className="bg-indigo-50 border-indigo-400">
@@ -656,6 +690,9 @@ const AdminPortal = () => {
                               <BrutalButton variant="default" size="sm" onClick={() => { setEditingUser(u); setEditForm({ email: u.email, full_name: u.full_name }); }} data-testid={`edit-${u.id}`}>
                                 <Edit size={13} />
                               </BrutalButton>
+                              <BrutalButton variant="emerald" size="sm" onClick={() => setCreditUser(u)} data-testid={`credits-${u.id}`}>
+                                +$
+                              </BrutalButton>
                               <BrutalButton variant="amber" size="sm" onClick={() => resetPasswordMut.mutate(u.id)} disabled={resetPasswordMut.isPending} data-testid={`reset-pwd-${u.id}`}>
                                 Reset Pwd
                               </BrutalButton>
@@ -703,6 +740,7 @@ const AdminPortal = () => {
                     <label className="block font-bold text-sm uppercase mb-2">Type</label>
                     <select value={couponForm.coupon_type} onChange={(e) => setCouponForm({ ...couponForm, coupon_type: e.target.value })} className="w-full border-4 border-black px-4 py-3 font-bold" data-testid="coupon-type">
                       <option value="wallet_credit">Wallet Credit ($)</option>
+                      <option value="percentage_discount">Percentage Discount (%)</option>
                       <option value="free_stories">Free Stories (count)</option>
                       <option value="free_students">Free Student Seats</option>
                       <option value="free_days">Free Premium Days</option>
@@ -710,8 +748,11 @@ const AdminPortal = () => {
                   </div>
                 </div>
                 <div className="grid md:grid-cols-3 gap-4">
-                  <BrutalInput label="Value" type="number" step="0.01" value={couponForm.value} onChange={(e) => setCouponForm({ ...couponForm, value: e.target.value })} placeholder="Amount" data-testid="coupon-value" />
-                  <BrutalInput label="Max Uses" type="number" min="1" value={couponForm.max_uses} onChange={(e) => setCouponForm({ ...couponForm, max_uses: e.target.value })} data-testid="coupon-max-uses" />
+                  <BrutalInput label="Value" type="number" step="0.01" value={couponForm.value} onChange={(e) => setCouponForm({ ...couponForm, value: e.target.value })} placeholder={couponForm.coupon_type === 'percentage_discount' ? '0-100' : 'Amount'} data-testid="coupon-value" />
+                  <div>
+                    <label className="block font-bold text-sm uppercase mb-2">Max Uses (0 = unlimited)</label>
+                    <input type="number" min="0" value={couponForm.max_uses} onChange={(e) => setCouponForm({ ...couponForm, max_uses: e.target.value })} className="w-full border-4 border-black px-4 py-3 font-bold" data-testid="coupon-max-uses" />
+                  </div>
                   <BrutalInput label="Description" value={couponForm.description} onChange={(e) => setCouponForm({ ...couponForm, description: e.target.value })} placeholder="Optional..." />
                 </div>
                 <BrutalButton type="submit" variant="indigo" fullWidth disabled={!couponForm.code || !couponForm.value || createCouponMutation.isPending} data-testid="create-coupon-btn">
