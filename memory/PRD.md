@@ -42,6 +42,7 @@ Build "LexiMaster," a high-quality educational platform for students, guardians,
 
 ## Feature Additions
 - **2026-03-07:** Reset PIN — Guardians can regenerate a student's PIN from the dashboard. New endpoint `POST /api/students/{id}/reset-pin`. Button on student card in guardian portal.
+- **2026-03-07:** Student Progress Dashboard — Guardians can view detailed progress for each student including reading stats, vocabulary mastery (pie chart), assessment history (bar chart), story history, assigned word banks, and character education virtues. New endpoint `GET /api/students/{id}/progress`. Uses recharts for data visualizations.
 
 ## Backlog
 - Refactor monolithic server.py into modular route/model/service files
