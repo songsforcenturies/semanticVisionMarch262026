@@ -85,20 +85,6 @@ export const readLogAPI = {
   getAll: (studentId) => apiClient.get('/read-logs', { params: { student_id: studentId } }),
 };
 
-export const assessmentAPI = {
-  create: (data) => apiClient.post('/assessments', data),
-  getAll: (params) => apiClient.get('/assessments', { params }),
-  getById: (id) => apiClient.get(`/assessments/${id}`),
-  evaluate: (id, answers) => apiClient.post(`/assessments/${id}/evaluate`, answers),
-};
-
-// ==================== READ LOG API ====================
-
-export const readLogAPI = {
-  create: (data) => apiClient.post('/read-logs', data),
-  getAll: (studentId) => apiClient.get('/read-logs', { params: { student_id: studentId } }),
-};
-
 // ==================== ASSESSMENT API ====================
 
 export const assessmentAPI = {
