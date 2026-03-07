@@ -109,7 +109,7 @@ const AdminPortal = () => {
   const [flagsForm, setFlagsForm] = useState({
     belief_system_enabled: true, cultural_context_enabled: true, multi_language_enabled: true,
     donations_enabled: true, referrals_enabled: true, word_definitions_enabled: true, accessibility_mode: true,
-    brand_sponsorship_enabled: true, classroom_sponsorship_enabled: true,
+    brand_sponsorship_enabled: true, classroom_sponsorship_enabled: true, parent_wordbank_creation_enabled: false,
   });
   const [brandForm, setBrandForm] = useState({
     name: '', description: '', website: '', logo_url: '',
@@ -898,6 +898,7 @@ const AdminPortal = () => {
                   { key: 'accessibility_mode', label: 'Accessibility Mode', desc: 'Enable enhanced accessibility features for deaf/HoH users' },
                   { key: 'brand_sponsorship_enabled', label: 'Brand Story Integration', desc: 'Allow brands to be woven into stories (requires parent opt-in)' },
                   { key: 'classroom_sponsorship_enabled', label: 'Classroom Sponsorships', desc: 'Allow businesses to sponsor classrooms for unlimited stories' },
+                  { key: 'parent_wordbank_creation_enabled', label: 'Parent Word Bank Creation', desc: 'Allow Parent / School users to create their own custom word banks' },
                 ].map(flag => (
                   <label key={flag.key} className={`flex items-center justify-between p-4 border-4 border-black cursor-pointer transition-colors ${flagsForm[flag.key] ? 'bg-emerald-50' : 'bg-gray-50'}`}>
                     <div>

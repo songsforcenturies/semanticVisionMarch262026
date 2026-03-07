@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { wordBankAPI, subscriptionAPI, walletAPI } from '@/lib/api';
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput } from '@/components/brutal';
-import { Search, Eye, Check, ShoppingCart, Wallet } from 'lucide-react';
+import { Search, Eye, Check, ShoppingCart, Wallet, PlusCircle, X } from 'lucide-react';
 import { toast } from 'sonner';
 import WordBankPreviewDialog from './WordBankPreviewDialog';
 
@@ -21,6 +21,31 @@ const MarketplaceTab = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [previewBank, setPreviewBank] = useState(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    name: '', description: '', category: 'general', specialty: '',
+    baseline_words: '', target_words: '', stretch_words: '',
+    visibility: 'public', price: 0,
+  });
+
+  // Check if parent word bank creation is enabled
+  const { data: parentWbFlag } = useQuery({
+    queryKey: ['parent-wordbank-flag'],
+    queryFn: async () => (await wordBankAPI.canParentCreate()).data,
+  });
+  const canCreateWordBank = parentWbFlag?.parent_wordbank_creation_enabled === true;
+
+  // Create word bank mutation
+  const createWbMutation = useMutation({
+    mutationFn: (data) => wordBankAPI.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['marketplace-word-banks']);
+      toast.success('Word bank created successfully!');
+      setShowCreateForm(false);
+      setCreateForm({ name: '', description: '', category: 'general', specialty: '', baseline_words: '', target_words: '', stretch_words: '', visibility: 'public', price: 0 });
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed to create word bank'),
+  });
 
   // Fetch wallet balance
   const { data: walletData } = useQuery({
@@ -118,13 +143,103 @@ const MarketplaceTab = () => {
             {ownedBankIds.length} banks in your library
           </p>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 border-4 border-black bg-amber-50 brutal-shadow-sm">
-          <Wallet size={18} className="text-amber-700" />
-          <span className="font-black text-lg" data-testid="marketplace-balance">
-            ${(walletData?.balance ?? 0).toFixed(2)}
-          </span>
+        <div className="flex items-center gap-3">
+          {canCreateWordBank && (
+            <BrutalButton variant="emerald" size="sm" onClick={() => setShowCreateForm(!showCreateForm)}
+              className="flex items-center gap-2" data-testid="create-wordbank-btn">
+              {showCreateForm ? <X size={18} /> : <PlusCircle size={18} />}
+              {showCreateForm ? 'Cancel' : 'Create Word Bank'}
+            </BrutalButton>
+          )}
+          <div className="flex items-center gap-2 px-4 py-2 border-4 border-black bg-amber-50 brutal-shadow-sm">
+            <Wallet size={18} className="text-amber-700" />
+            <span className="font-black text-lg" data-testid="marketplace-balance">
+              ${(walletData?.balance ?? 0).toFixed(2)}
+            </span>
+          </div>
         </div>
       </div>
+
+      {/* Create Word Bank Form */}
+      {canCreateWordBank && showCreateForm && (
+        <BrutalCard shadow="xl" className="border-emerald-500" data-testid="create-wordbank-form">
+          <h3 className="text-2xl font-black uppercase mb-4">Create Your Own Word Bank</h3>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            const parseWords = (str) => str.split(',').map(w => w.trim()).filter(Boolean).map(w => ({
+              word: w, definition: '', part_of_speech: '', example_sentence: ''
+            }));
+            const payload = {
+              name: createForm.name,
+              description: createForm.description || createForm.name,
+              category: createForm.category,
+              specialty: createForm.specialty || undefined,
+              baseline_words: parseWords(createForm.baseline_words),
+              target_words: parseWords(createForm.target_words),
+              stretch_words: parseWords(createForm.stretch_words),
+              visibility: 'global',
+              price: 0,
+            };
+            if (!payload.name || payload.target_words.length === 0) {
+              toast.error('Please provide a name and at least some target words.');
+              return;
+            }
+            createWbMutation.mutate(payload);
+          }} className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <BrutalInput label="Bank Name" required value={createForm.name}
+                onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                placeholder="e.g. Space Vocabulary" data-testid="wb-name" />
+              <div>
+                <label className="block font-bold text-sm uppercase mb-2">Category</label>
+                <select value={createForm.category}
+                  onChange={(e) => setCreateForm({ ...createForm, category: e.target.value })}
+                  className="w-full px-4 py-3 border-4 border-black font-bold focus:outline-none focus:ring-4 focus:ring-emerald-500 bg-white"
+                  data-testid="wb-category">
+                  <option value="general">General</option>
+                  <option value="academic">Academic</option>
+                  <option value="professional">Professional</option>
+                  <option value="specialized">Specialized</option>
+                </select>
+              </div>
+            </div>
+            <BrutalInput label="Description" value={createForm.description}
+              onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+              placeholder="Brief description of this word bank" data-testid="wb-description" />
+            <BrutalInput label="Specialty (optional)" value={createForm.specialty}
+              onChange={(e) => setCreateForm({ ...createForm, specialty: e.target.value })}
+              placeholder="e.g. Science, History" data-testid="wb-specialty" />
+            <div>
+              <label className="block font-bold text-sm uppercase mb-2">Baseline Words (comma-separated)</label>
+              <textarea value={createForm.baseline_words}
+                onChange={(e) => setCreateForm({ ...createForm, baseline_words: e.target.value })}
+                placeholder="word1, word2, word3..."
+                className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-emerald-500 min-h-[60px]"
+                data-testid="wb-baseline" />
+            </div>
+            <div>
+              <label className="block font-bold text-sm uppercase mb-2">Target Words (comma-separated) *</label>
+              <textarea value={createForm.target_words}
+                onChange={(e) => setCreateForm({ ...createForm, target_words: e.target.value })}
+                placeholder="word1, word2, word3..."
+                className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-emerald-500 min-h-[60px]"
+                data-testid="wb-target" />
+            </div>
+            <div>
+              <label className="block font-bold text-sm uppercase mb-2">Stretch Words (comma-separated)</label>
+              <textarea value={createForm.stretch_words}
+                onChange={(e) => setCreateForm({ ...createForm, stretch_words: e.target.value })}
+                placeholder="word1, word2, word3..."
+                className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-emerald-500 min-h-[60px]"
+                data-testid="wb-stretch" />
+            </div>
+            <BrutalButton type="submit" variant="emerald" fullWidth size="lg"
+              disabled={createWbMutation.isPending} data-testid="wb-submit">
+              {createWbMutation.isPending ? 'Creating...' : 'Create Word Bank'}
+            </BrutalButton>
+          </form>
+        </BrutalCard>
+      )}
 
       {/* Filters */}
       <BrutalCard shadow="md">

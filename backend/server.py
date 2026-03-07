@@ -870,9 +870,19 @@ async def get_subscription(
 @api_router.post("/word-banks", response_model=WordBank)
 async def create_word_bank(
     bank_data: WordBankCreate,
-    current_user: dict = Depends(get_current_admin)
+    current_user: dict = Depends(get_current_user)
 ):
-    """Create a new word bank (admin only)"""
+    """Create a new word bank (admin always, guardians if feature flag enabled)"""
+    role = current_user.get("role")
+    if role == "admin":
+        pass  # admins can always create
+    elif role == "guardian":
+        flags = await db.system_config.find_one({"key": "feature_flags"}, {"_id": 0})
+        enabled = flags.get("value", {}).get("parent_wordbank_creation_enabled", False) if flags else False
+        if not enabled:
+            raise HTTPException(status_code=403, detail="Word bank creation is currently disabled for parents. Contact your admin.")
+    else:
+        raise HTTPException(status_code=403, detail="Admin access required")
     total_tokens = len(bank_data.baseline_words) + len(bank_data.target_words) + len(bank_data.stretch_words)
     
     word_bank = WordBank(
@@ -3214,6 +3224,7 @@ async def get_feature_flags(current_user: dict = Depends(get_current_user)):
         "accessibility_mode": True,
         "brand_sponsorship_enabled": True,
         "classroom_sponsorship_enabled": True,
+        "parent_wordbank_creation_enabled": False,
     }
 
 
@@ -3227,6 +3238,7 @@ class FeatureFlagsUpdate(BaseModel):
     accessibility_mode: bool = True
     brand_sponsorship_enabled: bool = True
     classroom_sponsorship_enabled: bool = True
+    parent_wordbank_creation_enabled: bool = False
 
 
 @api_router.post("/admin/feature-flags")
@@ -3241,6 +3253,14 @@ async def update_feature_flags(data: FeatureFlagsUpdate, current_user: dict = De
         upsert=True
     )
     return {"message": "Feature flags updated", **data.model_dump()}
+
+
+@api_router.get("/feature-flags/parent-wordbank")
+async def get_parent_wordbank_flag(current_user: dict = Depends(get_current_user)):
+    """Check if parent word bank creation is enabled (for guardian portal)"""
+    config = await db.system_config.find_one({"key": "feature_flags"}, {"_id": 0})
+    enabled = config.get("value", {}).get("parent_wordbank_creation_enabled", False) if config else False
+    return {"parent_wordbank_creation_enabled": enabled}
 
 
 # ==================== BRAND MANAGEMENT (ADMIN) ====================
