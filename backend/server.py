@@ -15,7 +15,7 @@ from models import (
     Student, StudentCreate, StudentUpdate,
     Subscription, SubscriptionPlan, SubscriptionStatus,
     WordBank, WordBankCreate,
-    Narrative, NarrativeCreate,
+    Narrative, NarrativeCreate, NarrativeStatus,
     Assessment, ReadLog, WordBankGift, GiftCreate,
     ClassroomSession, SystemConfig,
     get_biological_target
@@ -24,6 +24,8 @@ from auth import (
     get_password_hash, verify_password, create_access_token,
     get_current_user, get_current_admin, get_current_guardian, get_current_teacher
 )
+from story_service import story_service
+import random
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -411,6 +413,201 @@ async def assign_word_banks(
     
     updated_student = await db.students.find_one({"id": request.student_id}, {"_id": 0})
     return updated_student
+
+
+# ==================== NARRATIVE ROUTES ====================
+
+@api_router.post("/narratives")
+async def create_narrative(narrative_data: NarrativeCreate):
+    """Generate a new AI story for a student"""
+    # Get student
+    student = await db.students.find_one({"id": narrative_data.student_id})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    
+    # Check if student has assigned word banks
+    if not student.get("assigned_banks"):
+        raise HTTPException(
+            status_code=400, 
+            detail="Student has no assigned word banks. Please assign word banks first."
+        )
+    
+    # Fetch word banks
+    word_banks = []
+    for bank_id in narrative_data.bank_ids:
+        bank = await db.word_banks.find_one({"id": bank_id})
+        if bank:
+            word_banks.append(bank)
+    
+    if not word_banks:
+        raise HTTPException(status_code=404, detail="No valid word banks found")
+    
+    # Collect vocabulary from all assigned banks
+    all_baseline = []
+    all_target = []
+    all_stretch = []
+    
+    for bank in word_banks:
+        all_baseline.extend(bank.get("baseline_words", []))
+        all_target.extend(bank.get("target_words", []))
+        all_stretch.extend(bank.get("stretch_words", []))
+    
+    # Shuffle and limit vocabulary (max 30 words total for story)
+    random.shuffle(all_baseline)
+    random.shuffle(all_target)
+    random.shuffle(all_stretch)
+    
+    baseline_words = all_baseline[:18]  # 60% of 30
+    target_words = all_target[:9]       # 30% of 30
+    stretch_words = all_stretch[:3]     # 10% of 30
+    
+    # Generate story using AI
+    try:
+        story_data = await story_service.generate_story(
+            student_name=student["full_name"],
+            student_age=student.get("age", 10),
+            grade_level=student.get("grade_level", "1-12"),
+            interests=student.get("interests", []),
+            prompt=narrative_data.prompt,
+            baseline_words=baseline_words,
+            target_words=target_words,
+            stretch_words=stretch_words
+        )
+        
+        # Create narrative object
+        from models import Chapter, EmbeddedToken, VisionCheck
+        
+        chapters = []
+        for ch_data in story_data.get("chapters", []):
+            chapter = Chapter(
+                number=ch_data["number"],
+                title=ch_data["title"],
+                content=ch_data["content"],
+                word_count=ch_data["word_count"],
+                embedded_tokens=[
+                    EmbeddedToken(**token) for token in ch_data.get("embedded_tokens", [])
+                ],
+                vision_check=VisionCheck(**ch_data["vision_check"])
+            )
+            chapters.append(chapter)
+        
+        # Collect all target and stretch words for verification
+        tokens_to_verify = [w["word"] for w in target_words] + [w["word"] for w in stretch_words]
+        
+        narrative = Narrative(
+            title=story_data["title"],
+            student_id=narrative_data.student_id,
+            bank_ids=narrative_data.bank_ids,
+            theme=story_data.get("theme", narrative_data.prompt),
+            chapters=chapters,
+            total_word_count=story_data.get("total_word_count", 0),
+            status=NarrativeStatus.READY,
+            tokens_to_verify=tokens_to_verify
+        )
+        
+        narrative_dict = narrative.model_dump()
+        await db.narratives.insert_one(narrative_dict)
+        
+        return narrative
+        
+    except Exception as e:
+        logger.error(f"Story generation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Story generation failed: {str(e)}")
+
+
+@api_router.get("/narratives")
+async def get_narratives(student_id: Optional[str] = None):
+    """Get narratives, optionally filtered by student"""
+    query = {}
+    if student_id:
+        query["student_id"] = student_id
+    
+    narratives = await db.narratives.find(query, {"_id": 0}).to_list(1000)
+    return narratives
+
+
+@api_router.get("/narratives/{narrative_id}")
+async def get_narrative(narrative_id: str):
+    """Get a specific narrative"""
+    narrative = await db.narratives.find_one({"id": narrative_id}, {"_id": 0})
+    if not narrative:
+        raise HTTPException(status_code=404, detail="Narrative not found")
+    return narrative
+
+
+@api_router.delete("/narratives/{narrative_id}")
+async def delete_narrative(narrative_id: str, current_user: dict = Depends(get_current_user)):
+    """Delete a narrative"""
+    result = await db.narratives.delete_one({"id": narrative_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Narrative not found")
+    return {"message": "Narrative deleted successfully"}
+
+
+# ==================== READ LOG ROUTES ====================
+
+class ReadLogCreate(BaseModel):
+    student_id: str
+    narrative_id: str
+    chapter_number: int
+    session_start: datetime
+    session_end: datetime
+    words_read: int
+
+
+@api_router.post("/read-logs")
+async def create_read_log(log_data: ReadLogCreate):
+    """Create a reading session log"""
+    from models import ReadLog
+    
+    # Calculate duration and WPM
+    duration = (log_data.session_end - log_data.session_start).total_seconds()
+    wpm = (log_data.words_read / (duration / 60)) if duration > 0 else 0
+    
+    read_log = ReadLog(
+        student_id=log_data.student_id,
+        narrative_id=log_data.narrative_id,
+        chapter_number=log_data.chapter_number,
+        session_start=log_data.session_start,
+        session_end=log_data.session_end,
+        duration_seconds=int(duration),
+        words_read=log_data.words_read,
+        wpm=round(wpm, 1)
+    )
+    
+    log_dict = read_log.model_dump()
+    await db.read_logs.insert_one(log_dict)
+    
+    # Update student statistics
+    student = await db.students.find_one({"id": log_data.student_id})
+    if student:
+        new_total_seconds = student.get("total_reading_seconds", 0) + int(duration)
+        new_total_words = student.get("total_words_read", 0) + log_data.words_read
+        new_average_wpm = (new_total_words / (new_total_seconds / 60)) if new_total_seconds > 0 else 0
+        
+        await db.students.update_one(
+            {"id": log_data.student_id},
+            {
+                "$set": {
+                    "total_reading_seconds": new_total_seconds,
+                    "total_words_read": new_total_words,
+                    "average_wpm": round(new_average_wpm, 1)
+                }
+            }
+        )
+    
+    return read_log
+
+
+@api_router.get("/read-logs")
+async def get_read_logs(student_id: Optional[str] = None):
+    """Get read logs, optionally filtered by student"""
+    query = {}
+    if student_id:
+        query["student_id"] = student_id
+    
+    logs = await db.read_logs.find(query, {"_id": 0}).to_list(1000)
+    return logs
 
 
 # ==================== HEALTH CHECK ====================

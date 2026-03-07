@@ -78,7 +78,12 @@ export const narrativeAPI = {
   delete: (id) => apiClient.delete(`/narratives/${id}`),
 };
 
-// ==================== ASSESSMENT API ====================
+// ==================== READ LOG API ====================
+
+export const readLogAPI = {
+  create: (data) => apiClient.post('/read-logs', data),
+  getAll: (studentId) => apiClient.get('/read-logs', { params: { student_id: studentId } }),
+};
 
 export const assessmentAPI = {
   create: (data) => apiClient.post('/assessments', data),
