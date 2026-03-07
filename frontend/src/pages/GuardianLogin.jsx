@@ -24,7 +24,7 @@ const GuardianLogin = () => {
       if (result.user.role === 'brand_partner') {
         navigate('/brand-portal');
       } else {
-        navigate('/guardian');
+        navigate('/portal');
       }
     } else {
       toast.error(result.error || t('auth.loginFailed'));

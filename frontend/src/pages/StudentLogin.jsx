@@ -19,7 +19,7 @@ const StudentLogin = () => {
     setLoading(true);
     const result = await studentLogin(formData.studentCode, formData.pin);
     if (result.success) {
-      navigate('/student');
+      navigate('/academy');
     } else {
       toast.error(result.error || t('auth.loginFailed'));
     }
