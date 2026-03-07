@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { BrutalButton, BrutalInput, BrutalCard } from '@/components/brutal';
 import { toast } from 'sonner';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Gift } from 'lucide-react';
 import HomeHeader from '@/components/HomeHeader';
 
 const GuardianRegister = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { register } = useAuth();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    referralCode: searchParams.get('ref') || '',
   });
   const [loading, setLoading] = useState(false);
 
@@ -32,10 +34,15 @@ const GuardianRegister = () => {
 
     setLoading(true);
 
-    const result = await register(formData.fullName, formData.email, formData.password);
+    const result = await register(
+      formData.fullName, formData.email, formData.password,
+      formData.referralCode || undefined
+    );
 
     if (result.success) {
-      toast.success('Account created successfully!');
+      toast.success(formData.referralCode
+        ? 'Account created! Referral bonus applied!'
+        : 'Account created successfully!');
       navigate('/portal');
     } else {
       toast.error(result.error || 'Registration failed');
@@ -95,8 +102,29 @@ const GuardianRegister = () => {
             required
             value={formData.confirmPassword}
             onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-            placeholder="••••••••"
+            placeholder="********"
           />
+
+          {/* Referral Code */}
+          <div className={formData.referralCode ? 'border-4 border-emerald-300 p-3 bg-emerald-50' : ''}>
+            <BrutalInput
+              label={
+                <span className="flex items-center gap-1">
+                  <Gift size={14} /> Referral Code (optional)
+                </span>
+              }
+              type="text"
+              value={formData.referralCode}
+              onChange={(e) => setFormData({ ...formData, referralCode: e.target.value.toUpperCase() })}
+              placeholder="REF-XXXXXX"
+              data-testid="referral-code-input"
+            />
+            {formData.referralCode && (
+              <p className="text-sm font-bold text-emerald-600 mt-1">
+                You and your referrer will both receive a wallet bonus!
+              </p>
+            )}
+          </div>
 
           <BrutalButton
             type="submit"

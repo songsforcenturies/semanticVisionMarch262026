@@ -14,6 +14,25 @@ const GRADE_LEVELS = [
   { value: 'adult', label: 'Adult' }
 ];
 
+const LANGUAGES = [
+  'English', 'Mandarin Chinese', 'Spanish', 'Hindi', 'Arabic', 'Bengali', 'Portuguese',
+  'Russian', 'Japanese', 'Punjabi', 'German', 'Javanese', 'Korean', 'French', 'Turkish',
+  'Vietnamese', 'Italian', 'Swahili', 'Malay', 'Thai',
+];
+
+const BELIEF_SYSTEMS = [
+  '', 'Baha\'i', 'Buddhist', 'Christian - Baptist', 'Christian - Catholic', 'Christian - Methodist',
+  'Christian - Non-Denominational', 'Christian - Orthodox', 'Christian - Pentecostal', 'Christian - Presbyterian',
+  'Hindu', 'Islamic - Sunni', 'Islamic - Shia', 'Jewish - Orthodox', 'Jewish - Reform', 'Jewish - Conservative',
+  'Sikh', 'Taoist', 'Shinto', 'Indigenous Spiritual', 'Secular / Humanist', 'Other',
+];
+
+const CULTURAL_CONTEXTS = [
+  '', 'African American', 'African (Sub-Saharan)', 'Arab / Middle Eastern', 'Caribbean',
+  'East Asian', 'European', 'Hispanic / Latino', 'Indigenous / Native American',
+  'Pacific Islander', 'South Asian', 'Southeast Asian', 'Mixed Heritage', 'Other',
+];
+
 const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks = false }) => {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
@@ -22,7 +41,10 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
     grade_level: '',
     interests: '',
     virtues: '',
-    assigned_banks: []
+    assigned_banks: [],
+    belief_system: '',
+    cultural_context: '',
+    language: 'English',
   });
 
   // Fetch subscription to get available word banks
@@ -53,7 +75,10 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
         grade_level: student.grade_level || '',
         interests: student.interests?.join(', ') || '',
         virtues: student.virtues?.join(', ') || '',
-        assigned_banks: student.assigned_banks || []
+        assigned_banks: student.assigned_banks || [],
+        belief_system: student.belief_system || '',
+        cultural_context: student.cultural_context || '',
+        language: student.language || 'English',
       });
     } else {
       setFormData({
@@ -62,7 +87,10 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
         grade_level: '',
         interests: '',
         virtues: '',
-        assigned_banks: []
+        assigned_banks: [],
+        belief_system: '',
+        cultural_context: '',
+        language: 'English',
       });
     }
   }, [student, isOpen]);
@@ -115,7 +143,10 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
       grade_level: formData.grade_level || null,
       interests: interestsArray,
       virtues: virtuesArray,
-      guardian_id: guardianId
+      guardian_id: guardianId,
+      belief_system: formData.belief_system,
+      cultural_context: formData.cultural_context,
+      language: formData.language,
     };
 
     if (student) {
@@ -241,7 +272,7 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
 
           <div>
             <label className="block mb-2 font-bold uppercase text-sm">
-              ✨ Virtues & Life Lessons (comma-separated)
+              Virtues & Life Lessons (comma-separated)
             </label>
             <textarea
               value={formData.virtues}
@@ -251,11 +282,59 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
               className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-emerald-500 resize-none"
             />
             <p className="mt-1 text-sm font-medium text-emerald-700">
-              💡 Stories will teach these character traits and life lessons to your child
+              Stories will teach these character traits and life lessons
             </p>
-            <p className="mt-1 text-xs font-medium text-gray-600">
-              Examples: Patience, Kindness, Honesty, Courage, Responsibility, Perseverance, Gratitude, Justice, Compassion, Respect, Empathy, Self-discipline
-            </p>
+          </div>
+
+          {/* Belief System, Culture, Language */}
+          <div className="border-4 border-violet-300 p-4 bg-violet-50">
+            <h4 className="font-black uppercase text-sm mb-4 text-violet-700">Story Worldview & Culture</h4>
+            <div className="space-y-4">
+              <div>
+                <label className="block mb-1 font-bold text-sm uppercase">Belief System / Faith</label>
+                <select
+                  value={formData.belief_system}
+                  onChange={(e) => setFormData({ ...formData, belief_system: e.target.value })}
+                  className="w-full px-4 py-3 border-4 border-black font-medium bg-white"
+                  data-testid="belief-system-select"
+                >
+                  <option value="">None / Secular</option>
+                  {BELIEF_SYSTEMS.filter(Boolean).map((b) => (
+                    <option key={b} value={b}>{b}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">Stories will reflect values from this tradition</p>
+              </div>
+              <div>
+                <label className="block mb-1 font-bold text-sm uppercase">Cultural Context</label>
+                <select
+                  value={formData.cultural_context}
+                  onChange={(e) => setFormData({ ...formData, cultural_context: e.target.value })}
+                  className="w-full px-4 py-3 border-4 border-black font-medium bg-white"
+                  data-testid="cultural-context-select"
+                >
+                  <option value="">Universal / No Preference</option>
+                  {CULTURAL_CONTEXTS.filter(Boolean).map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">Stories will include culturally relevant elements</p>
+              </div>
+              <div>
+                <label className="block mb-1 font-bold text-sm uppercase">Story Language</label>
+                <select
+                  value={formData.language}
+                  onChange={(e) => setFormData({ ...formData, language: e.target.value })}
+                  className="w-full px-4 py-3 border-4 border-black font-medium bg-white"
+                  data-testid="language-select"
+                >
+                  {LANGUAGES.map((l) => (
+                    <option key={l} value={l}>{l}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">AI stories will be generated in this language</p>
+              </div>
+            </div>
           </div>
 
           {student && (

@@ -23,6 +23,7 @@ from models import (
     get_biological_target,
     WalletTransaction, WalletTransactionType, PaymentTransaction,
     Coupon, CouponType, CouponRedemption, AdminSubscriptionPlan,
+    Referral, Donation, generate_referral_code,
 )
 from auth import (
     get_password_hash, verify_password, create_access_token,
@@ -85,20 +86,27 @@ ws_manager = ConnectionManager()
 
 # ==================== AUTHENTICATION ROUTES ====================
 
+class UserCreateWithReferral(BaseModel):
+    email: str
+    full_name: str
+    password: str
+    role: UserRole = UserRole.GUARDIAN
+    referral_code: Optional[str] = None
+
+
 @api_router.post("/auth/register", response_model=UserResponse)
-async def register(user_data: UserCreate):
+async def register(user_data: UserCreateWithReferral):
     """Register a new guardian/teacher user"""
-    # Check if email already exists
     existing_user = await db.users.find_one({"email": user_data.email})
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
-    # Create user
     user = User(
         email=user_data.email,
         full_name=user_data.full_name,
         password_hash=get_password_hash(user_data.password),
-        role=user_data.role
+        role=user_data.role,
+        referred_by=user_data.referral_code.strip().upper() if user_data.referral_code else None,
     )
     
     user_dict = user.model_dump()
@@ -113,6 +121,42 @@ async def register(user_data: UserCreate):
             active_students=0
         )
         await db.subscriptions.insert_one(subscription.model_dump())
+    
+    # Process referral reward
+    if user_data.referral_code:
+        ref_code = user_data.referral_code.strip().upper()
+        referrer = await db.users.find_one({"referral_code": ref_code})
+        if referrer:
+            # Get reward amount from admin settings
+            settings = await db.system_config.find_one({"key": "admin_settings"}, {"_id": 0})
+            reward = 5.0
+            if settings and settings.get("value"):
+                reward = settings["value"].get("referral_reward_amount", 5.0)
+            
+            # Credit referrer
+            old_bal = referrer.get("wallet_balance", 0.0)
+            new_bal = round(old_bal + reward, 2)
+            await db.users.update_one({"id": referrer["id"]}, {"$set": {"wallet_balance": new_bal}})
+            await db.wallet_transactions.insert_one(WalletTransaction(
+                user_id=referrer["id"], type=WalletTransactionType.CREDIT,
+                amount=reward, description=f"Referral reward: {user.full_name} joined!",
+                reference_id=user.id, balance_after=new_bal,
+            ).model_dump())
+            
+            # Credit new user
+            new_user_bal = round(user.wallet_balance + reward, 2)
+            await db.users.update_one({"id": user.id}, {"$set": {"wallet_balance": new_user_bal}})
+            await db.wallet_transactions.insert_one(WalletTransaction(
+                user_id=user.id, type=WalletTransactionType.CREDIT,
+                amount=reward, description=f"Welcome bonus from referral!",
+                reference_id=referrer["id"], balance_after=new_user_bal,
+            ).model_dump())
+            
+            # Record referral
+            await db.referrals.insert_one(Referral(
+                referrer_id=referrer["id"], referred_id=user.id,
+                referral_code=ref_code, reward_amount=reward, reward_given=True,
+            ).model_dump())
     
     return UserResponse(**user_dict)
 
@@ -141,6 +185,7 @@ async def login(credentials: UserLogin):
             "role": user["role"],
             "wallet_balance": user.get("wallet_balance", 0.0),
             "is_delegated_admin": user.get("is_delegated_admin", False),
+            "referral_code": user.get("referral_code", ""),
         }
     }
 
@@ -817,6 +862,9 @@ async def create_narrative(narrative_data: NarrativeCreate):
             student_id=student["id"],
             guardian_id=student.get("guardian_id", ""),
             guardian_name=guardian.get("full_name", "") if guardian else "",
+            belief_system=student.get("belief_system", ""),
+            cultural_context=student.get("cultural_context", ""),
+            language=student.get("language", "English"),
         )
         
         # Create narrative object
@@ -2371,6 +2419,300 @@ async def admin_create_word_bank(
     return word_bank
 
 
+# ==================== WORD DEFINITION API ====================
+
+class DefineWordRequest(BaseModel):
+    word: str
+    context: str = ""  # optional sentence context
+
+
+@api_router.post("/words/define")
+async def define_word(data: DefineWordRequest, current_user: dict = Depends(get_current_user)):
+    """Get AI-powered definition for a word"""
+    from story_service import story_service
+    
+    llm_config = await story_service._get_llm_config()
+    provider = llm_config.get("provider", "emergent")
+    model = llm_config.get("model", "gpt-5.2")
+    
+    if provider == "openrouter":
+        api_key = llm_config.get("openrouter_key") or os.environ.get("OPENROUTER_API_KEY")
+    else:
+        api_key = os.environ.get("EMERGENT_LLM_KEY")
+    
+    prompt = f"""Define the word "{data.word}" for a student learning vocabulary.
+{f'The word appears in this context: "{data.context}"' if data.context else ''}
+
+Return ONLY valid JSON:
+{{"word": "{data.word}", "definition": "clear simple definition", "part_of_speech": "noun/verb/adj/etc", "example_sentence": "example usage", "pronunciation_hint": "how to say it", "synonyms": ["syn1", "syn2"]}}"""
+
+    try:
+        if provider == "openrouter":
+            from openai import AsyncOpenAI
+            client = AsyncOpenAI(base_url="https://openrouter.ai/api/v1", api_key=api_key, timeout=30.0)
+            resp = await client.chat.completions.create(
+                model=model, messages=[{"role": "user", "content": prompt}], max_tokens=500, temperature=0.3,
+            )
+            text = resp.choices[0].message.content or ""
+        else:
+            from emergentintegrations.llm.chat import LlmChat, UserMessage
+            chat = LlmChat(api_key=api_key, session_id=f"define_{data.word}", system_message="You are a vocabulary dictionary assistant. Return only valid JSON.")
+            chat.with_model("openai", model)
+            text = await chat.send_message(UserMessage(text=prompt))
+        
+        text = text.strip()
+        if text.startswith("```"):
+            text = text.split("\n", 1)[1] if "\n" in text else text[3:]
+            if text.endswith("```"): text = text[:-3]
+            text = text.strip()
+        
+        import json
+        return json.loads(text)
+    except Exception as e:
+        # Fallback: return basic definition
+        return {
+            "word": data.word,
+            "definition": f"Look up '{data.word}' in a dictionary for a detailed definition.",
+            "part_of_speech": "unknown",
+            "example_sentence": "",
+            "pronunciation_hint": data.word,
+            "synonyms": [],
+            "error": str(e),
+        }
+
+
+# ==================== REFERRAL ROUTES ====================
+
+@api_router.get("/referrals/my-code")
+async def get_my_referral_code(current_user: dict = Depends(get_current_user)):
+    """Get current user's referral code"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0, "referral_code": 1})
+    code = user.get("referral_code", "") if user else ""
+    if not code:
+        code = generate_referral_code()
+        await db.users.update_one({"id": current_user["id"]}, {"$set": {"referral_code": code}})
+    return {"referral_code": code}
+
+
+@api_router.get("/referrals/my-referrals")
+async def get_my_referrals(current_user: dict = Depends(get_current_user)):
+    """Get list of users I've referred"""
+    referrals = await db.referrals.find(
+        {"referrer_id": current_user["id"]}, {"_id": 0}
+    ).sort("created_date", -1).to_list(100)
+    
+    for ref in referrals:
+        referred_user = await db.users.find_one({"id": ref["referred_id"]}, {"_id": 0, "full_name": 1, "email": 1})
+        if referred_user:
+            ref["referred_name"] = referred_user.get("full_name", "Unknown")
+    
+    return referrals
+
+
+# ==================== DONATION / SPONSOR A READER ====================
+
+class DonationRequest(BaseModel):
+    amount: float
+    message: str = ""
+    origin_url: str
+
+
+@api_router.post("/donations/create")
+async def create_donation(data: DonationRequest, request: Request, current_user: dict = Depends(get_current_user)):
+    """Create a donation to sponsor readers"""
+    if data.amount < 1:
+        raise HTTPException(status_code=400, detail="Minimum donation is $1")
+    
+    # Get billing config to calc stories funded
+    settings = await db.system_config.find_one({"key": "admin_settings"}, {"_id": 0})
+    cost_per_story = 0.20  # default
+    if settings and settings.get("value"):
+        cost_per_story = settings["value"].get("avg_cost_per_story", 0.20)
+    
+    stories_funded = int(data.amount / cost_per_story) if cost_per_story > 0 else 0
+    
+    stripe_key = os.environ.get("STRIPE_API_KEY")
+    if not stripe_key:
+        raise HTTPException(status_code=500, detail="Payment not configured")
+    
+    from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
+    origin = data.origin_url.rstrip("/")
+    host_url = str(request.base_url).rstrip("/")
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=stripe_key, webhook_url=webhook_url)
+    
+    metadata = {"user_id": current_user["id"], "type": "donation", "message": data.message[:200]}
+    
+    checkout_req = CheckoutSessionRequest(
+        amount=data.amount, currency="usd",
+        success_url=f"{origin}/donate?status=success&session_id={{CHECKOUT_SESSION_ID}}",
+        cancel_url=f"{origin}/donate?status=cancelled",
+        metadata=metadata, payment_methods=["card"],
+    )
+    session = await stripe_checkout.create_checkout_session(checkout_req)
+    
+    donation = Donation(
+        donor_id=current_user["id"],
+        donor_name=current_user.get("full_name", current_user.get("email", "Anonymous")),
+        amount=data.amount, stories_funded=stories_funded,
+        payment_session_id=session.session_id, message=data.message,
+    )
+    await db.donations.insert_one(donation.model_dump())
+    
+    # Also create payment transaction for tracking
+    txn = PaymentTransaction(
+        user_id=current_user["id"], session_id=session.session_id,
+        amount=data.amount, currency="usd", metadata=metadata,
+    )
+    await db.payment_transactions.insert_one(txn.model_dump())
+    
+    return {"url": session.url, "session_id": session.session_id, "stories_funded": stories_funded}
+
+
+@api_router.get("/donations/status/{session_id}")
+async def get_donation_status(session_id: str, request: Request, current_user: dict = Depends(get_current_user)):
+    """Check donation payment status"""
+    donation = await db.donations.find_one({"payment_session_id": session_id}, {"_id": 0})
+    if not donation:
+        raise HTTPException(status_code=404, detail="Donation not found")
+    
+    if donation.get("payment_status") == "paid":
+        return {"status": "paid", "amount": donation["amount"], "stories_funded": donation["stories_funded"]}
+    
+    stripe_key = os.environ.get("STRIPE_API_KEY")
+    from emergentintegrations.payments.stripe.checkout import StripeCheckout
+    host_url = str(request.base_url).rstrip("/")
+    stripe_checkout = StripeCheckout(api_key=stripe_key, webhook_url=f"{host_url}/api/webhook/stripe")
+    checkout_status = await stripe_checkout.get_checkout_status(session_id)
+    
+    if checkout_status.payment_status == "paid" and donation.get("payment_status") != "paid":
+        await db.donations.update_one(
+            {"payment_session_id": session_id},
+            {"$set": {"payment_status": "paid"}}
+        )
+        return {"status": "paid", "amount": donation["amount"], "stories_funded": donation["stories_funded"]}
+    
+    return {"status": donation.get("payment_status", "pending"), "amount": donation["amount"], "stories_funded": donation["stories_funded"]}
+
+
+@api_router.get("/donations/stats")
+async def get_donation_stats():
+    """Get public donation statistics"""
+    pipeline = [
+        {"$match": {"payment_status": "paid"}},
+        {"$group": {"_id": None, "total": {"$sum": "$amount"}, "stories": {"$sum": "$stories_funded"}, "count": {"$sum": 1}}}
+    ]
+    agg = await db.donations.aggregate(pipeline).to_list(1)
+    total = agg[0]["total"] if agg else 0
+    stories = agg[0]["stories"] if agg else 0
+    count = agg[0]["count"] if agg else 0
+    
+    recent = await db.donations.find(
+        {"payment_status": "paid"}, {"_id": 0, "donor_name": 1, "amount": 1, "stories_funded": 1, "message": 1, "created_date": 1}
+    ).sort("created_date", -1).to_list(10)
+    
+    return {"total_donated": round(total, 2), "total_stories_funded": stories, "total_donors": count, "recent": recent}
+
+
+# ==================== ADMIN BILLING/ROI CONFIG ====================
+
+@api_router.get("/admin/billing-config")
+async def get_billing_config(current_user: dict = Depends(get_current_user)):
+    """Get billing/ROI configuration"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    config = await db.system_config.find_one({"key": "billing_config"}, {"_id": 0})
+    if config and config.get("value"):
+        return config["value"]
+    
+    default = {
+        "pricing_model": "per_seat",  # per_seat, roi_markup, flat_fee
+        "per_seat_price": 4.99,
+        "roi_markup_percent": 300,  # 300% = 3x cost
+        "flat_fee_per_story": 0.50,
+        "avg_cost_per_story": 0.20,
+        "free_tier_stories": 5,
+        "remove_limits_on_paid": True,
+        "referral_reward_amount": 5.0,
+        "donation_cost_per_story": 0.20,
+    }
+    return default
+
+
+class BillingConfigUpdate(BaseModel):
+    pricing_model: str = "per_seat"
+    per_seat_price: float = 4.99
+    roi_markup_percent: float = 300
+    flat_fee_per_story: float = 0.50
+    avg_cost_per_story: float = 0.20
+    free_tier_stories: int = 5
+    remove_limits_on_paid: bool = True
+    referral_reward_amount: float = 5.0
+    donation_cost_per_story: float = 0.20
+
+
+@api_router.post("/admin/billing-config")
+async def update_billing_config(data: BillingConfigUpdate, current_user: dict = Depends(get_current_user)):
+    """Update billing/ROI configuration"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    await db.system_config.update_one(
+        {"key": "billing_config"},
+        {"$set": {"key": "billing_config", "value": data.model_dump()}},
+        upsert=True
+    )
+    return {"message": "Billing configuration updated", **data.model_dump()}
+
+
+# ==================== ADMIN FEATURE FLAGS ====================
+
+@api_router.get("/admin/feature-flags")
+async def get_feature_flags(current_user: dict = Depends(get_current_user)):
+    """Get system-wide feature flags"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    config = await db.system_config.find_one({"key": "feature_flags"}, {"_id": 0})
+    if config and config.get("value"):
+        return config["value"]
+    
+    return {
+        "belief_system_enabled": True,
+        "cultural_context_enabled": True,
+        "multi_language_enabled": True,
+        "donations_enabled": True,
+        "referrals_enabled": True,
+        "word_definitions_enabled": True,
+        "accessibility_mode": True,
+    }
+
+
+class FeatureFlagsUpdate(BaseModel):
+    belief_system_enabled: bool = True
+    cultural_context_enabled: bool = True
+    multi_language_enabled: bool = True
+    donations_enabled: bool = True
+    referrals_enabled: bool = True
+    word_definitions_enabled: bool = True
+    accessibility_mode: bool = True
+
+
+@api_router.post("/admin/feature-flags")
+async def update_feature_flags(data: FeatureFlagsUpdate, current_user: dict = Depends(get_current_user)):
+    """Update feature flags"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    await db.system_config.update_one(
+        {"key": "feature_flags"},
+        {"$set": {"key": "feature_flags", "value": data.model_dump()}},
+        upsert=True
+    )
+    return {"message": "Feature flags updated", **data.model_dump()}
+
+
 # ==================== HEALTH CHECK ====================
 
 @api_router.get("/")
@@ -2416,6 +2758,12 @@ async def startup_migrate():
         {"wallet_balance": {"$exists": False}},
         {"$set": {"wallet_balance": 0.0}}
     )
+    
+    # Ensure referral_code on all users
+    from models import generate_referral_code as gen_ref
+    cursor_users = db.users.find({"referral_code": {"$exists": False}}, {"_id": 0, "id": 1})
+    async for u in cursor_users:
+        await db.users.update_one({"id": u["id"]}, {"$set": {"referral_code": gen_ref()}})
     
     # Migrate existing students that are missing student_code
     cursor = db.students.find({"student_code": {"$exists": False}}, {"_id": 0, "id": 1})

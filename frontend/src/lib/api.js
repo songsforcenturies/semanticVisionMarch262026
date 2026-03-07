@@ -138,6 +138,10 @@ export const adminAPI = {
   createPlan: (data) => apiClient.post('/admin/plans', data),
   deletePlan: (id) => apiClient.delete(`/admin/plans/${id}`),
   createWordBank: (data) => apiClient.post('/admin/word-banks', data),
+  getBillingConfig: () => apiClient.get('/admin/billing-config'),
+  updateBillingConfig: (data) => apiClient.post('/admin/billing-config', data),
+  getFeatureFlags: () => apiClient.get('/admin/feature-flags'),
+  updateFeatureFlags: (data) => apiClient.post('/admin/feature-flags', data),
 };
 
 // ==================== WALLET API ====================
@@ -155,6 +159,27 @@ export const walletAPI = {
 
 export const couponAPI = {
   redeem: (code) => apiClient.post('/coupons/redeem', { code }),
+};
+
+// ==================== REFERRAL API ====================
+
+export const referralAPI = {
+  getMyCode: () => apiClient.get('/referrals/my-code'),
+  getMyReferrals: () => apiClient.get('/referrals/my-referrals'),
+};
+
+// ==================== WORD DEFINITION API ====================
+
+export const wordAPI = {
+  define: (word, context) => apiClient.post('/words/define', { word, context }),
+};
+
+// ==================== DONATION API ====================
+
+export const donationAPI = {
+  create: (data) => apiClient.post('/donations/create', data),
+  getStatus: (sessionId) => apiClient.get(`/donations/status/${sessionId}`),
+  getStats: () => apiClient.get('/donations/stats'),
 };
 
 export default apiClient;

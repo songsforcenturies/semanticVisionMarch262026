@@ -28,6 +28,15 @@ def generate_student_code():
     return f"STU-{code}"
 
 
+def generate_referral_code():
+    """Generate a unique referral code like REF-ABCD12"""
+    import random
+    import string
+    chars = string.ascii_uppercase + string.digits
+    code = ''.join(random.choices(chars, k=6))
+    return f"REF-{code}"
+
+
 # Enums
 class UserRole(str, Enum):
     ADMIN = "admin"
@@ -138,7 +147,9 @@ class User(MongoBaseModel):
     password_hash: str
     role: UserRole = UserRole.GUARDIAN
     wallet_balance: float = 0.0
-    is_delegated_admin: bool = False  # can create word banks & manage subscriptions
+    is_delegated_admin: bool = False
+    referral_code: str = Field(default_factory=generate_referral_code)
+    referred_by: Optional[str] = None  # referral code of referrer
     created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -190,6 +201,10 @@ class Student(MongoBaseModel):
     average_wpm: float = 0.0
     status: StudentStatus = StudentStatus.ACTIVE
     avatar_url: Optional[str] = None
+    # Belief system & culture
+    belief_system: str = ""  # e.g. "Christian - Methodist", "Baha'i", "Buddhist", "Hindu"
+    cultural_context: str = ""  # e.g. "African American", "Hispanic/Latino", "East Asian"
+    language: str = "English"  # Story generation language
     created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -209,6 +224,9 @@ class StudentUpdate(BaseModel):
     virtues: Optional[List[str]] = None
     assigned_banks: Optional[List[str]] = None
     status: Optional[StudentStatus] = None
+    belief_system: Optional[str] = None
+    cultural_context: Optional[str] = None
+    language: Optional[str] = None
 
 
 # Subscription Entity
@@ -507,6 +525,33 @@ class AdminSubscriptionPlan(MongoBaseModel):
     features: Dict[str, bool] = Field(default_factory=dict)
     is_active: bool = True
     created_by: str = ""
+    created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+# ==================== REFERRAL MODEL ====================
+
+class Referral(MongoBaseModel):
+    id: str = Field(default_factory=generate_uuid)
+    referrer_id: str
+    referred_id: str
+    referral_code: str
+    reward_amount: float = 5.0  # default reward
+    reward_given: bool = False
+    created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+# ==================== DONATION MODEL ====================
+
+class Donation(MongoBaseModel):
+    id: str = Field(default_factory=generate_uuid)
+    donor_id: Optional[str] = None
+    donor_name: str = "Anonymous"
+    amount: float
+    stories_funded: int = 0  # calculated from amount
+    stories_used: int = 0
+    payment_session_id: Optional[str] = None
+    payment_status: str = "pending"
+    message: str = ""
     created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 

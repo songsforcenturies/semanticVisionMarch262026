@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { readLogAPI } from '@/lib/api';
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalProgress } from '@/components/brutal';
@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, Clock, BookOpen, CheckCircle, AlertTriangle } fr
 import { toast } from 'sonner';
 import WrittenAnswerModal from './WrittenAnswerModal';
 import VocabularyAssessment from './VocabularyAssessment';
+import WordDefinitionModal from './WordDefinitionModal';
 
 const NarrativeReader = ({ narrative, student, onClose }) => {
   const queryClient = useQueryClient();
@@ -15,6 +16,8 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
   const [showWrittenCheck, setShowWrittenCheck] = useState(false);
   const [showAssessment, setShowAssessment] = useState(false);
   const [completedChapters, setCompletedChapters] = useState(narrative.chapters_completed || []);
+  const [selectedWord, setSelectedWord] = useState(null);
+  const [wordContext, setWordContext] = useState('');
 
   const chapter = narrative.chapters[currentChapter - 1];
   const isLastChapter = currentChapter === 5;
@@ -144,9 +147,35 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
             </div>
           </div>
 
-          {/* Chapter Content */}
+          {/* Chapter Content — Click any word to define */}
           <div className="prose prose-lg max-w-none mb-8">
-            <div className="text-lg leading-relaxed whitespace-pre-wrap font-medium">{chapter.content}</div>
+            <div className="text-lg leading-relaxed font-medium">
+              {chapter.content.split(/(\s+)/).map((segment, idx) => {
+                const cleanWord = segment.replace(/[^a-zA-Z'-]/g, '');
+                if (!cleanWord || cleanWord.length < 2) {
+                  return <span key={idx}>{segment}</span>;
+                }
+                return (
+                  <span
+                    key={idx}
+                    className="cursor-pointer hover:bg-indigo-100 hover:border-b-2 hover:border-indigo-400 transition-colors rounded px-[1px]"
+                    onClick={() => {
+                      setSelectedWord(cleanWord);
+                      // Get surrounding context
+                      const words = chapter.content.split(/\s+/);
+                      const wIdx = words.findIndex(w => w.includes(cleanWord));
+                      const start = Math.max(0, wIdx - 5);
+                      const end = Math.min(words.length, wIdx + 6);
+                      setWordContext(words.slice(start, end).join(' '));
+                    }}
+                    data-testid={`word-${idx}`}
+                  >
+                    {segment}
+                  </span>
+                );
+              })}
+            </div>
+            <p className="text-xs text-gray-400 mt-2 italic">Tap any word to see its definition</p>
           </div>
 
           {/* Embedded Vocabulary */}
@@ -201,6 +230,15 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
           chapterContent={chapter.content}
           student={student}
           onComplete={handleWrittenCheckComplete}
+        />
+      )}
+
+      {/* Word Definition Modal */}
+      {selectedWord && (
+        <WordDefinitionModal
+          word={selectedWord}
+          context={wordContext}
+          onClose={() => { setSelectedWord(null); setWordContext(''); }}
         />
       )}
     </div>

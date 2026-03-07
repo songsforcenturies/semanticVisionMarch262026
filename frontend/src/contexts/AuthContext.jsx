@@ -56,14 +56,17 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (fullName, email, password, role = 'guardian') => {
+  const register = async (fullName, email, password, referralCode = null, role = 'guardian') => {
     try {
-      const response = await authAPI.register({
+      const payload = {
         full_name: fullName,
         email,
         password,
         role
-      });
+      };
+      if (referralCode) payload.referral_code = referralCode;
+      
+      const response = await authAPI.register(payload);
 
       // Auto-login after registration
       return await login(email, password);

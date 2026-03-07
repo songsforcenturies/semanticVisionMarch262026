@@ -99,6 +99,9 @@ class StoryGenerationService:
         student_id: str = "",
         guardian_id: str = "",
         guardian_name: str = "",
+        belief_system: str = "",
+        cultural_context: str = "",
+        language: str = "English",
     ) -> Dict[str, Any]:
         """Generate a 5-chapter educational story"""
         
@@ -120,6 +123,26 @@ class StoryGenerationService:
         target_list = [w['word'] for w in target_words]
         stretch_list = [w['word'] for w in stretch_words]
         
+        # Build belief/culture prompt sections
+        belief_section = ""
+        if belief_system:
+            belief_section = f"""
+BELIEF SYSTEM & VALUES: The story should reflect the values and teachings of {belief_system}.
+Characters should demonstrate behaviors and decision-making consistent with {belief_system} principles.
+Show how a person following {belief_system} would navigate the story's challenges with wisdom and virtue."""
+        
+        culture_section = ""
+        if cultural_context:
+            culture_section = f"""
+CULTURAL CONTEXT: Incorporate culturally relevant elements from {cultural_context} culture.
+Include names, settings, traditions, foods, or customs that resonate with {cultural_context} heritage.
+Ensure respectful and authentic representation."""
+
+        language_section = ""
+        if language and language.lower() != "english":
+            language_section = f"""
+LANGUAGE: Write the ENTIRE story in {language}. All chapter titles, content, and vocabulary explanations must be in {language}."""
+
         # Create the story generation prompt
         system_message = f"""You are an expert educational story writer for LexiMaster. 
 Generate engaging, age-appropriate stories that naturally embed vocabulary words for learning.
@@ -137,6 +160,9 @@ Vocabulary Distribution:
 - 10% STRETCH words: {stretch_list}
 
 {f"CHARACTER EDUCATION: Weave lessons about {', '.join(virtues)} into the story." if virtues else ""}
+{belief_section}
+{culture_section}
+{language_section}
 
 Requirements:
 1. Create exactly 5 chapters, each 300-500 words

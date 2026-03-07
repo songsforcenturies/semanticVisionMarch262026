@@ -6,7 +6,7 @@ import { adminAPI } from '@/lib/api';
 import { BrutalCard, BrutalButton, BrutalBadge, BrutalInput } from '@/components/brutal';
 import {
   Home, LogOut, DollarSign, Cpu, Users, BarChart3, Settings, Shield,
-  Ticket, Crown, PlusCircle, Trash2, UserCheck, BookOpen, Clock, Zap,
+  Ticket, Crown, PlusCircle, Trash2, UserCheck, BookOpen, Clock, Zap, Sliders, ToggleLeft,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -53,6 +53,16 @@ const AdminPortal = () => {
     queryFn: async () => (await adminAPI.getPlans()).data,
     enabled: activeTab === 'plans',
   });
+  const { data: billingConfig } = useQuery({
+    queryKey: ['admin-billing'],
+    queryFn: async () => (await adminAPI.getBillingConfig()).data,
+    enabled: activeTab === 'billing',
+  });
+  const { data: featureFlags } = useQuery({
+    queryKey: ['admin-features'],
+    queryFn: async () => (await adminAPI.getFeatureFlags()).data,
+    enabled: activeTab === 'features',
+  });
 
   // === Form States ===
   const [llmForm, setLlmForm] = useState({ provider: 'emergent', model: 'gpt-5.2', openrouter_key: '' });
@@ -66,6 +76,15 @@ const AdminPortal = () => {
   const [delegateEmail, setDelegateEmail] = useState('');
   const [planForm, setPlanForm] = useState({
     name: '', description: '', price_monthly: '', student_seats: '10', story_limit: '-1',
+  });
+  const [billingForm, setBillingForm] = useState({
+    pricing_model: 'per_seat', per_seat_price: 4.99, roi_markup_percent: 300,
+    flat_fee_per_story: 0.50, avg_cost_per_story: 0.20, free_tier_stories: 5,
+    remove_limits_on_paid: true, referral_reward_amount: 5.0, donation_cost_per_story: 0.20,
+  });
+  const [flagsForm, setFlagsForm] = useState({
+    belief_system_enabled: true, cultural_context_enabled: true, multi_language_enabled: true,
+    donations_enabled: true, referrals_enabled: true, word_definitions_enabled: true, accessibility_mode: true,
   });
 
   // === Mutations ===
@@ -102,6 +121,16 @@ const AdminPortal = () => {
     mutationFn: (id) => adminAPI.deletePlan(id),
     onSuccess: () => { queryClient.invalidateQueries(['admin-plans']); toast.success('Plan deleted'); },
   });
+  const updateBillingMutation = useMutation({
+    mutationFn: (data) => adminAPI.updateBillingConfig(data),
+    onSuccess: () => { queryClient.invalidateQueries(['admin-billing']); toast.success('Billing config updated!'); },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed'),
+  });
+  const updateFlagsMutation = useMutation({
+    mutationFn: (data) => adminAPI.updateFeatureFlags(data),
+    onSuccess: () => { queryClient.invalidateQueries(['admin-features']); toast.success('Feature flags updated!'); },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed'),
+  });
 
   // === Sync forms with data ===
   React.useEffect(() => {
@@ -115,6 +144,12 @@ const AdminPortal = () => {
       free_account_assessment_limit: adminSettings.free_account_assessment_limit ?? 10,
     });
   }, [adminSettings]);
+  React.useEffect(() => {
+    if (billingConfig) setBillingForm(prev => ({ ...prev, ...billingConfig }));
+  }, [billingConfig]);
+  React.useEffect(() => {
+    if (featureFlags) setFlagsForm(prev => ({ ...prev, ...featureFlags }));
+  }, [featureFlags]);
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
@@ -124,6 +159,8 @@ const AdminPortal = () => {
     { id: 'users', label: 'Users', icon: Users },
     { id: 'coupons', label: 'Coupons', icon: Ticket },
     { id: 'plans', label: 'Plans', icon: Crown },
+    { id: 'billing', label: 'Billing/ROI', icon: Sliders },
+    { id: 'features', label: 'Features', icon: ToggleLeft },
     { id: 'config', label: 'LLM Config', icon: Settings },
     { id: 'settings', label: 'App Settings', icon: Shield },
   ];
@@ -385,6 +422,98 @@ const AdminPortal = () => {
                   ))}
                 </div>
               )}
+            </BrutalCard>
+          </div>
+        )}
+
+
+        {/* =================== BILLING/ROI TAB =================== */}
+        {activeTab === 'billing' && (
+          <div className="space-y-6" data-testid="billing-tab">
+            <BrutalCard shadow="xl" className="max-w-2xl">
+              <h3 className="text-2xl font-black uppercase mb-6">Billing & ROI Configuration</h3>
+              <form onSubmit={(e) => { e.preventDefault(); updateBillingMutation.mutate(billingForm); }} className="space-y-6">
+                <div className="border-4 border-black p-4">
+                  <h4 className="font-black uppercase mb-4">Pricing Model</h4>
+                  <div className="space-y-2">
+                    {[
+                      { v: 'per_seat', l: 'Per Seat', d: 'Charge a flat monthly fee per student seat' },
+                      { v: 'roi_markup', l: 'ROI Markup', d: 'Charge a % markup on actual AI costs per user' },
+                      { v: 'flat_fee', l: 'Flat Fee Per Story', d: 'Charge a fixed price per story generated' },
+                    ].map(opt => (
+                      <label key={opt.v} className={`block p-3 border-4 border-black cursor-pointer ${billingForm.pricing_model === opt.v ? 'bg-indigo-100' : 'bg-white'}`}>
+                        <input type="radio" name="pricing" value={opt.v} checked={billingForm.pricing_model === opt.v}
+                          onChange={() => setBillingForm({ ...billingForm, pricing_model: opt.v })} className="mr-2" />
+                        <span className="font-black">{opt.l}</span>
+                        <p className="text-xs text-gray-500 ml-5">{opt.d}</p>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><label className="block font-bold text-sm uppercase mb-2">Per Seat Price ($/mo)</label>
+                    <input type="number" step="0.01" value={billingForm.per_seat_price} onChange={(e) => setBillingForm({ ...billingForm, per_seat_price: parseFloat(e.target.value) || 0 })} className="w-full border-4 border-black px-4 py-3 font-bold" data-testid="per-seat-price" /></div>
+                  <div><label className="block font-bold text-sm uppercase mb-2">ROI Markup (%)</label>
+                    <input type="number" value={billingForm.roi_markup_percent} onChange={(e) => setBillingForm({ ...billingForm, roi_markup_percent: parseFloat(e.target.value) || 0 })} className="w-full border-4 border-black px-4 py-3 font-bold" data-testid="roi-markup" />
+                    <p className="text-xs text-gray-500 mt-1">300% = charge 3x AI cost</p></div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><label className="block font-bold text-sm uppercase mb-2">Flat Fee Per Story ($)</label>
+                    <input type="number" step="0.01" value={billingForm.flat_fee_per_story} onChange={(e) => setBillingForm({ ...billingForm, flat_fee_per_story: parseFloat(e.target.value) || 0 })} className="w-full border-4 border-black px-4 py-3 font-bold" /></div>
+                  <div><label className="block font-bold text-sm uppercase mb-2">Avg AI Cost/Story ($)</label>
+                    <input type="number" step="0.01" value={billingForm.avg_cost_per_story} onChange={(e) => setBillingForm({ ...billingForm, avg_cost_per_story: parseFloat(e.target.value) || 0 })} className="w-full border-4 border-black px-4 py-3 font-bold" /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><label className="block font-bold text-sm uppercase mb-2">Free Tier Stories</label>
+                    <input type="number" value={billingForm.free_tier_stories} onChange={(e) => setBillingForm({ ...billingForm, free_tier_stories: parseInt(e.target.value) || 0 })} className="w-full border-4 border-black px-4 py-3 font-bold" /></div>
+                  <div><label className="block font-bold text-sm uppercase mb-2">Referral Reward ($)</label>
+                    <input type="number" step="0.01" value={billingForm.referral_reward_amount} onChange={(e) => setBillingForm({ ...billingForm, referral_reward_amount: parseFloat(e.target.value) || 0 })} className="w-full border-4 border-black px-4 py-3 font-bold" data-testid="referral-reward" /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><label className="block font-bold text-sm uppercase mb-2">Donation Cost/Story ($)</label>
+                    <input type="number" step="0.01" value={billingForm.donation_cost_per_story} onChange={(e) => setBillingForm({ ...billingForm, donation_cost_per_story: parseFloat(e.target.value) || 0 })} className="w-full border-4 border-black px-4 py-3 font-bold" /></div>
+                  <label className="flex items-center gap-2 p-3 border-4 border-black cursor-pointer self-end">
+                    <input type="checkbox" checked={billingForm.remove_limits_on_paid} onChange={(e) => setBillingForm({ ...billingForm, remove_limits_on_paid: e.target.checked })} className="w-6 h-6" />
+                    <span className="font-bold text-sm">Remove all limits for paid users</span>
+                  </label>
+                </div>
+                <BrutalButton type="submit" variant="indigo" fullWidth size="lg" disabled={updateBillingMutation.isPending} data-testid="save-billing-btn">
+                  {updateBillingMutation.isPending ? 'Saving...' : 'Save Billing Config'}
+                </BrutalButton>
+              </form>
+            </BrutalCard>
+          </div>
+        )}
+
+        {/* =================== FEATURE FLAGS TAB =================== */}
+        {activeTab === 'features' && (
+          <div className="space-y-6" data-testid="features-tab">
+            <BrutalCard shadow="xl" className="max-w-2xl">
+              <h3 className="text-2xl font-black uppercase mb-6">System-Wide Feature Flags</h3>
+              <p className="text-sm text-gray-600 mb-4">Control which features are available across the entire platform.</p>
+              <form onSubmit={(e) => { e.preventDefault(); updateFlagsMutation.mutate(flagsForm); }} className="space-y-3">
+                {[
+                  { key: 'belief_system_enabled', label: 'Belief System / Faith Integration', desc: 'Allow guardians to set religious/belief preferences for stories' },
+                  { key: 'cultural_context_enabled', label: 'Cultural Context', desc: 'Allow cultural localization for story generation' },
+                  { key: 'multi_language_enabled', label: 'Multi-Language Support', desc: 'Allow stories in 20+ world languages' },
+                  { key: 'donations_enabled', label: 'Sponsor a Reader (Donations)', desc: 'Enable the donation/sponsorship system' },
+                  { key: 'referrals_enabled', label: 'Referral Program', desc: 'Enable invite & earn wallet credits' },
+                  { key: 'word_definitions_enabled', label: 'Click-to-Define Words', desc: 'Allow students to tap any word for AI definitions' },
+                  { key: 'accessibility_mode', label: 'Accessibility Mode', desc: 'Enable enhanced accessibility features for deaf/HoH users' },
+                ].map(flag => (
+                  <label key={flag.key} className={`flex items-center justify-between p-4 border-4 border-black cursor-pointer transition-colors ${flagsForm[flag.key] ? 'bg-emerald-50' : 'bg-gray-50'}`}>
+                    <div>
+                      <span className="font-black">{flag.label}</span>
+                      <p className="text-xs text-gray-500">{flag.desc}</p>
+                    </div>
+                    <input type="checkbox" checked={flagsForm[flag.key]} onChange={(e) => setFlagsForm({ ...flagsForm, [flag.key]: e.target.checked })}
+                      className="w-6 h-6 accent-emerald-600" data-testid={`flag-${flag.key}`} />
+                  </label>
+                ))}
+                <BrutalButton type="submit" variant="indigo" fullWidth size="lg" disabled={updateFlagsMutation.isPending} data-testid="save-features-btn">
+                  {updateFlagsMutation.isPending ? 'Saving...' : 'Save Feature Flags'}
+                </BrutalButton>
+              </form>
             </BrutalCard>
           </div>
         )}

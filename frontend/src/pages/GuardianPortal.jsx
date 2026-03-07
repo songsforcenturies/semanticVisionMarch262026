@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate, Routes, Route } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { BrutalButton, BrutalCard } from '@/components/brutal';
-import { LogOut, Users, ShoppingBag, TrendingUp, Home, Wallet } from 'lucide-react';
+import { LogOut, Users, ShoppingBag, TrendingUp, Home, Wallet, Share2 } from 'lucide-react';
 import StudentsTab from '@/components/guardian/StudentsTab';
 import MarketplaceTab from '@/components/guardian/MarketplaceTab';
 import ProgressTab from '@/components/guardian/ProgressTab';
 import WalletTab from '@/components/guardian/WalletTab';
+import ReferralTab from '@/components/guardian/ReferralTab';
 
 const GuardianPortal = () => {
   const { user, logout } = useAuth();
@@ -22,6 +23,7 @@ const GuardianPortal = () => {
     { id: 'students', label: 'Students', icon: Users, color: 'indigo' },
     { id: 'marketplace', label: 'Marketplace', icon: ShoppingBag, color: 'emerald' },
     { id: 'wallet', label: 'Wallet', icon: Wallet, color: 'amber' },
+    { id: 'referral', label: 'Invite & Earn', icon: Share2, color: 'rose' },
     { id: 'progress', label: 'Progress', icon: TrendingUp, color: 'rose' },
   ];
 
@@ -94,6 +96,7 @@ const GuardianPortal = () => {
           {activeTab === 'students' && <StudentsTab />}
           {activeTab === 'marketplace' && <MarketplaceTab />}
           {activeTab === 'wallet' && <WalletTab />}
+          {activeTab === 'referral' && <ReferralTab />}
           {activeTab === 'progress' && <ProgressTab />}
         </div>
       </div>
