@@ -53,6 +53,7 @@ export const studentAPI = {
   delete: (id) => apiClient.delete(`/students/${id}`),
   resetPin: (id) => apiClient.post(`/students/${id}/reset-pin`),
   getProgress: (id) => apiClient.get(`/students/${id}/progress`),
+  getExportUrl: (id, format) => `${API}/students/${id}/export?format=${format}`,
 };
 
 // ==================== SUBSCRIPTION API ====================

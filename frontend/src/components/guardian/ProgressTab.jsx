@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { studentAPI } from '@/lib/api';
 import { BrutalCard, BrutalButton, BrutalBadge } from '@/components/brutal';
-import { TrendingUp, BookOpen, Clock, Target, ChevronLeft, Award, BarChart3, Brain } from 'lucide-react';
+import { TrendingUp, BookOpen, Clock, Target, ChevronLeft, Award, BarChart3, Brain, Download, Printer } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -53,6 +53,32 @@ const StudentProgressDetail = ({ studentId, onBack }) => {
     enabled: !!studentId,
   });
 
+  const handleExportJSON = () => {
+    const token = localStorage.getItem('token');
+    const url = studentAPI.getExportUrl(studentId, 'json');
+    fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => res.blob())
+      .then(blob => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `leximaster_report_${progress?.student?.full_name?.replace(/\s/g, '_') || studentId}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
+  };
+
+  const handleExportHTML = () => {
+    const token = localStorage.getItem('token');
+    const url = studentAPI.getExportUrl(studentId, 'html');
+    fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => res.text())
+      .then(html => {
+        const w = window.open('', '_blank');
+        w.document.write(html);
+        w.document.close();
+      });
+  };
+
   if (isLoading) return <div className="text-center py-12 text-2xl font-bold">Loading progress...</div>;
   if (!progress) return <div className="text-center py-12 text-2xl font-bold">No data found</div>;
 
@@ -78,19 +104,29 @@ const StudentProgressDetail = ({ studentId, onBack }) => {
   return (
     <div className="space-y-6" data-testid="student-progress-detail">
       {/* Back + Header */}
-      <div className="flex items-center gap-4">
-        <BrutalButton variant="default" size="sm" onClick={onBack} className="flex items-center gap-1" data-testid="progress-back-btn">
-          <ChevronLeft size={18} /> Back
-        </BrutalButton>
-        <div>
-          <h2 className="text-3xl font-black uppercase">{student.full_name}</h2>
-          <p className="text-sm font-medium text-gray-500">
-            {student.age ? `Age ${student.age}` : ''}{student.grade_level ? ` · Grade ${student.grade_level}` : ''}
-          </p>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          <BrutalButton variant="default" size="sm" onClick={onBack} className="flex items-center gap-1" data-testid="progress-back-btn">
+            <ChevronLeft size={18} /> Back
+          </BrutalButton>
+          <div>
+            <h2 className="text-3xl font-black uppercase">{student.full_name}</h2>
+            <p className="text-sm font-medium text-gray-500">
+              {student.age ? `Age ${student.age}` : ''}{student.grade_level ? ` · Grade ${student.grade_level}` : ''}
+            </p>
+          </div>
+          {student.agentic_reach_score > 0 && (
+            <BrutalBadge variant="indigo" size="lg">Score: {student.agentic_reach_score}</BrutalBadge>
+          )}
         </div>
-        {student.agentic_reach_score > 0 && (
-          <BrutalBadge variant="indigo" size="lg">Score: {student.agentic_reach_score}</BrutalBadge>
-        )}
+        <div className="flex gap-2">
+          <BrutalButton variant="emerald" size="sm" onClick={handleExportJSON} className="flex items-center gap-1" data-testid="export-json-btn">
+            <Download size={16} /> Export JSON
+          </BrutalButton>
+          <BrutalButton variant="indigo" size="sm" onClick={handleExportHTML} className="flex items-center gap-1" data-testid="export-html-btn">
+            <Printer size={16} /> Print Report
+          </BrutalButton>
+        </div>
       </div>
 
       {/* Stat Cards */}
