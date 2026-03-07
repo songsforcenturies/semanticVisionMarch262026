@@ -30,7 +30,7 @@ class StoryGenerationService:
     
     async def _get_llm_config(self):
         """Get current LLM configuration"""
-        if self.db:
+        if self.db is not None:
             config = await self.db.system_config.find_one({"key": "llm_config"}, {"_id": 0})
             if config and config.get("value"):
                 return config["value"]
@@ -41,7 +41,7 @@ class StoryGenerationService:
                         prompt_tokens: int, completion_tokens: int,
                         duration_seconds: float, success: bool):
         """Log LLM usage cost to database"""
-        if not self.db:
+        if self.db is None:
             return
         
         # Estimate cost based on model
