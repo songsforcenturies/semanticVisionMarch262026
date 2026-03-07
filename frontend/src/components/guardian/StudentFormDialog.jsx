@@ -21,6 +21,7 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
     age: '',
     grade_level: '',
     interests: '',
+    virtues: '',
     assigned_banks: []
   });
 
@@ -51,6 +52,7 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
         age: student.age?.toString() || '',
         grade_level: student.grade_level || '',
         interests: student.interests?.join(', ') || '',
+        virtues: student.virtues?.join(', ') || '',
         assigned_banks: student.assigned_banks || []
       });
     } else {
@@ -59,6 +61,7 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
         age: '',
         grade_level: '',
         interests: '',
+        virtues: '',
         assigned_banks: []
       });
     }
@@ -100,11 +103,18 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
       .map(i => i.trim())
       .filter(i => i.length > 0);
 
+    // Process virtues
+    const virtuesArray = formData.virtues
+      .split(',')
+      .map(v => v.trim())
+      .filter(v => v.length > 0);
+
     const submitData = {
       full_name: formData.full_name,
       age: formData.age ? parseInt(formData.age) : null,
       grade_level: formData.grade_level || null,
       interests: interestsArray,
+      virtues: virtuesArray,
       guardian_id: guardianId
     };
 
@@ -226,6 +236,25 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
             />
             <p className="mt-1 text-sm font-medium text-gray-600">
               These will be used to personalize AI-generated stories
+            </p>
+          </div>
+
+          <div>
+            <label className="block mb-2 font-bold uppercase text-sm">
+              ✨ Virtues & Life Lessons (comma-separated)
+            </label>
+            <textarea
+              value={formData.virtues}
+              onChange={(e) => setFormData({ ...formData, virtues: e.target.value })}
+              placeholder="patience, kindness, honesty, courage, responsibility"
+              rows={3}
+              className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-emerald-500 resize-none"
+            />
+            <p className="mt-1 text-sm font-medium text-emerald-700">
+              💡 Stories will teach these character traits and life lessons to your child
+            </p>
+            <p className="mt-1 text-xs font-medium text-gray-600">
+              Examples: Patience, Kindness, Honesty, Courage, Responsibility, Perseverance, Gratitude, Justice, Compassion, Respect, Empathy, Self-discipline
             </p>
           </div>
 

@@ -74,11 +74,20 @@ Student Profile:
 - Age: {student_age}
 - Grade: {grade_level}
 - Interests: {', '.join(interests)}
+- Character Lessons to Develop: {', '.join(virtues) if virtues else 'General positive values'}
 
 Vocabulary Distribution (MUST follow exactly):
 - 60% BASELINE words (comfortable level): {baseline_list}
 - 30% TARGET words (growth level): {target_list}
 - 10% STRETCH words (challenge level): {stretch_list}
+
+CHARACTER EDUCATION FOCUS:
+{f"Throughout the story, naturally weave in lessons about: {', '.join(virtues)}. " if virtues else ""}
+The protagonist should face challenges that help them develop these virtues. Show character growth through:
+- Facing situations that require the virtue
+- Making choices that demonstrate the lesson  
+- Learning from mistakes
+- Showing positive outcomes from virtuous behavior
 
 Requirements:
 1. Create exactly 5 chapters
@@ -87,6 +96,7 @@ Requirements:
 4. Use each vocabulary word at least once
 5. Make the story engaging and educational
 6. Create a comprehension question for each chapter with 4 multiple-choice options
+{f"7. IMPORTANT: Weave in lessons about {', '.join(virtues[:2]) if len(virtues) >= 2 else virtues[0] if virtues else 'positive character'} - show protagonist learning and growing" if virtues else ""}
 
 Story Theme: {prompt}"""
 

@@ -178,6 +178,7 @@ class Student(MongoBaseModel):
     age: Optional[int] = None
     grade_level: Optional[GradeLevel] = None
     interests: List[str] = Field(default_factory=list)
+    virtues: List[str] = Field(default_factory=list)  # Character traits/lessons to develop
     assigned_banks: List[str] = Field(default_factory=list)  # WordBank IDs
     mastered_tokens: List[MasteredToken] = Field(default_factory=list)
     agentic_reach_score: float = 0.0
@@ -203,6 +204,7 @@ class StudentUpdate(BaseModel):
     age: Optional[int] = None
     grade_level: Optional[GradeLevel] = None
     interests: Optional[List[str]] = None
+    virtues: Optional[List[str]] = None
     assigned_banks: Optional[List[str]] = None
     status: Optional[StudentStatus] = None
 

@@ -478,6 +478,7 @@ async def create_narrative(narrative_data: NarrativeCreate):
             student_age=student.get("age", 10),
             grade_level=student.get("grade_level", "1-12"),
             interests=student.get("interests", []),
+            virtues=student.get("virtues", []),
             prompt=narrative_data.prompt,
             baseline_words=baseline_words,
             target_words=target_words,

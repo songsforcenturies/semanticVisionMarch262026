@@ -240,6 +240,18 @@ const StudentsTab = () => {
                       </div>
                     </div>
                   )}
+                  {student.virtues && student.virtues.length > 0 && (
+                    <div>
+                      <p className="font-bold mb-1">Learning:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {student.virtues.map((virtue, idx) => (
+                          <BrutalBadge key={idx} variant="emerald" size="sm">
+                            ✨ {virtue}
+                          </BrutalBadge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

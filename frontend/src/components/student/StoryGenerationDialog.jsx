@@ -74,12 +74,24 @@ const StoryGenerationDialog = ({ isOpen, onClose, student }) => {
             <p className="font-bold text-sm uppercase mb-2">Story will be personalized for:</p>
             <p className="text-xl font-black mb-2">{student.full_name}</p>
             {student.interests && student.interests.length > 0 && (
-              <div>
+              <div className="mb-2">
                 <p className="font-bold text-xs uppercase mb-1">Your Interests:</p>
                 <div className="flex flex-wrap gap-1">
                   {student.interests.map((interest, idx) => (
                     <BrutalBadge key={idx} variant="indigo" size="sm">
                       {interest}
+                    </BrutalBadge>
+                  ))}
+                </div>
+              </div>
+            )}
+            {student.virtues && student.virtues.length > 0 && (
+              <div>
+                <p className="font-bold text-xs uppercase mb-1">✨ Life Lessons You'll Learn:</p>
+                <div className="flex flex-wrap gap-1">
+                  {student.virtues.map((virtue, idx) => (
+                    <BrutalBadge key={idx} variant="emerald" size="sm">
+                      {virtue}
                     </BrutalBadge>
                   ))}
                 </div>
@@ -140,6 +152,9 @@ const StoryGenerationDialog = ({ isOpen, onClose, student }) => {
               <li>✅ 5 exciting chapters</li>
               <li>✅ Vocabulary words to learn</li>
               <li>✅ Questions to test your understanding</li>
+              {student.virtues && student.virtues.length > 0 && (
+                <li>✨ Life lessons about {student.virtues.slice(0, 2).join(' and ')}</li>
+              )}
               <li>✅ A personalized adventure just for you!</li>
             </ul>
           </BrutalCard>
