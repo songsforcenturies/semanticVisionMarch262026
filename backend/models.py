@@ -598,6 +598,8 @@ class Brand(MongoBaseModel):
     total_impressions: int = 0
     total_stories: int = 0
     onboarding_completed: bool = False
+    story_preview: str = ""  # Cached AI-generated story snippet
+    story_preview_generated_at: Optional[datetime] = None
     created_by: str = ""
     created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 

@@ -9,6 +9,7 @@ import {
   Home, LogOut, BarChart3, Megaphone, DollarSign, PlusCircle, Trash2,
   Play, Pause, CreditCard, TrendingUp, Eye, Upload, Package,
   Globe, FileText, ChevronRight, ChevronLeft, Check, Pencil, X, Building2,
+  BookOpen, Sparkles, RefreshCw, Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
@@ -211,6 +212,12 @@ const DashboardTab = ({ brand, stats, campaigns, dashboard }) => (
         </div>
       </BrutalCard>
     )}
+
+    {/* Story Preview Section */}
+    {brand && (brand.problem_statement || brand.products?.length > 0) && (
+      <StoryPreviewCard brand={brand} />
+    )}
+
     {dashboard?.sponsorships?.length > 0 && (
       <BrutalCard shadow="lg">
         <h3 className="text-xl font-black uppercase mb-3">Classroom Sponsorships</h3>
@@ -830,6 +837,104 @@ const StatCard = ({ icon: Icon, label, value, color = 'indigo' }) => {
       <div className="flex items-center gap-2 mb-2"><Icon size={18} className={textMap[color]} /><p className="font-bold text-xs uppercase text-gray-600">{label}</p></div>
       <p className="text-3xl font-black">{value}</p>
     </div>
+  );
+};
+
+
+// ==================== STORY PREVIEW CARD ====================
+const StoryPreviewCard = ({ brand }) => {
+  const { data: previewData, isLoading: loadingCached } = useQuery({
+    queryKey: ['story-preview', brand?.id],
+    queryFn: async () => (await brandPortalAPI.getStoryPreview()).data,
+    enabled: !!brand,
+  });
+
+  const generateMut = useMutation({
+    mutationFn: () => brandPortalAPI.generateStoryPreview(),
+    onSuccess: (res) => {
+      toast.success('Story preview generated!');
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed to generate preview'),
+  });
+
+  const queryClient = useQueryClient();
+  const preview = generateMut.data?.data?.preview || previewData?.preview || '';
+  const generatedAt = generateMut.data?.data?.generated_at || previewData?.generated_at;
+
+  const handleGenerate = async () => {
+    await generateMut.mutateAsync();
+    queryClient.invalidateQueries(['story-preview', brand?.id]);
+  };
+
+  // Highlight brand name in preview text
+  const highlightBrand = (text) => {
+    if (!text || !brand?.name) return text;
+    // Clean markdown bold markers around brand name
+    const cleanName = brand.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    let cleaned = text.replace(new RegExp(`\\*\\*\\s*${cleanName}\\s*\\*\\*`, 'gi'), brand.name);
+    const parts = cleaned.split(new RegExp(`(${cleanName})`, 'gi'));
+    return parts.map((part, i) =>
+      part.toLowerCase() === brand.name.toLowerCase()
+        ? <span key={i} className="bg-amber-200 font-bold px-0.5">{part}</span>
+        : part
+    );
+  };
+
+  return (
+    <BrutalCard shadow="lg" data-testid="story-preview-card">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xl font-black uppercase flex items-center gap-2">
+          <BookOpen size={22} className="text-amber-600" /> Story Preview
+        </h3>
+        <BrutalButton
+          variant={preview ? 'default' : 'amber'}
+          size="sm"
+          onClick={handleGenerate}
+          disabled={generateMut.isPending}
+          className="flex items-center gap-2"
+          data-testid="generate-preview-btn"
+        >
+          {generateMut.isPending ? (
+            <><Loader2 size={16} className="animate-spin" /> Generating...</>
+          ) : preview ? (
+            <><RefreshCw size={16} /> Regenerate</>
+          ) : (
+            <><Sparkles size={16} /> Generate Preview</>
+          )}
+        </BrutalButton>
+      </div>
+
+      {generateMut.isPending && (
+        <div className="flex items-center justify-center py-10 gap-3" data-testid="preview-loading">
+          <Loader2 size={28} className="animate-spin text-amber-500" />
+          <p className="font-bold text-gray-500">AI is crafting your story preview...</p>
+        </div>
+      )}
+
+      {!generateMut.isPending && preview && (
+        <div data-testid="preview-content">
+          <div className="bg-amber-50 border-2 border-amber-300 p-5 leading-relaxed text-base">
+            <p>{highlightBrand(preview)}</p>
+          </div>
+          {generatedAt && (
+            <p className="text-xs text-gray-400 mt-2 text-right">
+              Generated {new Date(generatedAt).toLocaleDateString()} at {new Date(generatedAt).toLocaleTimeString()}
+            </p>
+          )}
+          <p className="text-xs text-gray-500 mt-1">
+            This is a sample of how your brand appears in our AI-generated stories. Your brand name is <span className="bg-amber-200 px-0.5 font-bold">highlighted</span>.
+          </p>
+        </div>
+      )}
+
+      {!generateMut.isPending && !preview && (
+        <div className="text-center py-8" data-testid="preview-empty">
+          <Sparkles size={40} className="mx-auto text-gray-300 mb-3" />
+          <p className="font-bold text-gray-500">See how your brand comes to life in stories</p>
+          <p className="text-sm text-gray-400 mt-1">Click "Generate Preview" to see an AI-crafted snippet featuring your brand.</p>
+        </div>
+      )}
+    </BrutalCard>
   );
 };
 

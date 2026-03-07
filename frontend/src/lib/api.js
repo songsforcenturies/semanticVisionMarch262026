@@ -214,6 +214,8 @@ export const brandPortalAPI = {
   deleteCampaign: (id) => apiClient.delete(`/brand-portal/campaigns/${id}`),
   topup: (data) => apiClient.post('/brand-portal/topup', data),
   getTopupStatus: (sessionId) => apiClient.get(`/brand-portal/topup-status/${sessionId}`),
+  getStoryPreview: () => apiClient.get('/brand-portal/story-preview'),
+  generateStoryPreview: () => apiClient.post('/brand-portal/story-preview'),
 };
 
 export default apiClient;

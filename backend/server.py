@@ -3258,6 +3258,111 @@ async def delete_brand_product(product_id: str, current_user: dict = Depends(get
     return {"message": "Product deleted"}
 
 
+# ==================== BRAND PORTAL: STORY PREVIEW ====================
+
+@api_router.get("/brand-portal/story-preview")
+async def get_story_preview(current_user: dict = Depends(get_current_brand_partner)):
+    """Get cached story preview for the brand"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    brand_id = user.get("linked_brand_id")
+    if not brand_id:
+        raise HTTPException(status_code=400, detail="No brand linked")
+    brand = await db.brands.find_one({"id": brand_id}, {"_id": 0})
+    if not brand:
+        raise HTTPException(status_code=404, detail="Brand not found")
+    return {
+        "preview": brand.get("story_preview", ""),
+        "generated_at": brand.get("story_preview_generated_at"),
+    }
+
+
+@api_router.post("/brand-portal/story-preview")
+async def generate_story_preview(current_user: dict = Depends(get_current_brand_partner)):
+    """Generate a short AI story snippet showcasing how the brand is woven into a story"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    brand_id = user.get("linked_brand_id")
+    if not brand_id:
+        raise HTTPException(status_code=400, detail="No brand linked")
+    brand = await db.brands.find_one({"id": brand_id}, {"_id": 0})
+    if not brand:
+        raise HTTPException(status_code=404, detail="Brand not found")
+
+    brand_name = brand.get("name", "Brand")
+    problem = brand.get("problem_statement", "")
+    products = brand.get("products", [])
+    prod_names = [p.get("name", "") for p in products if p.get("name")]
+
+    if not problem and not prod_names:
+        raise HTTPException(status_code=400, detail="Please add a problem statement or products first")
+
+    # Build the prompt
+    prod_text = f"Products: {', '.join(prod_names)}" if prod_names else ""
+    problem_text = f"Problem they solve: {problem}" if problem else ""
+
+    prompt = f"""Write a short educational story snippet (about 150-200 words, one scene) for children aged 8-12.
+The story should naturally feature the brand "{brand_name}" as a helpful solution.
+{problem_text}
+{prod_text}
+
+Requirements:
+- The brand mention must feel organic, not like an advertisement
+- Show how the brand/product helps a child character solve a real problem
+- Keep it engaging, warm, and educational
+- Write it as a single cohesive paragraph/scene
+- Do NOT include any JSON formatting, just the story text"""
+
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        import time as _time
+        api_key = os.environ.get("EMERGENT_LLM_KEY")
+        if not api_key:
+            raise HTTPException(status_code=500, detail="AI service not configured")
+
+        story_service.set_db(db)
+        llm_config = await story_service._get_llm_config()
+        provider = llm_config.get("provider", "emergent")
+        model = llm_config.get("model", "gpt-5.2")
+
+        if provider == "openrouter":
+            openrouter_key = llm_config.get("openrouter_key") or os.environ.get("OPENROUTER_API_KEY")
+            if not openrouter_key:
+                raise HTTPException(status_code=500, detail="OpenRouter API key not configured")
+            # OpenRouter path - use direct API
+            import httpx
+            headers = {"Authorization": f"Bearer {openrouter_key}", "Content-Type": "application/json"}
+            body = {"model": model, "messages": [{"role": "user", "content": prompt}], "max_tokens": 500}
+            async with httpx.AsyncClient(timeout=60) as client_http:
+                resp = await client_http.post("https://openrouter.ai/api/v1/chat/completions", json=body, headers=headers)
+                resp.raise_for_status()
+                preview_text = resp.json()["choices"][0]["message"]["content"].strip()
+        else:
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=f"brand_preview_{brand_id}_{int(_time.time())}",
+                system_message="You are an expert educational story writer for children."
+            )
+            chat.with_model("openai", model)
+            message = UserMessage(text=prompt)
+            preview_text = await chat.send_message(message)
+            preview_text = preview_text.strip()
+
+        # Cache it
+        now_iso = datetime.now(timezone.utc).isoformat()
+        await db.brands.update_one(
+            {"id": brand_id},
+            {"$set": {"story_preview": preview_text, "story_preview_generated_at": now_iso}}
+        )
+
+        return {"preview": preview_text, "generated_at": now_iso}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Story preview generation failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate story preview. Please try again.")
+
+
+
 
 @api_router.get("/brand-portal/dashboard")
 async def get_brand_dashboard(current_user: dict = Depends(get_current_brand_partner)):
