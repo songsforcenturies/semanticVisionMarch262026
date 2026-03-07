@@ -47,6 +47,7 @@ Build "LexiMaster," a high-quality educational platform for students, guardians,
 - [x] Product CRUD management (add/edit/delete products)
 - [x] Geo-targeting with regions (country, state, city, zip)
 - [x] Target language selection (20 languages)
+- [x] AI Story Preview — cached short story snippet showing brand integration
 - [x] Campaign management & analytics dashboard
 - [x] Budget management with Stripe integration
 - [x] Impression tracking & reporting
