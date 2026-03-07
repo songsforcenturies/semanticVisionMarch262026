@@ -72,6 +72,11 @@ const GuardianLogin = () => {
             <BrutalButton type="submit" variant="indigo" fullWidth disabled={loading} data-testid="login-submit">
               {loading ? t('common.loggingIn') : t('common.login')}
             </BrutalButton>
+            <div className="text-center">
+              <Link to="/forgot-password" className="text-sm font-bold text-amber-600 hover:underline" data-testid="forgot-password-link">
+                Forgot Password?
+              </Link>
+            </div>
             <div className="text-center space-y-2">
               <p className="font-medium">
                 {t('common.noAccount')}{' '}

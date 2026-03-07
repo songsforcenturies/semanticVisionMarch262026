@@ -8,6 +8,7 @@ import { Toaster } from "sonner";
 import LandingPage from "@/pages/LandingPage";
 import GuardianLogin from "@/pages/GuardianLogin";
 import GuardianRegister from "@/pages/GuardianRegister";
+import ForgotPassword from "@/pages/ForgotPassword";
 import StudentLogin from "@/pages/StudentLogin";
 import GuardianPortal from "@/pages/GuardianPortal";
 import StudentAcademy from "@/pages/StudentAcademy";
@@ -59,6 +60,7 @@ function AppContent() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<GuardianLogin />} />
           <Route path="/register" element={<GuardianRegister />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/student-login" element={<StudentLogin />} />
           <Route path="/teacher-login" element={<TeacherLogin />} />
           <Route path="/teacher-register" element={<TeacherRegister />} />

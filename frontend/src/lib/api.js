@@ -44,6 +44,10 @@ export const authAPI = {
   login: (data) => apiClient.post('/auth/login', data),
   studentLogin: (studentCode, pin) => apiClient.post('/auth/student-login', { student_code: studentCode, pin }),
   getMe: () => apiClient.get('/auth/me'),
+  forgotPassword: (email) => apiClient.post('/auth/forgot-password', { email }),
+  resetPassword: (data) => apiClient.post('/auth/reset-password', data),
+  sendVerification: () => apiClient.post('/auth/send-verification'),
+  verifyEmail: (code) => apiClient.post('/auth/verify-email', { code }),
 };
 
 // ==================== STUDENT API ====================
