@@ -10,6 +10,9 @@ import GuardianRegister from "@/pages/GuardianRegister";
 import StudentLogin from "@/pages/StudentLogin";
 import GuardianPortal from "@/pages/GuardianPortal";
 import StudentAcademy from "@/pages/StudentAcademy";
+import TeacherLogin from "@/pages/TeacherLogin";
+import TeacherRegister from "@/pages/TeacherRegister";
+import TeacherPortal from "@/pages/TeacherPortal";
 
 // Protected route component
 const ProtectedRoute = ({ children, requireAuth = true }) => {
@@ -51,6 +54,8 @@ function AppContent() {
           <Route path="/login" element={<GuardianLogin />} />
           <Route path="/register" element={<GuardianRegister />} />
           <Route path="/student-login" element={<StudentLogin />} />
+          <Route path="/teacher-login" element={<TeacherLogin />} />
+          <Route path="/teacher-register" element={<TeacherRegister />} />
 
           {/* Guardian protected routes */}
           <Route
@@ -58,6 +63,16 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <GuardianPortal />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Teacher protected routes */}
+          <Route
+            path="/teacher-portal/*"
+            element={
+              <ProtectedRoute>
+                <TeacherPortal />
               </ProtectedRoute>
             }
           />

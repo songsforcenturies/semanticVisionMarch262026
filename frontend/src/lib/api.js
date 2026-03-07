@@ -108,9 +108,12 @@ export const giftAPI = {
 
 export const classroomAPI = {
   create: (data) => apiClient.post('/classroom-sessions', data),
-  getByCode: (code) => apiClient.get(`/classroom-sessions/code/${code}`),
-  update: (id, data) => apiClient.patch(`/classroom-sessions/${id}`, data),
-  join: (code, studentId) => apiClient.post(`/classroom-sessions/join`, { code, student_id: studentId }),
+  getAll: () => apiClient.get('/classroom-sessions'),
+  getById: (id) => apiClient.get(`/classroom-sessions/${id}`),
+  start: (id) => apiClient.post(`/classroom-sessions/${id}/start`),
+  end: (id) => apiClient.post(`/classroom-sessions/${id}/end`),
+  join: (code, studentId) => apiClient.post('/classroom-sessions/join', { session_code: code, student_id: studentId }),
+  analytics: (id) => apiClient.get(`/classroom-sessions/${id}/analytics`),
 };
 
 export default apiClient;

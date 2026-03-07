@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BrutalButton, BrutalCard } from '@/components/brutal';
-import { BookOpen, Users, TrendingUp, Sparkles } from 'lucide-react';
+import { BookOpen, Users, TrendingUp, Sparkles, GraduationCap } from 'lucide-react';
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -46,6 +46,14 @@ const LandingPage = () => {
               onClick={() => navigate('/student-login')}
             >
               Student Login
+            </BrutalButton>
+            <BrutalButton
+              variant="emerald"
+              size="xl"
+              onClick={() => navigate('/teacher-login')}
+              data-testid="teacher-login-link"
+            >
+              Teacher Login
             </BrutalButton>
           </div>
         </div>
