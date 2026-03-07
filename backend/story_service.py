@@ -102,6 +102,7 @@ class StoryGenerationService:
         belief_system: str = "",
         cultural_context: str = "",
         language: str = "English",
+        brand_placements: List[Dict[str, Any]] = [],
     ) -> Dict[str, Any]:
         """Generate a 5-chapter educational story"""
         
@@ -143,6 +144,22 @@ Ensure respectful and authentic representation."""
             language_section = f"""
 LANGUAGE: Write the ENTIRE story in {language}. All chapter titles, content, and vocabulary explanations must be in {language}."""
 
+        brand_section = ""
+        if brand_placements:
+            brand_items = []
+            for bp in brand_placements:
+                products = bp.get("products", [])
+                prod_names = [p.get("name", "") for p in products if p.get("name")]
+                if prod_names:
+                    brand_items.append(f"- {bp['name']}: products include {', '.join(prod_names)}")
+                else:
+                    brand_items.append(f"- {bp['name']}")
+            brand_section = f"""
+BRAND INTEGRATION: Naturally weave these brands into the story as helpful solutions to problems the characters face.
+Make brand mentions feel organic and educational, not like advertisements.
+{chr(10).join(brand_items)}
+Include 1-2 natural brand mentions across the story where they solve a problem or help the character learn."""
+
         # Create the story generation prompt
         system_message = f"""You are an expert educational story writer for LexiMaster. 
 Generate engaging, age-appropriate stories that naturally embed vocabulary words for learning.
@@ -163,6 +180,7 @@ Vocabulary Distribution:
 {belief_section}
 {culture_section}
 {language_section}
+{brand_section}
 
 Requirements:
 1. Create exactly 5 chapters, each 300-500 words

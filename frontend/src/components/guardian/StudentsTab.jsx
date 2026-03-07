@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { studentAPI, subscriptionAPI } from '@/lib/api';
+import { studentAPI, subscriptionAPI, adPreferencesAPI } from '@/lib/api';
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalProgress } from '@/components/brutal';
-import { Plus, Edit, Trash2, Copy, Check, BookOpen, RefreshCw, Type, SpellCheck } from 'lucide-react';
+import { Plus, Edit, Trash2, Copy, Check, BookOpen, RefreshCw, Type, SpellCheck, Megaphone } from 'lucide-react';
 import { toast } from 'sonner';
 import StudentFormDialog from './StudentFormDialog';
 import DeleteConfirmDialog from './DeleteConfirmDialog';
@@ -83,6 +83,16 @@ const StudentsTab = () => {
       queryClient.invalidateQueries(['students']);
       toast.success(`Spelling mode: ${response.data.spelling_mode}`);
     },
+  });
+
+  // Ad preferences toggle
+  const adPrefMutation = useMutation({
+    mutationFn: ({ studentId, prefs }) => adPreferencesAPI.update(studentId, prefs),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['students']);
+      toast.success('Brand story preferences updated');
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed'),
   });
 
   const handleEdit = (student) => {
@@ -378,6 +388,23 @@ const StudentsTab = () => {
                   >
                     <Type size={14} />
                     {student.spelling_mode === 'exact' ? 'Exact Spelling' : 'Phonetic OK'}
+                  </BrutalButton>
+                  <BrutalButton
+                    variant={student.ad_preferences?.allow_brand_stories ? 'amber' : 'default'}
+                    size="sm"
+                    fullWidth
+                    onClick={() => {
+                      const current = student.ad_preferences || { allow_brand_stories: false, preferred_categories: [], blocked_categories: [] };
+                      adPrefMutation.mutate({
+                        studentId: student.id,
+                        prefs: { ...current, allow_brand_stories: !current.allow_brand_stories },
+                      });
+                    }}
+                    className="flex items-center justify-center gap-1 text-xs"
+                    data-testid={`brand-toggle-${student.id}`}
+                  >
+                    <Megaphone size={14} />
+                    {student.ad_preferences?.allow_brand_stories ? 'Brand Stories ON' : 'Brand Stories OFF'}
                   </BrutalButton>
                 </div>
               </div>

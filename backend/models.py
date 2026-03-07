@@ -205,6 +205,11 @@ class Student(MongoBaseModel):
     belief_system: str = ""  # e.g. "Christian - Methodist", "Baha'i", "Buddhist", "Hindu"
     cultural_context: str = ""  # e.g. "African American", "Hispanic/Latino", "East Asian"
     language: str = "English"  # Story generation language
+    ad_preferences: Dict[str, Any] = Field(default_factory=lambda: {
+        "allow_brand_stories": False,
+        "preferred_categories": [],
+        "blocked_categories": [],
+    })
     created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -553,6 +558,66 @@ class Donation(MongoBaseModel):
     payment_status: str = "pending"
     message: str = ""
     created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+# ==================== BRAND SPONSORSHIP MODELS ====================
+
+class BrandProduct(BaseModel):
+    name: str
+    description: str = ""
+    category: str = ""
+
+
+class Brand(MongoBaseModel):
+    id: str = Field(default_factory=generate_uuid)
+    name: str
+    logo_url: str = ""
+    website: str = ""
+    description: str = ""
+    products: List[BrandProduct] = Field(default_factory=list)
+    target_ages: List[int] = Field(default_factory=list)
+    target_categories: List[str] = Field(default_factory=list)
+    budget_total: float = 0.0
+    budget_spent: float = 0.0
+    cost_per_impression: float = 0.05
+    is_active: bool = True
+    total_impressions: int = 0
+    total_stories: int = 0
+    created_by: str = ""
+    created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class BrandImpression(MongoBaseModel):
+    id: str = Field(default_factory=generate_uuid)
+    brand_id: str
+    brand_name: str
+    narrative_id: str
+    student_id: str
+    guardian_id: str
+    products_featured: List[str] = Field(default_factory=list)
+    cost: float = 0.0
+    created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class ClassroomSponsorship(MongoBaseModel):
+    id: str = Field(default_factory=generate_uuid)
+    brand_id: str
+    brand_name: str
+    classroom_session_id: Optional[str] = None
+    teacher_id: Optional[str] = None
+    school_name: str = ""
+    stories_limit: int = -1
+    stories_used: int = 0
+    amount_paid: float = 0.0
+    is_active: bool = True
+    badge_text: str = ""
+    created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class StudentAdPreferences(BaseModel):
+    allow_brand_stories: bool = False
+    preferred_categories: List[str] = Field(default_factory=list)
+    blocked_categories: List[str] = Field(default_factory=list)
 
 
 def get_biological_target(age: int) -> int:

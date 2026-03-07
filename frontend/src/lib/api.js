@@ -142,6 +142,14 @@ export const adminAPI = {
   updateBillingConfig: (data) => apiClient.post('/admin/billing-config', data),
   getFeatureFlags: () => apiClient.get('/admin/feature-flags'),
   updateFeatureFlags: (data) => apiClient.post('/admin/feature-flags', data),
+  getBrands: () => apiClient.get('/admin/brands'),
+  createBrand: (data) => apiClient.post('/admin/brands', data),
+  updateBrand: (id, data) => apiClient.put(`/admin/brands/${id}`, data),
+  deleteBrand: (id) => apiClient.delete(`/admin/brands/${id}`),
+  getBrandAnalytics: () => apiClient.get('/admin/brand-analytics'),
+  getClassroomSponsorships: () => apiClient.get('/admin/classroom-sponsorships'),
+  createClassroomSponsorship: (data) => apiClient.post('/admin/classroom-sponsorships', data),
+  deleteClassroomSponsorship: (id) => apiClient.delete(`/admin/classroom-sponsorships/${id}`),
 };
 
 // ==================== WALLET API ====================
@@ -180,6 +188,13 @@ export const donationAPI = {
   create: (data) => apiClient.post('/donations/create', data),
   getStatus: (sessionId) => apiClient.get(`/donations/status/${sessionId}`),
   getStats: () => apiClient.get('/donations/stats'),
+};
+
+// ==================== STUDENT AD PREFERENCES API ====================
+
+export const adPreferencesAPI = {
+  get: (studentId) => apiClient.get(`/students/${studentId}/ad-preferences`),
+  update: (studentId, data) => apiClient.post(`/students/${studentId}/ad-preferences`, data),
 };
 
 export default apiClient;

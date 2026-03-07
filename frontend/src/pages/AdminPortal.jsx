@@ -7,6 +7,7 @@ import { BrutalCard, BrutalButton, BrutalBadge, BrutalInput } from '@/components
 import {
   Home, LogOut, DollarSign, Cpu, Users, BarChart3, Settings, Shield,
   Ticket, Crown, PlusCircle, Trash2, UserCheck, BookOpen, Clock, Zap, Sliders, ToggleLeft,
+  Megaphone, Building2, Edit,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -63,6 +64,21 @@ const AdminPortal = () => {
     queryFn: async () => (await adminAPI.getFeatureFlags()).data,
     enabled: activeTab === 'features',
   });
+  const { data: brands = [] } = useQuery({
+    queryKey: ['admin-brands'],
+    queryFn: async () => (await adminAPI.getBrands()).data,
+    enabled: activeTab === 'brands',
+  });
+  const { data: brandAnalytics } = useQuery({
+    queryKey: ['admin-brand-analytics'],
+    queryFn: async () => (await adminAPI.getBrandAnalytics()).data,
+    enabled: activeTab === 'brands',
+  });
+  const { data: sponsorships = [] } = useQuery({
+    queryKey: ['admin-sponsorships'],
+    queryFn: async () => (await adminAPI.getClassroomSponsorships()).data,
+    enabled: activeTab === 'brands',
+  });
 
   // === Form States ===
   const [llmForm, setLlmForm] = useState({ provider: 'emergent', model: 'gpt-5.2', openrouter_key: '' });
@@ -85,6 +101,15 @@ const AdminPortal = () => {
   const [flagsForm, setFlagsForm] = useState({
     belief_system_enabled: true, cultural_context_enabled: true, multi_language_enabled: true,
     donations_enabled: true, referrals_enabled: true, word_definitions_enabled: true, accessibility_mode: true,
+    brand_sponsorship_enabled: true, classroom_sponsorship_enabled: true,
+  });
+  const [brandForm, setBrandForm] = useState({
+    name: '', description: '', website: '', logo_url: '',
+    target_categories: '', budget_total: '', cost_per_impression: '0.05',
+    products_text: '',
+  });
+  const [sponsorForm, setSponsorForm] = useState({
+    brand_id: '', school_name: '', stories_limit: '-1', amount_paid: '',
   });
 
   // === Mutations ===
@@ -131,6 +156,28 @@ const AdminPortal = () => {
     onSuccess: () => { queryClient.invalidateQueries(['admin-features']); toast.success('Feature flags updated!'); },
     onError: (err) => toast.error(err.response?.data?.detail || 'Failed'),
   });
+  const createBrandMutation = useMutation({
+    mutationFn: (data) => adminAPI.createBrand(data),
+    onSuccess: () => { queryClient.invalidateQueries(['admin-brands']); queryClient.invalidateQueries(['admin-brand-analytics']); toast.success('Brand created!'); setBrandForm({ name: '', description: '', website: '', logo_url: '', target_categories: '', budget_total: '', cost_per_impression: '0.05', products_text: '' }); },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed'),
+  });
+  const deleteBrandMutation = useMutation({
+    mutationFn: (id) => adminAPI.deleteBrand(id),
+    onSuccess: () => { queryClient.invalidateQueries(['admin-brands']); queryClient.invalidateQueries(['admin-brand-analytics']); toast.success('Brand deleted'); },
+  });
+  const toggleBrandMutation = useMutation({
+    mutationFn: ({ id, is_active }) => adminAPI.updateBrand(id, { is_active }),
+    onSuccess: () => { queryClient.invalidateQueries(['admin-brands']); toast.success('Brand updated'); },
+  });
+  const createSponsorshipMutation = useMutation({
+    mutationFn: (data) => adminAPI.createClassroomSponsorship(data),
+    onSuccess: () => { queryClient.invalidateQueries(['admin-sponsorships']); toast.success('Sponsorship created!'); setSponsorForm({ brand_id: '', school_name: '', stories_limit: '-1', amount_paid: '' }); },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed'),
+  });
+  const deleteSponsorshipMutation = useMutation({
+    mutationFn: (id) => adminAPI.deleteClassroomSponsorship(id),
+    onSuccess: () => { queryClient.invalidateQueries(['admin-sponsorships']); toast.success('Sponsorship removed'); },
+  });
 
   // === Sync forms with data ===
   React.useEffect(() => {
@@ -156,6 +203,7 @@ const AdminPortal = () => {
   const tabs = [
     { id: 'stats', label: 'Statistics', icon: BarChart3 },
     { id: 'costs', label: 'AI Costs', icon: DollarSign },
+    { id: 'brands', label: 'Brands', icon: Megaphone },
     { id: 'users', label: 'Users', icon: Users },
     { id: 'coupons', label: 'Coupons', icon: Ticket },
     { id: 'plans', label: 'Plans', icon: Crown },
@@ -298,6 +346,139 @@ const AdminPortal = () => {
                   ))}
                 </tbody></table></div>
               ) : <p className="text-center py-8 text-gray-500 font-bold">No logs yet</p>}
+            </BrutalCard>
+          </div>
+        )}
+
+
+        {/* =================== BRANDS TAB =================== */}
+        {activeTab === 'brands' && (
+          <div className="space-y-6" data-testid="brands-tab">
+            {/* Brand Analytics Summary */}
+            {brandAnalytics && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <StatCard icon={DollarSign} label="Brand Revenue" value={`$${brandAnalytics.total_brand_revenue.toFixed(2)}`} color="emerald" />
+                <StatCard icon={Megaphone} label="Impressions" value={brandAnalytics.total_impressions} color="indigo" />
+                <StatCard icon={Megaphone} label="Active Brands" value={`${brandAnalytics.active_brands}/${brandAnalytics.total_brands}`} color="amber" />
+                <StatCard icon={Building2} label="Classroom Sponsors" value={brandAnalytics.active_classroom_sponsorships} sub={`$${brandAnalytics.total_sponsorship_amount.toFixed(0)}`} color="rose" />
+              </div>
+            )}
+
+            {/* Create Brand */}
+            <BrutalCard shadow="lg">
+              <h3 className="text-xl font-black uppercase mb-4 flex items-center gap-2"><PlusCircle size={22} /> Add Brand Sponsor</h3>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const products = brandForm.products_text ? brandForm.products_text.split(',').map(p => ({ name: p.trim(), category: '' })) : [];
+                const categories = brandForm.target_categories ? brandForm.target_categories.split(',').map(c => c.trim()) : [];
+                createBrandMutation.mutate({
+                  name: brandForm.name, description: brandForm.description,
+                  website: brandForm.website, logo_url: brandForm.logo_url,
+                  products, target_categories: categories,
+                  budget_total: parseFloat(brandForm.budget_total) || 0,
+                  cost_per_impression: parseFloat(brandForm.cost_per_impression) || 0.05,
+                });
+              }} className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <BrutalInput label="Brand Name" value={brandForm.name} onChange={(e) => setBrandForm({ ...brandForm, name: e.target.value })} placeholder="e.g. LearnTech Pro" data-testid="brand-name" />
+                  <BrutalInput label="Website" value={brandForm.website} onChange={(e) => setBrandForm({ ...brandForm, website: e.target.value })} placeholder="https://..." />
+                </div>
+                <BrutalInput label="Description" value={brandForm.description} onChange={(e) => setBrandForm({ ...brandForm, description: e.target.value })} placeholder="What does this brand do?" />
+                <div className="grid md:grid-cols-2 gap-4">
+                  <BrutalInput label="Products (comma-separated)" value={brandForm.products_text} onChange={(e) => setBrandForm({ ...brandForm, products_text: e.target.value })} placeholder="Learning Tablet, Study App, Smart Pen" data-testid="brand-products" />
+                  <BrutalInput label="Categories (comma-separated)" value={brandForm.target_categories} onChange={(e) => setBrandForm({ ...brandForm, target_categories: e.target.value })} placeholder="technology, education, sports" />
+                </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <BrutalInput label="Budget ($)" type="number" step="0.01" value={brandForm.budget_total} onChange={(e) => setBrandForm({ ...brandForm, budget_total: e.target.value })} placeholder="1000.00" data-testid="brand-budget" />
+                  <BrutalInput label="Cost Per Impression ($)" type="number" step="0.01" value={brandForm.cost_per_impression} onChange={(e) => setBrandForm({ ...brandForm, cost_per_impression: e.target.value })} placeholder="0.05" />
+                </div>
+                <BrutalButton type="submit" variant="indigo" fullWidth disabled={!brandForm.name || createBrandMutation.isPending} data-testid="create-brand-btn">
+                  {createBrandMutation.isPending ? 'Creating...' : 'Add Brand'}
+                </BrutalButton>
+              </form>
+            </BrutalCard>
+
+            {/* Active Brands */}
+            <BrutalCard shadow="lg">
+              <h3 className="text-xl font-black uppercase mb-4">Brands ({brands.length})</h3>
+              {brands.length === 0 ? <p className="text-center py-6 text-gray-500 font-bold">No brands yet</p> : (
+                <div className="space-y-3">
+                  {brands.map((b) => {
+                    const analytics = brandAnalytics?.brands?.find(ab => ab.id === b.id);
+                    return (
+                      <div key={b.id} className={`border-4 border-black p-4 ${b.is_active ? 'bg-white' : 'bg-gray-100'}`} data-testid={`brand-${b.id}`}>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-black text-lg">{b.name}</h4>
+                              <BrutalBadge variant={b.is_active ? 'emerald' : 'rose'} size="sm">{b.is_active ? 'ACTIVE' : 'PAUSED'}</BrutalBadge>
+                            </div>
+                            {b.description && <p className="text-sm text-gray-600">{b.description}</p>}
+                            {b.products?.length > 0 && <p className="text-xs text-gray-500 mt-1">Products: {b.products.map(p => p.name).join(', ')}</p>}
+                            {b.target_categories?.length > 0 && <p className="text-xs text-gray-400">Categories: {b.target_categories.join(', ')}</p>}
+                          </div>
+                          <div className="flex gap-2">
+                            <BrutalButton variant={b.is_active ? 'amber' : 'emerald'} size="sm" onClick={() => toggleBrandMutation.mutate({ id: b.id, is_active: !b.is_active })}>
+                              {b.is_active ? 'Pause' : 'Activate'}
+                            </BrutalButton>
+                            <BrutalButton variant="rose" size="sm" onClick={() => deleteBrandMutation.mutate(b.id)}><Trash2 size={14} /></BrutalButton>
+                          </div>
+                        </div>
+                        {analytics && (
+                          <div className="flex gap-6 mt-3 pt-3 border-t-2 border-gray-200 text-sm">
+                            <span><strong>{analytics.impressions}</strong> impressions</span>
+                            <span><strong>${analytics.budget_spent?.toFixed(2)}</strong> spent</span>
+                            <span><strong>${analytics.budget_remaining?.toFixed(2)}</strong> remaining</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </BrutalCard>
+
+            {/* Classroom Sponsorships */}
+            <BrutalCard shadow="lg">
+              <h3 className="text-xl font-black uppercase mb-4 flex items-center gap-2"><Building2 size={22} /> Classroom Sponsorships</h3>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                createSponsorshipMutation.mutate({
+                  brand_id: sponsorForm.brand_id, school_name: sponsorForm.school_name,
+                  stories_limit: parseInt(sponsorForm.stories_limit), amount_paid: parseFloat(sponsorForm.amount_paid) || 0,
+                });
+              }} className="space-y-4 mb-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold text-sm uppercase mb-2">Brand Sponsor</label>
+                    <select value={sponsorForm.brand_id} onChange={(e) => setSponsorForm({ ...sponsorForm, brand_id: e.target.value })} className="w-full border-4 border-black px-4 py-3 font-bold" data-testid="sponsor-brand">
+                      <option value="">Select brand...</option>
+                      {brands.filter(b => b.is_active).map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                    </select>
+                  </div>
+                  <BrutalInput label="School / Classroom Name" value={sponsorForm.school_name} onChange={(e) => setSponsorForm({ ...sponsorForm, school_name: e.target.value })} placeholder="Lincoln Elementary" data-testid="sponsor-school" />
+                </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <BrutalInput label="Stories Limit (-1=unlimited)" type="number" value={sponsorForm.stories_limit} onChange={(e) => setSponsorForm({ ...sponsorForm, stories_limit: e.target.value })} />
+                  <BrutalInput label="Amount Paid ($)" type="number" step="0.01" value={sponsorForm.amount_paid} onChange={(e) => setSponsorForm({ ...sponsorForm, amount_paid: e.target.value })} placeholder="500.00" />
+                </div>
+                <BrutalButton type="submit" variant="emerald" fullWidth disabled={!sponsorForm.brand_id || !sponsorForm.school_name || createSponsorshipMutation.isPending} data-testid="create-sponsorship-btn">
+                  {createSponsorshipMutation.isPending ? 'Creating...' : 'Create Sponsorship'}
+                </BrutalButton>
+              </form>
+              {sponsorships.length > 0 && (
+                <div className="space-y-2 mt-4">
+                  {sponsorships.map((sp) => (
+                    <div key={sp.id} className="flex items-center justify-between p-3 border-2 border-black" data-testid={`sponsorship-${sp.id}`}>
+                      <div>
+                        <p className="font-bold">{sp.badge_text || sp.brand_name}</p>
+                        <p className="text-sm text-gray-600">{sp.school_name} | {sp.stories_limit === -1 ? 'Unlimited' : sp.stories_limit} stories | ${sp.amount_paid}</p>
+                      </div>
+                      <BrutalButton variant="rose" size="sm" onClick={() => deleteSponsorshipMutation.mutate(sp.id)}><Trash2 size={14} /></BrutalButton>
+                    </div>
+                  ))}
+                </div>
+              )}
             </BrutalCard>
           </div>
         )}
@@ -500,6 +681,8 @@ const AdminPortal = () => {
                   { key: 'referrals_enabled', label: 'Referral Program', desc: 'Enable invite & earn wallet credits' },
                   { key: 'word_definitions_enabled', label: 'Click-to-Define Words', desc: 'Allow students to tap any word for AI definitions' },
                   { key: 'accessibility_mode', label: 'Accessibility Mode', desc: 'Enable enhanced accessibility features for deaf/HoH users' },
+                  { key: 'brand_sponsorship_enabled', label: 'Brand Story Integration', desc: 'Allow brands to be woven into stories (requires guardian opt-in)' },
+                  { key: 'classroom_sponsorship_enabled', label: 'Classroom Sponsorships', desc: 'Allow businesses to sponsor classrooms for unlimited stories' },
                 ].map(flag => (
                   <label key={flag.key} className={`flex items-center justify-between p-4 border-4 border-black cursor-pointer transition-colors ${flagsForm[flag.key] ? 'bg-emerald-50' : 'bg-gray-50'}`}>
                     <div>

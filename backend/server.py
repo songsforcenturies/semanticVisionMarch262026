@@ -24,6 +24,7 @@ from models import (
     WalletTransaction, WalletTransactionType, PaymentTransaction,
     Coupon, CouponType, CouponRedemption, AdminSubscriptionPlan,
     Referral, Donation, generate_referral_code,
+    Brand, BrandProduct, BrandImpression, ClassroomSponsorship,
 )
 from auth import (
     get_password_hash, verify_password, create_access_token,
@@ -849,6 +850,30 @@ async def create_narrative(narrative_data: NarrativeCreate):
         # Get guardian info for cost tracking
         guardian = await db.users.find_one({"id": student["guardian_id"]}, {"_id": 0, "full_name": 1})
         
+        # Check for eligible brand placements
+        brand_placements = []
+        flags = await db.system_config.find_one({"key": "feature_flags"}, {"_id": 0})
+        brand_enabled = True
+        if flags and flags.get("value"):
+            brand_enabled = flags["value"].get("brand_sponsorship_enabled", True)
+        
+        ad_prefs = student.get("ad_preferences", {})
+        if brand_enabled and ad_prefs.get("allow_brand_stories", False):
+            blocked = ad_prefs.get("blocked_categories", [])
+            student_age = student.get("age", 10)
+            active_brands = await db.brands.find({"is_active": True}, {"_id": 0}).to_list(20)
+            for b in active_brands:
+                if b.get("target_ages") and student_age not in b["target_ages"]:
+                    continue
+                if b.get("budget_total", 0) > 0 and b.get("budget_spent", 0) >= b.get("budget_total", 0):
+                    continue
+                brand_cats = b.get("target_categories", [])
+                if any(c in blocked for c in brand_cats):
+                    continue
+                brand_placements.append({"id": b["id"], "name": b["name"], "products": b.get("products", [])})
+                if len(brand_placements) >= 2:
+                    break
+        
         story_data = await story_service.generate_story(
             student_name=student["full_name"],
             student_age=student.get("age", 10),
@@ -865,7 +890,24 @@ async def create_narrative(narrative_data: NarrativeCreate):
             belief_system=student.get("belief_system", ""),
             cultural_context=student.get("cultural_context", ""),
             language=student.get("language", "English"),
+            brand_placements=brand_placements,
         )
+        
+        # Record brand impressions
+        if brand_placements:
+            for bp in brand_placements:
+                impression = BrandImpression(
+                    brand_id=bp["id"], brand_name=bp["name"],
+                    narrative_id="pending", student_id=student["id"],
+                    guardian_id=student.get("guardian_id", ""),
+                    products_featured=[p.get("name", "") for p in bp.get("products", [])],
+                    cost=0.05,  # default cost per impression
+                )
+                await db.brand_impressions.insert_one(impression.model_dump())
+                await db.brands.update_one(
+                    {"id": bp["id"]},
+                    {"$inc": {"total_impressions": 1, "total_stories": 1, "budget_spent": 0.05}}
+                )
         
         # Create narrative object
         from models import Chapter, EmbeddedToken, VisionCheck
@@ -2686,6 +2728,8 @@ async def get_feature_flags(current_user: dict = Depends(get_current_user)):
         "referrals_enabled": True,
         "word_definitions_enabled": True,
         "accessibility_mode": True,
+        "brand_sponsorship_enabled": True,
+        "classroom_sponsorship_enabled": True,
     }
 
 
@@ -2697,6 +2741,8 @@ class FeatureFlagsUpdate(BaseModel):
     referrals_enabled: bool = True
     word_definitions_enabled: bool = True
     accessibility_mode: bool = True
+    brand_sponsorship_enabled: bool = True
+    classroom_sponsorship_enabled: bool = True
 
 
 @api_router.post("/admin/feature-flags")
@@ -2711,6 +2757,278 @@ async def update_feature_flags(data: FeatureFlagsUpdate, current_user: dict = De
         upsert=True
     )
     return {"message": "Feature flags updated", **data.model_dump()}
+
+
+# ==================== BRAND MANAGEMENT (ADMIN) ====================
+
+class BrandCreate(BaseModel):
+    name: str
+    logo_url: str = ""
+    website: str = ""
+    description: str = ""
+    products: list = []
+    target_ages: list = []
+    target_categories: list = []
+    budget_total: float = 0.0
+    cost_per_impression: float = 0.05
+
+
+@api_router.post("/admin/brands")
+async def create_brand(data: BrandCreate, current_user: dict = Depends(get_current_user)):
+    """Create a brand sponsor"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    brand = Brand(
+        name=data.name, logo_url=data.logo_url, website=data.website,
+        description=data.description,
+        products=[BrandProduct(**p) if isinstance(p, dict) else p for p in data.products],
+        target_ages=data.target_ages, target_categories=data.target_categories,
+        budget_total=data.budget_total, cost_per_impression=data.cost_per_impression,
+        created_by=current_user["id"],
+    )
+    await db.brands.insert_one(brand.model_dump())
+    result = brand.model_dump()
+    return result
+
+
+@api_router.get("/admin/brands")
+async def list_brands(current_user: dict = Depends(get_current_user)):
+    """List all brands"""
+    if current_user.get("role") != "admin":
+        user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+        if not user or not user.get("is_delegated_admin"):
+            raise HTTPException(status_code=403, detail="Admin access required")
+    brands = await db.brands.find({}, {"_id": 0}).sort("created_date", -1).to_list(100)
+    return brands
+
+
+class BrandUpdate(BaseModel):
+    name: Optional[str] = None
+    logo_url: Optional[str] = None
+    website: Optional[str] = None
+    description: Optional[str] = None
+    products: Optional[list] = None
+    target_ages: Optional[list] = None
+    target_categories: Optional[list] = None
+    budget_total: Optional[float] = None
+    cost_per_impression: Optional[float] = None
+    is_active: Optional[bool] = None
+
+
+@api_router.put("/admin/brands/{brand_id}")
+async def update_brand(brand_id: str, data: BrandUpdate, current_user: dict = Depends(get_current_user)):
+    """Update a brand"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    result = await db.brands.update_one({"id": brand_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Brand not found")
+    return {"message": "Brand updated"}
+
+
+@api_router.delete("/admin/brands/{brand_id}")
+async def delete_brand(brand_id: str, current_user: dict = Depends(get_current_user)):
+    """Delete a brand"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    result = await db.brands.delete_one({"id": brand_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Brand not found")
+    return {"message": "Brand deleted"}
+
+
+# ==================== BRAND ANALYTICS ====================
+
+@api_router.get("/admin/brand-analytics")
+async def get_brand_analytics(current_user: dict = Depends(get_current_user)):
+    """Get brand sponsorship analytics"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    brands = await db.brands.find({}, {"_id": 0}).to_list(100)
+
+    # Aggregate impressions per brand
+    pipeline = [
+        {"$group": {
+            "_id": "$brand_id",
+            "total_impressions": {"$sum": 1},
+            "total_cost": {"$sum": "$cost"},
+            "products_featured": {"$push": "$products_featured"},
+        }}
+    ]
+    impressions_agg = await db.brand_impressions.aggregate(pipeline).to_list(100)
+    impressions_map = {a["_id"]: a for a in impressions_agg}
+
+    # Total revenue from sponsorships
+    total_pipeline = [{"$group": {"_id": None, "total": {"$sum": "$cost"}, "count": {"$sum": 1}}}]
+    total_agg = await db.brand_impressions.aggregate(total_pipeline).to_list(1)
+    total_revenue = total_agg[0]["total"] if total_agg else 0
+    total_impressions = total_agg[0]["count"] if total_agg else 0
+
+    # Classroom sponsorships
+    active_sponsorships = await db.classroom_sponsorships.count_documents({"is_active": True})
+    total_sponsorship_amount = 0
+    sponsorship_pipeline = [{"$match": {"is_active": True}}, {"$group": {"_id": None, "total": {"$sum": "$amount_paid"}}}]
+    sp_agg = await db.classroom_sponsorships.aggregate(sponsorship_pipeline).to_list(1)
+    total_sponsorship_amount = sp_agg[0]["total"] if sp_agg else 0
+
+    brand_details = []
+    for b in brands:
+        imp = impressions_map.get(b["id"], {})
+        brand_details.append({
+            "id": b["id"], "name": b["name"], "is_active": b.get("is_active", True),
+            "budget_total": b.get("budget_total", 0),
+            "budget_spent": imp.get("total_cost", 0),
+            "impressions": imp.get("total_impressions", 0),
+            "cost_per_impression": b.get("cost_per_impression", 0.05),
+            "budget_remaining": b.get("budget_total", 0) - imp.get("total_cost", 0),
+        })
+
+    return {
+        "total_brand_revenue": round(total_revenue, 2),
+        "total_impressions": total_impressions,
+        "active_brands": sum(1 for b in brands if b.get("is_active")),
+        "total_brands": len(brands),
+        "active_classroom_sponsorships": active_sponsorships,
+        "total_sponsorship_amount": round(total_sponsorship_amount, 2),
+        "brands": brand_details,
+    }
+
+
+# ==================== CLASSROOM SPONSORSHIP ====================
+
+class ClassroomSponsorshipCreate(BaseModel):
+    brand_id: str
+    classroom_session_id: Optional[str] = None
+    teacher_id: Optional[str] = None
+    school_name: str = ""
+    stories_limit: int = -1
+    amount_paid: float = 0.0
+
+
+@api_router.post("/admin/classroom-sponsorships")
+async def create_classroom_sponsorship(data: ClassroomSponsorshipCreate, current_user: dict = Depends(get_current_user)):
+    """Create a classroom sponsorship"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    brand = await db.brands.find_one({"id": data.brand_id}, {"_id": 0})
+    if not brand:
+        raise HTTPException(status_code=404, detail="Brand not found")
+
+    sponsorship = ClassroomSponsorship(
+        brand_id=data.brand_id, brand_name=brand["name"],
+        classroom_session_id=data.classroom_session_id, teacher_id=data.teacher_id,
+        school_name=data.school_name, stories_limit=data.stories_limit,
+        amount_paid=data.amount_paid, badge_text=f"Sponsored by {brand['name']}",
+    )
+    await db.classroom_sponsorships.insert_one(sponsorship.model_dump())
+    return sponsorship.model_dump()
+
+
+@api_router.get("/admin/classroom-sponsorships")
+async def list_classroom_sponsorships(current_user: dict = Depends(get_current_user)):
+    """List all classroom sponsorships"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    sponsorships = await db.classroom_sponsorships.find({}, {"_id": 0}).sort("created_date", -1).to_list(100)
+    return sponsorships
+
+
+@api_router.delete("/admin/classroom-sponsorships/{sp_id}")
+async def delete_classroom_sponsorship(sp_id: str, current_user: dict = Depends(get_current_user)):
+    """Delete a classroom sponsorship"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    result = await db.classroom_sponsorships.delete_one({"id": sp_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Not found")
+    return {"message": "Sponsorship deleted"}
+
+
+# ==================== GUARDIAN AD PREFERENCES ====================
+
+class AdPreferencesUpdate(BaseModel):
+    allow_brand_stories: bool = False
+    preferred_categories: List[str] = []
+    blocked_categories: List[str] = []
+
+
+@api_router.get("/students/{student_id}/ad-preferences")
+async def get_ad_preferences(student_id: str, current_user: dict = Depends(get_current_guardian)):
+    """Get a student's ad preferences"""
+    student = await db.students.find_one(
+        {"id": student_id, "guardian_id": current_user["id"]}, {"_id": 0, "ad_preferences": 1}
+    )
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    return student.get("ad_preferences", {"allow_brand_stories": False, "preferred_categories": [], "blocked_categories": []})
+
+
+@api_router.post("/students/{student_id}/ad-preferences")
+async def update_ad_preferences(student_id: str, data: AdPreferencesUpdate, current_user: dict = Depends(get_current_guardian)):
+    """Update a student's ad preferences"""
+    result = await db.students.update_one(
+        {"id": student_id, "guardian_id": current_user["id"]},
+        {"$set": {"ad_preferences": data.model_dump()}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Student not found")
+    return {"message": "Ad preferences updated", **data.model_dump()}
+
+
+# ==================== BRAND STORY INTEGRATION ====================
+
+@api_router.get("/brands/active-for-student/{student_id}")
+async def get_active_brands_for_student(student_id: str, current_user: dict = Depends(get_current_user)):
+    """Get brands eligible for a student's stories (checks preferences + feature flags)"""
+    # Check feature flag
+    flags = await db.system_config.find_one({"key": "feature_flags"}, {"_id": 0})
+    brand_enabled = True
+    if flags and flags.get("value"):
+        brand_enabled = flags["value"].get("brand_sponsorship_enabled", True)
+    if not brand_enabled:
+        return {"brands": [], "reason": "Brand sponsorship is disabled system-wide"}
+
+    student = await db.students.find_one({"id": student_id}, {"_id": 0})
+    if not student:
+        return {"brands": [], "reason": "Student not found"}
+
+    ad_prefs = student.get("ad_preferences", {})
+    if not ad_prefs.get("allow_brand_stories", False):
+        return {"brands": [], "reason": "Guardian has not opted in to brand stories"}
+
+    preferred = ad_prefs.get("preferred_categories", [])
+    blocked = ad_prefs.get("blocked_categories", [])
+    student_age = student.get("age", 10)
+
+    query = {"is_active": True}
+    brands = await db.brands.find(query, {"_id": 0}).to_list(50)
+
+    eligible = []
+    for b in brands:
+        # Check age targeting
+        if b.get("target_ages") and student_age not in b["target_ages"]:
+            continue
+        # Check budget remaining
+        if b.get("budget_total", 0) > 0 and b.get("budget_spent", 0) >= b.get("budget_total", 0):
+            continue
+        # Check blocked categories
+        brand_cats = b.get("target_categories", [])
+        if any(c in blocked for c in brand_cats):
+            continue
+        # Prefer brands matching preferred categories
+        eligible.append({
+            "id": b["id"], "name": b["name"],
+            "products": b.get("products", []),
+            "categories": brand_cats,
+        })
+
+    return {"brands": eligible}
 
 
 # ==================== HEALTH CHECK ====================
