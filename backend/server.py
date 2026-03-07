@@ -252,6 +252,27 @@ async def update_student(
     return updated_student
 
 
+@api_router.post("/students/{student_id}/reset-pin")
+async def reset_student_pin(
+    student_id: str,
+    current_user: dict = Depends(get_current_guardian)
+):
+    """Reset a student's PIN to a new 9-digit PIN"""
+    from models import generate_pin
+    student = await db.students.find_one({"id": student_id})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    if student["guardian_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    while True:
+        new_pin = generate_pin()
+        existing = await db.students.find_one({"access_pin": new_pin})
+        if not existing:
+            break
+    await db.students.update_one({"id": student_id}, {"$set": {"access_pin": new_pin}})
+    return {"message": "PIN reset successfully", "new_pin": new_pin}
+
+
 @api_router.delete("/students/{student_id}")
 async def delete_student(
     student_id: str,

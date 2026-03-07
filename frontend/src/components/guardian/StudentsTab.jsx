@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { studentAPI, subscriptionAPI } from '@/lib/api';
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalProgress } from '@/components/brutal';
-import { Plus, Edit, Trash2, Copy, Check, BookOpen } from 'lucide-react';
+import { Plus, Edit, Trash2, Copy, Check, BookOpen, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import StudentFormDialog from './StudentFormDialog';
 import DeleteConfirmDialog from './DeleteConfirmDialog';
@@ -16,6 +16,7 @@ const StudentsTab = () => {
   const [deletingStudent, setDeletingStudent] = useState(null);
   const [copiedPin, setCopiedPin] = useState(null);
   const [assigningBanksStudent, setAssigningBanksStudent] = useState(null);
+  const [resettingPin, setResettingPin] = useState(null);
 
   // Fetch students
   const { data: students = [], isLoading: studentsLoading } = useQuery({
@@ -48,6 +49,21 @@ const StudentsTab = () => {
     },
     onError: (error) => {
       toast.error(error.response?.data?.detail || 'Failed to delete student');
+    }
+  });
+
+  // Reset PIN mutation
+  const resetPinMutation = useMutation({
+    mutationFn: (studentId) => studentAPI.resetPin(studentId),
+    onSuccess: (response, studentId) => {
+      queryClient.invalidateQueries(['students']);
+      const newPin = response.data.new_pin;
+      toast.success(`PIN reset! New PIN: ${newPin}`);
+      setResettingPin(null);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to reset PIN');
+      setResettingPin(null);
     }
   });
 
@@ -303,6 +319,22 @@ const StudentsTab = () => {
                 >
                   <BookOpen size={16} />
                   Assign Word Banks
+                </BrutalButton>
+
+                <BrutalButton
+                  variant="amber"
+                  size="sm"
+                  fullWidth
+                  onClick={() => {
+                    setResettingPin(student.id);
+                    resetPinMutation.mutate(student.id);
+                  }}
+                  disabled={resettingPin === student.id}
+                  className="flex items-center justify-center gap-1"
+                  data-testid={`reset-pin-btn-${student.id}`}
+                >
+                  <RefreshCw size={16} className={resettingPin === student.id ? 'animate-spin' : ''} />
+                  {resettingPin === student.id ? 'Resetting...' : 'Reset PIN'}
                 </BrutalButton>
               </div>
             </BrutalCard>

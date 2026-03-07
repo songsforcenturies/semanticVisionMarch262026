@@ -40,6 +40,9 @@ Build "LexiMaster," a high-quality educational platform for students, guardians,
 ## Bug Fixes
 - **2026-03-07:** Fixed student login failure — existing students missing student_code field and had 6-digit PINs. Added startup migration + relaxed PIN validation.
 
+## Feature Additions
+- **2026-03-07:** Reset PIN — Guardians can regenerate a student's PIN from the dashboard. New endpoint `POST /api/students/{id}/reset-pin`. Button on student card in guardian portal.
+
 ## Backlog
 - Refactor monolithic server.py into modular route/model/service files
 - No outstanding feature requests

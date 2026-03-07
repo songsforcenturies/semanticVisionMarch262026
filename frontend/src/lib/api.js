@@ -51,6 +51,7 @@ export const studentAPI = {
   getById: (id) => apiClient.get(`/students/${id}`),
   update: (id, data) => apiClient.patch(`/students/${id}`, data),
   delete: (id) => apiClient.delete(`/students/${id}`),
+  resetPin: (id) => apiClient.post(`/students/${id}/reset-pin`),
 };
 
 // ==================== SUBSCRIPTION API ====================
