@@ -69,6 +69,7 @@ const StudentLogin = () => {
             placeholder="STU-ABC123"
             className="uppercase"
             autoFocus
+            data-testid="student-code-input"
           />
           
           <BrutalInput
@@ -79,7 +80,8 @@ const StudentLogin = () => {
             maxLength={9}
             value={pin}
             onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-            placeholder="••••••"
+            placeholder="Enter your PIN"
+            data-testid="student-pin-input"
           />
 
           <BrutalButton
@@ -88,9 +90,14 @@ const StudentLogin = () => {
             fullWidth
             size="lg"
             disabled={loading || !studentCode || pin.length < 6}
+            data-testid="student-login-submit"
           >
             {loading ? 'Logging in...' : 'Enter Academy'}
           </BrutalButton>
+
+          <p className="text-center text-xs font-medium text-gray-500 mt-2" data-testid="pin-hint">
+            PIN may be 6 or 9 digits depending on when your account was created
+          </p>
 
           <div className="text-center">
             <p className="font-medium text-sm text-gray-600">

@@ -195,7 +195,7 @@ const StudentsTab = () => {
                   </div>
                   
                   <div>
-                    <p className="font-bold text-xs uppercase text-gray-600">9-Digit PIN</p>
+                    <p className="font-bold text-xs uppercase text-gray-600" data-testid="pin-label">PIN</p>
                     <div className="flex items-center gap-2">
                       <div className="bg-yellow-100 border-4 border-black px-4 py-2 font-mono text-lg font-black tracking-wider">
                         {student.access_pin}

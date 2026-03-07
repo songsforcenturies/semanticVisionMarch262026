@@ -888,6 +888,24 @@ app.add_middleware(
 )
 
 
+@app.on_event("startup")
+async def startup_migrate():
+    """Migrate existing students that are missing student_code"""
+    from models import generate_student_code
+    cursor = db.students.find({"student_code": {"$exists": False}}, {"_id": 0, "id": 1})
+    async for student in cursor:
+        while True:
+            code = generate_student_code()
+            existing = await db.students.find_one({"student_code": code})
+            if not existing:
+                break
+        await db.students.update_one(
+            {"id": student["id"]},
+            {"$set": {"student_code": code}}
+        )
+        logger.info(f"Migrated student {student['id']} with code {code}")
+
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
