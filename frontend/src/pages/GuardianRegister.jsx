@@ -74,7 +74,7 @@ const GuardianRegister = () => {
             <BrutalInput label={t('common.fullName')} type="text" required value={formData.fullName}
               onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} placeholder="John Doe" data-testid="register-name" />
             <BrutalInput label={t('common.email')} type="email" required value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="guardian@example.com" data-testid="register-email" />
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="parent@example.com" data-testid="register-email" />
             <BrutalInput label={t('common.password')} type="password" required value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="••••••••" data-testid="register-password" />
             <BrutalInput label={t('common.confirmPassword')} type="password" required value={formData.confirmPassword}

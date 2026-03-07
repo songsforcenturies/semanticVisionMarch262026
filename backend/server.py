@@ -171,10 +171,14 @@ async def register(user_data: UserCreateWithReferral):
 
 @api_router.post("/auth/login")
 async def login(credentials: UserLogin):
-    """Login for guardians/teachers/admin"""
+    """Login for parents/teachers/admin"""
     user = await db.users.find_one({"email": credentials.email})
     if not user or not verify_password(credentials.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    # Block deactivated users
+    if not user.get("is_active", True):
+        raise HTTPException(status_code=403, detail="Your account has been deactivated. Please contact an administrator.")
     
     # Create access token
     access_token = create_access_token({
@@ -2309,6 +2313,158 @@ async def list_all_users(current_user: dict = Depends(get_current_user)):
         {}, {"_id": 0, "password_hash": 0}
     ).sort("created_date", -1).to_list(500)
     return users
+
+
+
+# ==================== ADMIN USER MANAGEMENT ====================
+
+class AdminCreateUser(BaseModel):
+    email: str
+    full_name: str
+    role: str  # guardian, teacher, brand_partner
+
+
+class AdminUpdateUser(BaseModel):
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
+    brand_approved: Optional[bool] = None
+
+
+@api_router.post("/admin/users")
+async def admin_create_user(data: AdminCreateUser, current_user: dict = Depends(get_current_user)):
+    """Admin creates a new user with a temp password"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    if data.role not in ["guardian", "teacher", "brand_partner"]:
+        raise HTTPException(status_code=400, detail="Invalid role. Must be: guardian, teacher, or brand_partner")
+
+    existing = await db.users.find_one({"email": data.email.lower().strip()})
+    if existing:
+        raise HTTPException(status_code=400, detail="A user with this email already exists")
+
+    import secrets
+    import uuid as _uuid2
+    temp_password = secrets.token_urlsafe(8)
+
+    user_doc = {
+        "id": str(_uuid2.uuid4()),
+        "email": data.email.lower().strip(),
+        "full_name": data.full_name.strip(),
+        "role": data.role,
+        "password_hash": get_password_hash(temp_password),
+        "wallet_balance": 0.0,
+        "is_active": True,
+        "is_delegated_admin": False,
+        "brand_approved": True if data.role == "brand_partner" else False,
+        "referral_code": str(_uuid2.uuid4())[:8].upper(),
+        "created_date": datetime.now(timezone.utc).isoformat(),
+        "must_change_password": True,
+    }
+    await db.users.insert_one(user_doc)
+
+    if data.role == "brand_partner":
+        new_brand = Brand(name=data.full_name.strip(), created_by=user_doc["id"])
+        await db.brands.insert_one(new_brand.model_dump())
+        await db.users.update_one({"id": user_doc["id"]}, {"$set": {"linked_brand_id": new_brand.id}})
+
+    return {
+        "message": "User created successfully",
+        "user_id": user_doc["id"],
+        "email": user_doc["email"],
+        "temp_password": temp_password,
+        "role": data.role,
+    }
+
+
+@api_router.put("/admin/users/{user_id}")
+async def admin_update_user(user_id: str, data: AdminUpdateUser, current_user: dict = Depends(get_current_user)):
+    """Admin edits user profile"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    update = {}
+    if data.email is not None:
+        existing = await db.users.find_one({"email": data.email.lower().strip(), "id": {"$ne": user_id}})
+        if existing:
+            raise HTTPException(status_code=400, detail="Email already in use")
+        update["email"] = data.email.lower().strip()
+    if data.full_name is not None:
+        update["full_name"] = data.full_name.strip()
+    if data.role is not None and data.role in ["guardian", "teacher", "brand_partner", "admin"]:
+        update["role"] = data.role
+    if data.is_active is not None:
+        update["is_active"] = data.is_active
+    if data.brand_approved is not None:
+        update["brand_approved"] = data.brand_approved
+
+    if not update:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    await db.users.update_one({"id": user_id}, {"$set": update})
+    return {"message": "User updated"}
+
+
+@api_router.post("/admin/users/{user_id}/reset-password")
+async def admin_reset_password(user_id: str, current_user: dict = Depends(get_current_user)):
+    """Admin resets user password to a new temp password"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    import secrets
+    temp_password = secrets.token_urlsafe(8)
+    await db.users.update_one({"id": user_id}, {"$set": {
+        "password_hash": get_password_hash(temp_password),
+        "must_change_password": True,
+    }})
+    return {"message": "Password reset", "temp_password": temp_password, "email": user["email"]}
+
+
+@api_router.post("/admin/users/{user_id}/deactivate")
+async def admin_deactivate_user(user_id: str, current_user: dict = Depends(get_current_user)):
+    """Admin deactivates or reactivates a user account"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.get("role") == "admin":
+        raise HTTPException(status_code=400, detail="Cannot deactivate an admin account")
+
+    is_active = user.get("is_active", True)
+    await db.users.update_one({"id": user_id}, {"$set": {"is_active": not is_active}})
+    return {"message": f"User {'deactivated' if is_active else 'reactivated'}", "is_active": not is_active}
+
+
+@api_router.delete("/admin/users/{user_id}")
+async def admin_delete_user(user_id: str, current_user: dict = Depends(get_current_user)):
+    """Admin deletes a user account permanently"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.get("role") == "admin":
+        raise HTTPException(status_code=400, detail="Cannot delete an admin account")
+
+    if user.get("linked_brand_id"):
+        await db.brands.delete_one({"id": user["linked_brand_id"]})
+
+    await db.users.delete_one({"id": user_id})
+    return {"message": "User deleted permanently"}
+
 
 
 # ==================== ADMIN SUBSCRIPTION PLANS ====================

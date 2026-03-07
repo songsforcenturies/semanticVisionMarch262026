@@ -150,6 +150,12 @@ export const adminAPI = {
   getClassroomSponsorships: () => apiClient.get('/admin/classroom-sponsorships'),
   createClassroomSponsorship: (data) => apiClient.post('/admin/classroom-sponsorships', data),
   deleteClassroomSponsorship: (id) => apiClient.delete(`/admin/classroom-sponsorships/${id}`),
+  // User Management
+  createUser: (data) => apiClient.post('/admin/users', data),
+  updateUser: (id, data) => apiClient.put(`/admin/users/${id}`, data),
+  resetPassword: (id) => apiClient.post(`/admin/users/${id}/reset-password`),
+  deactivateUser: (id) => apiClient.post(`/admin/users/${id}/deactivate`),
+  deleteUser: (id) => apiClient.delete(`/admin/users/${id}`),
 };
 
 // ==================== WALLET API ====================

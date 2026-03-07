@@ -91,6 +91,11 @@ const AdminPortal = () => {
     code: '', coupon_type: 'wallet_credit', value: '', max_uses: '1', description: '',
   });
   const [delegateEmail, setDelegateEmail] = useState('');
+  const [createUserForm, setCreateUserForm] = useState({ email: '', full_name: '', role: 'guardian' });
+  const [createdUser, setCreatedUser] = useState(null); // {email, temp_password}
+  const [editingUser, setEditingUser] = useState(null);
+  const [editForm, setEditForm] = useState({ email: '', full_name: '' });
+  const [resetResult, setResetResult] = useState(null); // {email, temp_password}
   const [planForm, setPlanForm] = useState({
     name: '', description: '', price_monthly: '', student_seats: '10', story_limit: '-1',
   });
@@ -150,6 +155,39 @@ const AdminPortal = () => {
   const linkBrandMut = useMutation({
     mutationFn: ({ userId, brandId }) => apiClient.post(`/admin/link-brand/${userId}/${brandId}`),
     onSuccess: () => { queryClient.invalidateQueries(['admin-users']); toast.success('Brand linked!'); },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed'),
+  });
+  const createUserMut = useMutation({
+    mutationFn: (data) => adminAPI.createUser(data),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries(['admin-users']);
+      setCreatedUser({ email: res.data.email, temp_password: res.data.temp_password, role: res.data.role });
+      setCreateUserForm({ email: '', full_name: '', role: 'guardian' });
+      toast.success('User created!');
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed to create user'),
+  });
+  const updateUserMut = useMutation({
+    mutationFn: ({ id, data }) => adminAPI.updateUser(id, data),
+    onSuccess: () => { queryClient.invalidateQueries(['admin-users']); toast.success('User updated'); setEditingUser(null); },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed'),
+  });
+  const resetPasswordMut = useMutation({
+    mutationFn: (id) => adminAPI.resetPassword(id),
+    onSuccess: (res) => {
+      setResetResult({ email: res.data.email, temp_password: res.data.temp_password });
+      toast.success('Password reset!');
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed'),
+  });
+  const deactivateUserMut = useMutation({
+    mutationFn: (id) => adminAPI.deactivateUser(id),
+    onSuccess: (res) => { queryClient.invalidateQueries(['admin-users']); toast.success(res.data.message); },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed'),
+  });
+  const deleteUserMut = useMutation({
+    mutationFn: (id) => adminAPI.deleteUser(id),
+    onSuccess: () => { queryClient.invalidateQueries(['admin-users']); toast.success('User deleted'); },
     onError: (err) => toast.error(err.response?.data?.detail || 'Failed'),
   });
   const createPlanMutation = useMutation({
@@ -268,7 +306,7 @@ const AdminPortal = () => {
         {activeTab === 'stats' && stats && (
           <div className="space-y-6" data-testid="stats-tab">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatCard icon={Users} label="Guardians" value={stats.users.guardians} color="indigo" />
+              <StatCard icon={Users} label="Parents" value={stats.users.guardians} color="indigo" />
               <StatCard icon={UserCheck} label="Teachers" value={stats.users.teachers} color="emerald" />
               <StatCard icon={BookOpen} label="Students" value={stats.users.students} color="amber" />
               <StatCard icon={Zap} label="Recent Signups" value={stats.users.recent_signups} color="rose" />
@@ -501,6 +539,82 @@ const AdminPortal = () => {
         {/* =================== USERS TAB =================== */}
         {activeTab === 'users' && (
           <div className="space-y-6" data-testid="users-tab">
+            {/* Create New User */}
+            <BrutalCard shadow="lg">
+              <h3 className="text-xl font-black uppercase mb-4 flex items-center gap-2"><PlusCircle size={22} /> Create New User</h3>
+              <form onSubmit={(e) => { e.preventDefault(); createUserMut.mutate(createUserForm); }} className="space-y-4">
+                <div className="grid md:grid-cols-3 gap-4">
+                  <BrutalInput label="Full Name" value={createUserForm.full_name}
+                    onChange={(e) => setCreateUserForm({ ...createUserForm, full_name: e.target.value })}
+                    placeholder="John Smith" data-testid="create-user-name" />
+                  <BrutalInput label="Email" type="email" value={createUserForm.email}
+                    onChange={(e) => setCreateUserForm({ ...createUserForm, email: e.target.value })}
+                    placeholder="user@example.com" data-testid="create-user-email" />
+                  <div>
+                    <label className="block font-bold text-sm uppercase mb-2">Role</label>
+                    <select value={createUserForm.role} onChange={(e) => setCreateUserForm({ ...createUserForm, role: e.target.value })}
+                      className="w-full border-4 border-black px-4 py-3 font-bold" data-testid="create-user-role">
+                      <option value="guardian">Parent / School</option>
+                      <option value="teacher">Teacher</option>
+                      <option value="brand_partner">Brand Partner</option>
+                    </select>
+                  </div>
+                </div>
+                <BrutalButton type="submit" variant="indigo" disabled={!createUserForm.email || !createUserForm.full_name || createUserMut.isPending}
+                  data-testid="create-user-btn">
+                  {createUserMut.isPending ? 'Creating...' : 'Create User'}
+                </BrutalButton>
+              </form>
+              {createdUser && (
+                <div className="mt-4 p-4 bg-emerald-50 border-4 border-emerald-400" data-testid="created-user-result">
+                  <p className="font-black text-lg mb-1">User Created Successfully!</p>
+                  <p className="text-sm"><strong>Email:</strong> {createdUser.email}</p>
+                  <p className="text-sm"><strong>Temporary Password:</strong> <code className="bg-white px-2 py-1 border-2 border-black font-bold text-lg">{createdUser.temp_password}</code></p>
+                  <p className="text-sm"><strong>Role:</strong> {createdUser.role === 'guardian' ? 'Parent / School' : createdUser.role === 'teacher' ? 'Teacher' : 'Brand Partner'}</p>
+                  <p className="text-xs text-gray-500 mt-2">Share the temporary password with the user. They should change it on first login.</p>
+                  <BrutalButton variant="default" size="sm" onClick={() => setCreatedUser(null)} className="mt-2">Dismiss</BrutalButton>
+                </div>
+              )}
+            </BrutalCard>
+
+            {/* Reset Password Result */}
+            {resetResult && (
+              <BrutalCard shadow="lg" className="bg-amber-50 border-amber-400">
+                <div className="flex items-center justify-between" data-testid="reset-password-result">
+                  <div>
+                    <p className="font-black text-lg">Password Reset for {resetResult.email}</p>
+                    <p className="text-sm mt-1">New Temporary Password: <code className="bg-white px-2 py-1 border-2 border-black font-bold text-lg">{resetResult.temp_password}</code></p>
+                  </div>
+                  <BrutalButton variant="default" size="sm" onClick={() => setResetResult(null)}>Dismiss</BrutalButton>
+                </div>
+              </BrutalCard>
+            )}
+
+            {/* Edit User Dialog */}
+            {editingUser && (
+              <BrutalCard shadow="lg" className="bg-indigo-50 border-indigo-400">
+                <h4 className="font-black text-lg mb-3 flex items-center gap-2"><Edit size={18} /> Edit User: {editingUser.full_name}</h4>
+                <form onSubmit={(e) => { e.preventDefault(); updateUserMut.mutate({ id: editingUser.id, data: editForm }); }}
+                  className="space-y-3" data-testid="edit-user-form">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <BrutalInput label="Full Name" value={editForm.full_name}
+                      onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                      data-testid="edit-user-name" />
+                    <BrutalInput label="Email" type="email" value={editForm.email}
+                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                      data-testid="edit-user-email" />
+                  </div>
+                  <div className="flex gap-3">
+                    <BrutalButton type="submit" variant="indigo" disabled={updateUserMut.isPending} data-testid="save-edit-btn">
+                      {updateUserMut.isPending ? 'Saving...' : 'Save Changes'}
+                    </BrutalButton>
+                    <BrutalButton type="button" variant="default" onClick={() => setEditingUser(null)}>Cancel</BrutalButton>
+                  </div>
+                </form>
+              </BrutalCard>
+            )}
+
+            {/* Delegate Admin */}
             <BrutalCard shadow="lg">
               <h3 className="text-xl font-black uppercase mb-4">Delegate Admin Privileges</h3>
               <div className="flex gap-3">
@@ -510,6 +624,8 @@ const AdminPortal = () => {
               </div>
               <p className="text-xs text-gray-500 mt-2">Delegated admins can create/edit word banks and manage subscriptions.</p>
             </BrutalCard>
+
+            {/* All Users Table */}
             <BrutalCard shadow="lg">
               <h3 className="text-xl font-black uppercase mb-4">All Users ({allUsers.length})</h3>
               <div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="border-b-4 border-black">
@@ -517,34 +633,59 @@ const AdminPortal = () => {
                 <th className="py-3 px-3 font-black text-xs uppercase">Role</th><th className="py-3 px-3 font-black text-xs uppercase">Balance</th>
                 <th className="py-3 px-3 font-black text-xs uppercase">Status</th><th className="py-3 px-3 font-black text-xs uppercase">Actions</th>
               </tr></thead><tbody>
-                {allUsers.map((u) => (
-                  <tr key={u.id} className="border-b-2 border-gray-200" data-testid={`user-row-${u.id}`}>
-                    <td className="py-2 px-3 font-bold text-sm">{u.full_name}</td>
-                    <td className="py-2 px-3 text-sm">{u.email}</td>
-                    <td className="py-2 px-3"><BrutalBadge variant={u.role === 'admin' ? 'rose' : u.role === 'brand_partner' ? 'amber' : u.role === 'teacher' ? 'indigo' : 'emerald'} size="sm">{u.role}</BrutalBadge></td>
-                    <td className="py-2 px-3 text-sm font-bold">${(u.wallet_balance || 0).toFixed(2)}</td>
-                    <td className="py-2 px-3">
-                      {u.is_delegated_admin && <BrutalBadge variant="amber" size="sm">DELEGATE</BrutalBadge>}
-                      {u.role === 'brand_partner' && (u.brand_approved ? <BrutalBadge variant="emerald" size="sm">APPROVED</BrutalBadge> : <BrutalBadge variant="rose" size="sm">PENDING</BrutalBadge>)}
-                    </td>
-                    <td className="py-2 px-3">
-                      {u.role === 'brand_partner' && !u.brand_approved && (
-                        <BrutalButton variant="emerald" size="sm" onClick={() => approveBrandMut.mutate(u.id)} data-testid={`approve-${u.id}`}>Approve</BrutalButton>
-                      )}
-                      {u.role === 'brand_partner' && u.brand_approved && (
-                        <BrutalButton variant="rose" size="sm" onClick={() => rejectBrandMut.mutate(u.id)}>Suspend</BrutalButton>
-                      )}
-                      {u.role === 'brand_partner' && !u.linked_brand_id && brands.length > 0 && (
-                        <select onChange={(e) => { if (e.target.value) linkBrandMut.mutate({ userId: u.id, brandId: e.target.value }); }}
-                          className="ml-1 border-2 border-black px-2 py-1 text-xs font-bold" defaultValue="">
-                          <option value="">Link brand...</option>
-                          {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                        </select>
-                      )}
-                      {u.role === 'brand_partner' && u.linked_brand_id && <span className="text-xs text-gray-500 ml-1">Linked</span>}
-                    </td>
-                  </tr>
-                ))}
+                {allUsers.map((u) => {
+                  const roleLabel = u.role === 'guardian' ? 'Parent/School' : u.role === 'teacher' ? 'Teacher' : u.role === 'brand_partner' ? 'Brand' : u.role === 'admin' ? 'Admin' : u.role;
+                  const isInactive = u.is_active === false;
+                  return (
+                    <tr key={u.id} className={`border-b-2 border-gray-200 ${isInactive ? 'opacity-50 bg-gray-50' : ''}`} data-testid={`user-row-${u.id}`}>
+                      <td className="py-2 px-3 font-bold text-sm">{u.full_name}</td>
+                      <td className="py-2 px-3 text-sm">{u.email}</td>
+                      <td className="py-2 px-3"><BrutalBadge variant={u.role === 'admin' ? 'rose' : u.role === 'brand_partner' ? 'amber' : u.role === 'teacher' ? 'indigo' : 'emerald'} size="sm">{roleLabel}</BrutalBadge></td>
+                      <td className="py-2 px-3 text-sm font-bold">${(u.wallet_balance || 0).toFixed(2)}</td>
+                      <td className="py-2 px-3">
+                        <div className="flex flex-wrap gap-1">
+                          {isInactive && <BrutalBadge variant="rose" size="sm">INACTIVE</BrutalBadge>}
+                          {u.is_delegated_admin && <BrutalBadge variant="amber" size="sm">DELEGATE</BrutalBadge>}
+                          {u.role === 'brand_partner' && (u.brand_approved ? <BrutalBadge variant="emerald" size="sm">APPROVED</BrutalBadge> : <BrutalBadge variant="rose" size="sm">PENDING</BrutalBadge>)}
+                        </div>
+                      </td>
+                      <td className="py-2 px-3">
+                        <div className="flex flex-wrap gap-1">
+                          {u.role !== 'admin' && (
+                            <>
+                              <BrutalButton variant="default" size="sm" onClick={() => { setEditingUser(u); setEditForm({ email: u.email, full_name: u.full_name }); }} data-testid={`edit-${u.id}`}>
+                                <Edit size={13} />
+                              </BrutalButton>
+                              <BrutalButton variant="amber" size="sm" onClick={() => resetPasswordMut.mutate(u.id)} disabled={resetPasswordMut.isPending} data-testid={`reset-pwd-${u.id}`}>
+                                Reset Pwd
+                              </BrutalButton>
+                              <BrutalButton variant={isInactive ? 'emerald' : 'rose'} size="sm" onClick={() => deactivateUserMut.mutate(u.id)} data-testid={`toggle-active-${u.id}`}>
+                                {isInactive ? 'Activate' : 'Deactivate'}
+                              </BrutalButton>
+                              <BrutalButton variant="rose" size="sm" onClick={() => { if (window.confirm(`Delete user ${u.full_name}? This is permanent.`)) deleteUserMut.mutate(u.id); }} data-testid={`delete-${u.id}`}>
+                                <Trash2 size={13} />
+                              </BrutalButton>
+                            </>
+                          )}
+                          {u.role === 'brand_partner' && !u.brand_approved && (
+                            <BrutalButton variant="emerald" size="sm" onClick={() => approveBrandMut.mutate(u.id)} data-testid={`approve-${u.id}`}>Approve</BrutalButton>
+                          )}
+                          {u.role === 'brand_partner' && u.brand_approved && (
+                            <BrutalButton variant="rose" size="sm" onClick={() => rejectBrandMut.mutate(u.id)}>Suspend</BrutalButton>
+                          )}
+                          {u.role === 'brand_partner' && !u.linked_brand_id && brands.length > 0 && (
+                            <select onChange={(e) => { if (e.target.value) linkBrandMut.mutate({ userId: u.id, brandId: e.target.value }); }}
+                              className="ml-1 border-2 border-black px-2 py-1 text-xs font-bold" defaultValue="">
+                              <option value="">Link brand...</option>
+                              {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                            </select>
+                          )}
+                          {u.role === 'brand_partner' && u.linked_brand_id && <span className="text-xs text-gray-500 ml-1">Linked</span>}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody></table></div>
             </BrutalCard>
           </div>
@@ -707,14 +848,14 @@ const AdminPortal = () => {
               <p className="text-sm text-gray-600 mb-4">Control which features are available across the entire platform.</p>
               <form onSubmit={(e) => { e.preventDefault(); updateFlagsMutation.mutate(flagsForm); }} className="space-y-3">
                 {[
-                  { key: 'belief_system_enabled', label: 'Belief System / Faith Integration', desc: 'Allow guardians to set religious/belief preferences for stories' },
+                  { key: 'belief_system_enabled', label: 'Belief System / Faith Integration', desc: 'Allow parents to set religious/belief preferences for stories' },
                   { key: 'cultural_context_enabled', label: 'Cultural Context', desc: 'Allow cultural localization for story generation' },
                   { key: 'multi_language_enabled', label: 'Multi-Language Support', desc: 'Allow stories in 20+ world languages' },
                   { key: 'donations_enabled', label: 'Sponsor a Reader (Donations)', desc: 'Enable the donation/sponsorship system' },
                   { key: 'referrals_enabled', label: 'Referral Program', desc: 'Enable invite & earn wallet credits' },
                   { key: 'word_definitions_enabled', label: 'Click-to-Define Words', desc: 'Allow students to tap any word for AI definitions' },
                   { key: 'accessibility_mode', label: 'Accessibility Mode', desc: 'Enable enhanced accessibility features for deaf/HoH users' },
-                  { key: 'brand_sponsorship_enabled', label: 'Brand Story Integration', desc: 'Allow brands to be woven into stories (requires guardian opt-in)' },
+                  { key: 'brand_sponsorship_enabled', label: 'Brand Story Integration', desc: 'Allow brands to be woven into stories (requires parent opt-in)' },
                   { key: 'classroom_sponsorship_enabled', label: 'Classroom Sponsorships', desc: 'Allow businesses to sponsor classrooms for unlimited stories' },
                 ].map(flag => (
                   <label key={flag.key} className={`flex items-center justify-between p-4 border-4 border-black cursor-pointer transition-colors ${flagsForm[flag.key] ? 'bg-emerald-50' : 'bg-gray-50'}`}>

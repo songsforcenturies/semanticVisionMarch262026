@@ -21,7 +21,12 @@ const GuardianLogin = () => {
     const result = await login(formData.email, formData.password);
     if (result.success) {
       toast.success(t('auth.welcomeBack'));
-      if (result.user.role === 'brand_partner') {
+      const role = result.user.role;
+      if (role === 'admin') {
+        navigate('/admin');
+      } else if (role === 'teacher') {
+        navigate('/teacher-portal');
+      } else if (role === 'brand_partner') {
         navigate('/brand-portal');
       } else {
         navigate('/portal');
@@ -52,7 +57,7 @@ const GuardianLogin = () => {
               required
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="guardian@example.com"
+              placeholder="parent@example.com"
               data-testid="login-email"
             />
             <BrutalInput

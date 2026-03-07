@@ -35,7 +35,7 @@
     "title": "LexiMaster",
     "subtitle": "Aprendizaje de Vocabulario con IA a Traves de Historias Personalizadas",
     "getStarted": "Comenzar Gratis",
-    "guardianLogin": "Acceso Guardian",
+    "guardianLogin": "Acceso Parent",
     "studentLogin": "Acceso Estudiante",
     "teacherLogin": "Acceso Profesor",
     "sponsorReader": "Patrocinar un Lector",
@@ -55,7 +55,7 @@
     "stretchDesc": "Vocabulario avanzado"
   },
   "auth": {
-    "guardianLogin": "Acceso Guardian",
+    "guardianLogin": "Acceso Parent",
     "accessPortal": "Accede a tu portal de estudiantes",
     "studentLogin": "Acceso Estudiante",
     "enterCodePin": "Ingresa tu Codigo de Estudiante y PIN",
@@ -63,7 +63,7 @@
     "pin": "PIN",
     "enterAcademy": "Entrar a la Academia",
     "pinHint": "El PIN puede tener 6 o 9 digitos dependiendo de cuando se creo tu cuenta",
-    "askGuardian": "Pregunta a tu guardian por tu Codigo de Estudiante y PIN",
+    "askGuardian": "Pregunta a tu parent por tu Codigo de Estudiante y PIN",
     "studentPinLogin": "Estudiante? Inicia con PIN",
     "teacherLogin": "Acceso Profesor",
     "accessClassroom": "Accede a tu portal de aula",
@@ -71,7 +71,7 @@
     "createClassroomAccount": "Crea tu cuenta de aula",
     "createTeacherAccount": "Crear Cuenta de Profesor",
     "noTeacherAccount": "No tienes cuenta de profesor?",
-    "guardianLoginLink": "Acceso Guardian",
+    "guardianLoginLink": "Acceso Parent",
     "createAccount": "Crear Cuenta",
     "brandPartnerReg": "Registro de Socio de Marca",
     "brandPartnerDesc": "Asociate con LexiMaster para llegar a jovenes aprendices",
@@ -91,7 +91,7 @@
     "teacherAccountCreated": "Cuenta de profesor creada!"
   },
   "guardian": {
-    "portalTitle": "Portal LexiMaster",
+    "portalTitle": "Portal Parent",
     "welcomeUser": "Bienvenido, {{name}}!",
     "students": "Estudiantes",
     "marketplace": "Mercado",

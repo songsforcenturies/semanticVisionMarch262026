@@ -91,7 +91,7 @@
     "teacherAccountCreated": "Compte enseignant cree !"
   },
   "guardian": {
-    "portalTitle": "Portail LexiMaster",
+    "portalTitle": "Portail Parent",
     "welcomeUser": "Bienvenue, {{name}} !",
     "students": "Eleves",
     "marketplace": "Boutique",
