@@ -171,23 +171,49 @@ const StudentsTab = () => {
               <div className="mb-4">
                 <h3 className="text-2xl font-black uppercase mb-2">{student.full_name}</h3>
                 
-                {/* PIN Display */}
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="bg-yellow-100 border-4 border-black px-4 py-2 font-mono text-xl font-black tracking-wider">
-                    {student.access_pin}
+                {/* Student Code & PIN Display */}
+                <div className="space-y-2 mb-3">
+                  <div>
+                    <p className="font-bold text-xs uppercase text-gray-600">Student Code</p>
+                    <div className="flex items-center gap-2">
+                      <div className="bg-indigo-100 border-4 border-black px-4 py-2 font-mono text-lg font-black tracking-wider">
+                        {student.student_code}
+                      </div>
+                      <BrutalButton
+                        variant="indigo"
+                        size="sm"
+                        onClick={() => handleCopyPin(student.student_code, student.full_name)}
+                        className="flex items-center gap-1"
+                      >
+                        {copiedPin === student.student_code ? (
+                          <Check size={16} />
+                        ) : (
+                          <Copy size={16} />
+                        )}
+                      </BrutalButton>
+                    </div>
                   </div>
-                  <BrutalButton
-                    variant="amber"
-                    size="sm"
-                    onClick={() => handleCopyPin(student.access_pin, student.full_name)}
-                    className="flex items-center gap-1"
-                  >
-                    {copiedPin === student.access_pin ? (
-                      <Check size={16} />
-                    ) : (
-                      <Copy size={16} />
-                    )}
-                  </BrutalButton>
+                  
+                  <div>
+                    <p className="font-bold text-xs uppercase text-gray-600">9-Digit PIN</p>
+                    <div className="flex items-center gap-2">
+                      <div className="bg-yellow-100 border-4 border-black px-4 py-2 font-mono text-lg font-black tracking-wider">
+                        {student.access_pin}
+                      </div>
+                      <BrutalButton
+                        variant="amber"
+                        size="sm"
+                        onClick={() => handleCopyPin(student.access_pin, student.full_name)}
+                        className="flex items-center gap-1"
+                      >
+                        {copiedPin === student.access_pin ? (
+                          <Check size={16} />
+                        ) : (
+                          <Copy size={16} />
+                        )}
+                      </BrutalButton>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Details */}

@@ -9,26 +9,32 @@ import HomeHeader from '@/components/HomeHeader';
 const StudentLogin = () => {
   const navigate = useNavigate();
   const { studentLogin } = useAuth();
+  const [studentCode, setStudentCode] = useState('');
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (pin.length !== 6) {
-      toast.error('PIN must be 6 digits');
+    if (!studentCode.trim()) {
+      toast.error('Please enter your Student Code');
+      return;
+    }
+
+    if (pin.length !== 9) {
+      toast.error('PIN must be 9 digits');
       return;
     }
 
     setLoading(true);
 
-    const result = await studentLogin(pin);
+    const result = await studentLogin(studentCode.toUpperCase().trim(), pin);
 
     if (result.success) {
       toast.success(`Welcome back, ${result.student.full_name}!`);
       navigate('/academy');
     } else {
-      toast.error(result.error || 'Invalid PIN');
+      toast.error(result.error || 'Invalid credentials');
       setPin('');
     }
 
@@ -49,20 +55,31 @@ const StudentLogin = () => {
           </div>
           <h2 className="text-2xl font-black uppercase text-amber-600">Student Login</h2>
           <p className="mt-2 font-medium text-gray-600">
-            Enter your 6-digit PIN
+            Enter your Student Code and PIN
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <BrutalInput
-            variant="pin"
+            label="Student Code"
             type="text"
             required
-            maxLength={6}
+            value={studentCode}
+            onChange={(e) => setStudentCode(e.target.value.toUpperCase())}
+            placeholder="STU-ABC123"
+            className="uppercase"
+            autoFocus
+          />
+          
+          <BrutalInput
+            variant="pin"
+            label="9-Digit PIN"
+            type="text"
+            required
+            maxLength={9}
             value={pin}
             onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-            placeholder="••••••"
-            autoFocus
+            placeholder="•••••••••"
           />
 
           <BrutalButton
@@ -70,14 +87,14 @@ const StudentLogin = () => {
             variant="amber"
             fullWidth
             size="lg"
-            disabled={loading || pin.length !== 6}
+            disabled={loading || !studentCode || pin.length !== 9}
           >
             {loading ? 'Logging in...' : 'Enter Academy'}
           </BrutalButton>
 
           <div className="text-center">
             <p className="font-medium text-sm text-gray-600">
-              Ask your guardian for your PIN
+              Ask your guardian for your Student Code and PIN
             </p>
           </div>
         </form>

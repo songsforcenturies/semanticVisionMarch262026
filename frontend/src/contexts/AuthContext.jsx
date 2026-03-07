@@ -76,9 +76,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const studentLogin = async (pin) => {
+  const studentLogin = async (studentCode, pin) => {
     try {
-      const response = await authAPI.studentLogin(pin);
+      const response = await authAPI.studentLogin(studentCode, pin);
       const { student: studentData } = response.data;
 
       localStorage.setItem('student', JSON.stringify(studentData));
@@ -89,7 +89,7 @@ export const AuthProvider = ({ children }) => {
       console.error('Student login error:', error);
       return { 
         success: false, 
-        error: error.response?.data?.detail || 'Invalid PIN' 
+        error: error.response?.data?.detail || 'Invalid credentials' 
       };
     }
   };

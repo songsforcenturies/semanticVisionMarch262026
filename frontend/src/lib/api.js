@@ -39,7 +39,7 @@ apiClient.interceptors.response.use(
 export const authAPI = {
   register: (data) => apiClient.post('/auth/register', data),
   login: (data) => apiClient.post('/auth/login', data),
-  studentLogin: (pin) => apiClient.post('/auth/student-login', { pin }),
+  studentLogin: (studentCode, pin) => apiClient.post('/auth/student-login', { student_code: studentCode, pin }),
   getMe: () => apiClient.get('/auth/me'),
 };
 

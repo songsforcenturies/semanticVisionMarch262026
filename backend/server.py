@@ -107,14 +107,19 @@ async def login(credentials: UserLogin):
 
 
 class StudentPinLogin(BaseModel):
+    student_code: str
     pin: str
 
 @api_router.post("/auth/student-login")
 async def student_login(data: StudentPinLogin):
-    """PIN-based login for students"""
-    student = await db.students.find_one({"access_pin": data.pin, "status": "active"})
+    """PIN-based login for students - requires both student code and PIN"""
+    student = await db.students.find_one({
+        "student_code": data.student_code,
+        "access_pin": data.pin,
+        "status": "active"
+    })
     if not student:
-        raise HTTPException(status_code=401, detail="Invalid PIN or inactive student")
+        raise HTTPException(status_code=401, detail="Invalid student code or PIN")
     
     # Get guardian info
     guardian = await db.users.find_one({"id": student["guardian_id"]})
@@ -162,12 +167,16 @@ async def create_student(
     if subscription["active_students"] >= subscription["student_seats"]:
         raise HTTPException(status_code=400, detail="Student seat limit reached")
     
-    # Generate unique PIN
+    # Generate unique PIN and student code
     while True:
-        from models import generate_pin
+        from models import generate_pin, generate_student_code
         pin = generate_pin()
-        existing = await db.students.find_one({"access_pin": pin})
-        if not existing:
+        student_code = generate_student_code()
+        # Check PIN is unique
+        existing_pin = await db.students.find_one({"access_pin": pin})
+        # Check student code is unique
+        existing_code = await db.students.find_one({"student_code": student_code})
+        if not existing_pin and not existing_code:
             break
     
     # Calculate biological target
@@ -175,6 +184,7 @@ async def create_student(
     
     student = Student(
         **student_data.model_dump(),
+        student_code=student_code,
         access_pin=pin,
         biological_target=biological_target
     )

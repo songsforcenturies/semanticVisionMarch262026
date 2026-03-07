@@ -14,9 +14,18 @@ def generate_uuid():
 
 
 def generate_pin():
-    """Generate a unique 6-digit PIN"""
+    """Generate a unique 9-digit PIN"""
     import random
-    return ''.join([str(random.randint(0, 9)) for _ in range(6)])
+    return ''.join([str(random.randint(0, 9)) for _ in range(9)])
+
+
+def generate_student_code():
+    """Generate a unique student code like STU-ABC123"""
+    import random
+    import string
+    chars = string.ascii_uppercase + string.digits
+    code = ''.join(random.choices(chars, k=6))
+    return f"STU-{code}"
 
 
 # Enums
@@ -163,6 +172,7 @@ class MasteredToken(BaseModel):
 class Student(MongoBaseModel):
     id: str = Field(default_factory=generate_uuid)
     full_name: str
+    student_code: str = Field(default_factory=generate_student_code)
     access_pin: str = Field(default_factory=generate_pin)
     guardian_id: str
     age: Optional[int] = None

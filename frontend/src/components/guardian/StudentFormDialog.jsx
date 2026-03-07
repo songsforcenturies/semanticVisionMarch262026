@@ -231,9 +231,20 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
 
           {student && (
             <BrutalCard variant="amber" className="bg-yellow-100">
-              <p className="font-bold text-sm uppercase mb-1">Current PIN</p>
-              <p className="text-2xl font-black font-mono tracking-wider">{student.access_pin}</p>
-              <p className="text-sm font-medium mt-2">PIN cannot be changed</p>
+              <p className="font-bold text-sm uppercase mb-3">Student Login Credentials</p>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs font-bold uppercase text-gray-600 mb-1">Student Code</p>
+                  <p className="text-xl font-black font-mono tracking-wider">{student.student_code}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase text-gray-600 mb-1">9-Digit PIN</p>
+                  <p className="text-xl font-black font-mono tracking-wider">{student.access_pin}</p>
+                </div>
+              </div>
+              <p className="text-sm font-medium mt-3 text-amber-800">
+                ⚠️ Both codes are required to login and cannot be changed
+              </p>
             </BrutalCard>
           )}
 
