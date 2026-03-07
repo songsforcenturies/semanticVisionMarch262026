@@ -52,6 +52,7 @@ export const studentAPI = {
   update: (id, data) => apiClient.patch(`/students/${id}`, data),
   delete: (id) => apiClient.delete(`/students/${id}`),
   resetPin: (id) => apiClient.post(`/students/${id}/reset-pin`),
+  getProgress: (id) => apiClient.get(`/students/${id}/progress`),
 };
 
 // ==================== SUBSCRIPTION API ====================

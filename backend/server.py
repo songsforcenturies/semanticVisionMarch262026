@@ -295,6 +295,113 @@ async def delete_student(
     return {"message": "Student deleted successfully"}
 
 
+# ==================== PROGRESS ROUTES ====================
+
+@api_router.get("/students/{student_id}/progress")
+async def get_student_progress(
+    student_id: str,
+    current_user: dict = Depends(get_current_guardian)
+):
+    """Get comprehensive progress data for a student"""
+    student = await db.students.find_one({"id": student_id}, {"_id": 0})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    if student["guardian_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    # Narratives
+    narratives = await db.narratives.find(
+        {"student_id": student_id}, {"_id": 0, "id": 1, "title": 1, "status": 1, "total_word_count": 1, "created_date": 1, "chapters_completed": 1, "chapters": 1}
+    ).sort("created_date", -1).to_list(100)
+    narrative_summaries = []
+    for n in narratives:
+        narrative_summaries.append({
+            "id": n["id"],
+            "title": n.get("title", "Untitled"),
+            "status": n.get("status", "unknown"),
+            "total_word_count": n.get("total_word_count", 0),
+            "chapters_total": len(n.get("chapters", [])),
+            "chapters_completed": len(n.get("chapters_completed", [])),
+            "created_date": n.get("created_date", ""),
+        })
+
+    # Assessments
+    assessments = await db.assessments.find(
+        {"student_id": student_id}, {"_id": 0, "id": 1, "type": 1, "total_questions": 1, "correct_count": 1, "accuracy_percentage": 1, "status": 1, "tokens_mastered": 1, "started_at": 1, "completed_at": 1}
+    ).sort("started_at", -1).to_list(100)
+
+    # Read logs
+    read_logs = await db.read_logs.find(
+        {"student_id": student_id}, {"_id": 0, "duration_seconds": 1, "words_read": 1, "wpm": 1, "created_date": 1, "tokens_encountered": 1}
+    ).sort("created_date", -1).to_list(500)
+
+    # Aggregate reading stats
+    total_reading_seconds = sum(r.get("duration_seconds", 0) for r in read_logs)
+    total_words_read = sum(r.get("words_read", 0) for r in read_logs)
+    wpm_values = [r.get("wpm", 0) for r in read_logs if r.get("wpm", 0) > 0]
+    avg_wpm = round(sum(wpm_values) / len(wpm_values), 1) if wpm_values else 0
+
+    # Mastery stats
+    mastered_tokens = student.get("mastered_tokens", [])
+    biological_target = student.get("biological_target", 0)
+    mastery_percentage = round((len(mastered_tokens) / biological_target * 100), 1) if biological_target > 0 else 0
+
+    # Assessment accuracy over time
+    assessment_history = []
+    for a in assessments:
+        if a.get("status") == "completed":
+            assessment_history.append({
+                "accuracy": a.get("accuracy_percentage", 0),
+                "correct": a.get("correct_count", 0),
+                "total": a.get("total_questions", 0),
+                "tokens_mastered": len(a.get("tokens_mastered", [])),
+                "date": str(a.get("completed_at") or a.get("started_at", "")),
+            })
+
+    # Assigned word banks info
+    assigned_bank_ids = student.get("assigned_banks", [])
+    assigned_banks = []
+    if assigned_bank_ids:
+        banks = await db.word_banks.find({"id": {"$in": assigned_bank_ids}}, {"_id": 0, "id": 1, "name": 1, "total_tokens": 1}).to_list(50)
+        assigned_banks = banks
+
+    return {
+        "student": {
+            "id": student["id"],
+            "full_name": student["full_name"],
+            "age": student.get("age"),
+            "grade_level": student.get("grade_level"),
+            "agentic_reach_score": student.get("agentic_reach_score", 0),
+            "biological_target": biological_target,
+            "virtues": student.get("virtues", []),
+        },
+        "reading_stats": {
+            "total_reading_seconds": total_reading_seconds,
+            "total_words_read": total_words_read,
+            "average_wpm": avg_wpm,
+            "sessions_count": len(read_logs),
+        },
+        "vocabulary": {
+            "mastered_count": len(mastered_tokens),
+            "biological_target": biological_target,
+            "mastery_percentage": mastery_percentage,
+            "recent_mastered": [t.get("token", "") for t in mastered_tokens[-10:]],
+        },
+        "assessments": {
+            "total": len(assessments),
+            "completed": len([a for a in assessments if a.get("status") == "completed"]),
+            "average_accuracy": round(sum(a.get("accuracy_percentage", 0) for a in assessments if a.get("status") == "completed") / max(1, len([a for a in assessments if a.get("status") == "completed"])), 1),
+            "history": assessment_history,
+        },
+        "narratives": {
+            "total": len(narratives),
+            "completed": len([n for n in narratives if n.get("status") == "completed"]),
+            "stories": narrative_summaries,
+        },
+        "assigned_banks": assigned_banks,
+    }
+
+
 # ==================== SUBSCRIPTION ROUTES ====================
 
 @api_router.get("/subscriptions/{guardian_id}", response_model=Subscription)
