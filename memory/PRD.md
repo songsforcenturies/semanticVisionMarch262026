@@ -59,6 +59,14 @@ Build "LexiMaster," a high-quality educational platform for students, guardians,
 - [x] Budget management with Stripe integration
 - [x] Impression tracking & reporting
 
+### Authentication & Email (Mar 2026)
+- [x] Forgot Password with 6-digit code via Resend email (15-min expiry)
+- [x] Email verification on registration (30-min expiry)
+- [x] "Forgot Password?" link on login page with 3-step wizard
+- [x] Resend email integration (test mode - needs domain verification for production)
+- [x] Login cycle fix (localStorage fallback in ProtectedRoute)
+- [x] Role-based login routing (admin→/admin, teacher→/teacher-portal, etc.)
+
 ### Wallet & Payment System (Complete)
 - [x] Wallet with Stripe top-up
 - [x] Coupon redemption
