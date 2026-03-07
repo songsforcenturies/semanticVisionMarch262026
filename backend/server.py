@@ -3417,6 +3417,143 @@ async def get_brand_dashboard(current_user: dict = Depends(get_current_brand_par
     }
 
 
+
+# ==================== BRAND PORTAL: ANALYTICS DASHBOARD ====================
+
+@api_router.get("/brand-portal/analytics")
+async def get_brand_analytics_dashboard(current_user: dict = Depends(get_current_brand_partner)):
+    """Get comprehensive analytics for the brand partner dashboard"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    brand_id = user.get("linked_brand_id")
+    if not brand_id:
+        return {"daily_impressions": [], "campaign_breakdown": [], "product_breakdown": [],
+                "region_breakdown": [], "metrics": {}}
+
+    brand = await db.brands.find_one({"id": brand_id}, {"_id": 0})
+    if not brand:
+        return {"daily_impressions": [], "campaign_breakdown": [], "product_breakdown": [],
+                "region_breakdown": [], "metrics": {}}
+
+    # 1. Daily impressions over last 30 days
+    from datetime import timedelta
+    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+    daily_pipeline = [
+        {"$match": {"brand_id": brand_id, "created_date": {"$gte": thirty_days_ago.isoformat()}}},
+        {"$addFields": {
+            "date_parsed": {"$dateFromString": {"dateString": "$created_date", "onError": "$created_date"}}
+        }},
+        {"$group": {
+            "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$date_parsed"}},
+            "impressions": {"$sum": 1},
+            "cost": {"$sum": "$cost"},
+        }},
+        {"$sort": {"_id": 1}},
+    ]
+    try:
+        daily_data = await db.brand_impressions.aggregate(daily_pipeline).to_list(31)
+    except Exception:
+        daily_data = []
+
+    daily_impressions = [{"date": d["_id"], "impressions": d["impressions"], "cost": round(d["cost"], 3)} for d in daily_data]
+
+    # 2. Campaign breakdown
+    campaigns = await db.brand_campaigns.find({"brand_id": brand_id}, {"_id": 0}).to_list(50)
+    campaign_breakdown = []
+    for c in campaigns:
+        camp_pipeline = [
+            {"$match": {"brand_id": brand_id, "campaign_id": c["id"]}},
+            {"$group": {"_id": None, "impressions": {"$sum": 1}, "cost": {"$sum": "$cost"}}},
+        ]
+        camp_agg = await db.brand_impressions.aggregate(camp_pipeline).to_list(1)
+        imp_count = camp_agg[0]["impressions"] if camp_agg else 0
+        imp_cost = camp_agg[0]["cost"] if camp_agg else 0
+        campaign_breakdown.append({
+            "id": c["id"],
+            "name": c["name"],
+            "status": c.get("status", "active"),
+            "budget": c.get("budget", 0),
+            "budget_spent": round(c.get("budget_spent", 0), 2),
+            "impressions": imp_count,
+            "cost": round(imp_cost, 2),
+            "cpi": round(imp_cost / imp_count, 3) if imp_count > 0 else 0,
+        })
+
+    # 3. Product breakdown
+    product_pipeline = [
+        {"$match": {"brand_id": brand_id}},
+        {"$unwind": "$products_featured"},
+        {"$group": {
+            "_id": "$products_featured",
+            "impressions": {"$sum": 1},
+            "cost": {"$sum": "$cost"},
+        }},
+        {"$sort": {"impressions": -1}},
+    ]
+    try:
+        product_data = await db.brand_impressions.aggregate(product_pipeline).to_list(50)
+    except Exception:
+        product_data = []
+    product_breakdown = [{"product": p["_id"], "impressions": p["impressions"], "cost": round(p["cost"], 3)} for p in product_data if p["_id"]]
+
+    # 4. Overall metrics
+    total_pipeline = [
+        {"$match": {"brand_id": brand_id}},
+        {"$group": {"_id": None, "total": {"$sum": 1}, "cost": {"$sum": "$cost"}}},
+    ]
+    total_agg = await db.brand_impressions.aggregate(total_pipeline).to_list(1)
+    total_impressions = total_agg[0]["total"] if total_agg else 0
+    total_cost = total_agg[0]["cost"] if total_agg else 0
+
+    budget_total = brand.get("budget_total", 0)
+    budget_utilization = round((total_cost / budget_total * 100), 1) if budget_total > 0 else 0
+    avg_cpi = round(total_cost / total_impressions, 3) if total_impressions > 0 else 0
+
+    # Impressions last 7 days vs previous 7 days for velocity
+    seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
+    fourteen_days_ago = datetime.now(timezone.utc) - timedelta(days=14)
+    recent_pipeline = [
+        {"$match": {"brand_id": brand_id, "created_date": {"$gte": seven_days_ago.isoformat()}}},
+        {"$group": {"_id": None, "count": {"$sum": 1}}},
+    ]
+    prev_pipeline = [
+        {"$match": {"brand_id": brand_id, "created_date": {"$gte": fourteen_days_ago.isoformat(), "$lt": seven_days_ago.isoformat()}}},
+        {"$group": {"_id": None, "count": {"$sum": 1}}},
+    ]
+    try:
+        recent_agg = await db.brand_impressions.aggregate(recent_pipeline).to_list(1)
+        prev_agg = await db.brand_impressions.aggregate(prev_pipeline).to_list(1)
+    except Exception:
+        recent_agg = []
+        prev_agg = []
+    recent_count = recent_agg[0]["count"] if recent_agg else 0
+    prev_count = prev_agg[0]["count"] if prev_agg else 0
+    velocity_change = round(((recent_count - prev_count) / prev_count * 100), 1) if prev_count > 0 else (100.0 if recent_count > 0 else 0)
+
+    metrics = {
+        "total_impressions": total_impressions,
+        "total_cost": round(total_cost, 2),
+        "budget_total": budget_total,
+        "budget_remaining": round(budget_total - total_cost, 2),
+        "budget_utilization": budget_utilization,
+        "avg_cpi": avg_cpi,
+        "impressions_last_7d": recent_count,
+        "impressions_prev_7d": prev_count,
+        "velocity_change": velocity_change,
+        "total_campaigns": len(campaigns),
+        "active_campaigns": sum(1 for c in campaigns if c.get("status") == "active"),
+        "total_products_featured": len(product_breakdown),
+        "total_stories": brand.get("total_stories", 0),
+    }
+
+    return {
+        "daily_impressions": daily_impressions,
+        "campaign_breakdown": campaign_breakdown,
+        "product_breakdown": product_breakdown,
+        "metrics": metrics,
+    }
+
+
+
 # ==================== BRAND PARTNER CAMPAIGN MANAGEMENT ====================
 
 class CampaignCreate(BaseModel):

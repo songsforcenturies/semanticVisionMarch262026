@@ -12,6 +12,9 @@ import {
   BookOpen, Sparkles, RefreshCw, Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from 'recharts';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const AD_CATEGORIES = [
@@ -80,7 +83,7 @@ const BrandPortal = () => {
     { id: 'products', label: 'Products', icon: Package },
     { id: 'campaigns', label: 'Campaigns', icon: Megaphone },
     { id: 'budget', label: 'Budget', icon: DollarSign },
-    { id: 'impressions', label: 'Impressions', icon: Eye },
+    { id: 'impressions', label: 'Analytics', icon: Eye },
   ];
 
   return (
@@ -152,7 +155,7 @@ const BrandPortal = () => {
         {activeTab === 'products' && <ProductsTab brand={brand} queryClient={queryClient} />}
         {activeTab === 'campaigns' && <CampaignsTab brand={brand} campaigns={campaigns} notApproved={notApproved} queryClient={queryClient} />}
         {activeTab === 'budget' && <BudgetTab stats={stats} />}
-        {activeTab === 'impressions' && <ImpressionsTab stats={stats} dashboard={dashboard} />}
+        {activeTab === 'impressions' && <AnalyticsTab brand={brand} stats={stats} dashboard={dashboard} />}
       </div>
     </div>
   );
@@ -794,36 +797,212 @@ const BudgetTab = ({ stats }) => {
 };
 
 
-// ==================== IMPRESSIONS TAB ====================
-const ImpressionsTab = ({ stats, dashboard }) => (
-  <div className="space-y-6" data-testid="impressions-tab">
-    <div className="grid grid-cols-3 gap-4">
-      <StatCard icon={Eye} label="Total Impressions" value={stats.total_impressions || 0} color="indigo" />
-      <StatCard icon={DollarSign} label="Total Cost" value={`$${(stats.total_spent || 0).toFixed(2)}`} color="rose" />
-      <StatCard icon={TrendingUp} label="Avg CPI" value={`$${stats.total_impressions ? ((stats.total_spent || 0) / stats.total_impressions).toFixed(3) : '0.000'}`} color="emerald" />
+// ==================== ANALYTICS TAB ====================
+const AnalyticsTab = ({ brand, stats, dashboard }) => {
+  const { data: analytics, isLoading } = useQuery({
+    queryKey: ['brand-analytics', brand?.id],
+    queryFn: async () => (await brandPortalAPI.getAnalytics()).data,
+    enabled: !!brand,
+  });
+
+  const metrics = analytics?.metrics || {};
+  const dailyImpressions = analytics?.daily_impressions || [];
+  const campaignBreakdown = analytics?.campaign_breakdown || [];
+  const productBreakdown = analytics?.product_breakdown || [];
+  const hasData = metrics.total_impressions > 0;
+
+  return (
+    <div className="space-y-6" data-testid="analytics-tab">
+      {/* Key Metrics Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard icon={Eye} label="Total Impressions" value={metrics.total_impressions || 0} color="indigo" />
+        <StatCard icon={DollarSign} label="Total Cost" value={`$${(metrics.total_cost || 0).toFixed(2)}`} color="rose" />
+        <StatCard icon={TrendingUp} label="Avg CPI" value={`$${(metrics.avg_cpi || 0).toFixed(3)}`} color="emerald" />
+        <MetricCard
+          label="Budget Used"
+          value={`${metrics.budget_utilization || 0}%`}
+          sub={`$${(metrics.budget_remaining || 0).toFixed(2)} remaining`}
+          color="amber"
+        />
+      </div>
+
+      {/* Velocity & 7-day metrics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <MetricCard label="Last 7 Days" value={metrics.impressions_last_7d || 0} sub="impressions" color="indigo" />
+        <MetricCard label="Previous 7 Days" value={metrics.impressions_prev_7d || 0} sub="impressions" color="indigo" />
+        <MetricCard
+          label="Velocity"
+          value={`${metrics.velocity_change > 0 ? '+' : ''}${metrics.velocity_change || 0}%`}
+          sub={metrics.velocity_change > 0 ? 'trending up' : metrics.velocity_change < 0 ? 'trending down' : 'stable'}
+          color={metrics.velocity_change > 0 ? 'emerald' : metrics.velocity_change < 0 ? 'rose' : 'amber'}
+        />
+        <MetricCard label="Stories Featured" value={metrics.total_stories || 0} sub="total" color="amber" />
+      </div>
+
+      {/* Impressions Over Time Chart */}
+      <BrutalCard shadow="lg" data-testid="impressions-chart">
+        <h3 className="text-xl font-black uppercase mb-4 flex items-center gap-2">
+          <TrendingUp size={22} /> Impressions Over Time
+        </h3>
+        {!hasData ? (
+          <EmptyAnalytics message="Impression data will appear here once your brand is featured in stories." />
+        ) : (
+          <div className="h-72">
+            <ImpressionsChart data={dailyImpressions} />
+          </div>
+        )}
+      </BrutalCard>
+
+      {/* Campaign & Product Breakdown - Side by Side */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Campaign Performance */}
+        <BrutalCard shadow="lg" data-testid="campaign-breakdown">
+          <h3 className="text-lg font-black uppercase mb-4 flex items-center gap-2">
+            <Megaphone size={20} /> Campaign Performance
+          </h3>
+          {campaignBreakdown.length === 0 ? (
+            <EmptyAnalytics message="Create campaigns to track their performance here." />
+          ) : (
+            <div className="h-64">
+              <CampaignChart data={campaignBreakdown} />
+            </div>
+          )}
+          {campaignBreakdown.length > 0 && (
+            <div className="mt-4 space-y-2">
+              {campaignBreakdown.map((c) => (
+                <div key={c.id} className="flex items-center justify-between text-sm border-b border-gray-100 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold">{c.name}</span>
+                    <BrutalBadge variant={c.status === 'active' ? 'emerald' : 'amber'} size="sm">{c.status}</BrutalBadge>
+                  </div>
+                  <div className="flex gap-4 text-gray-600">
+                    <span>{c.impressions} imp</span>
+                    <span className="font-bold">${c.cost.toFixed(2)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </BrutalCard>
+
+        {/* Top Products */}
+        <BrutalCard shadow="lg" data-testid="product-breakdown">
+          <h3 className="text-lg font-black uppercase mb-4 flex items-center gap-2">
+            <Package size={20} /> Top Products
+          </h3>
+          {productBreakdown.length === 0 ? (
+            <EmptyAnalytics message="Product performance data appears once your products are featured in stories." />
+          ) : (
+            <>
+              <div className="h-64">
+                <ProductChart data={productBreakdown} />
+              </div>
+              <div className="mt-4 space-y-2">
+                {productBreakdown.map((p, i) => (
+                  <div key={p.product} className="flex items-center justify-between text-sm border-b border-gray-100 pb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 flex items-center justify-center bg-indigo-100 border-2 border-black text-xs font-black">{i + 1}</span>
+                      <span className="font-bold">{p.product}</span>
+                    </div>
+                    <div className="flex gap-4 text-gray-600">
+                      <span>{p.impressions} imp</span>
+                      <span className="font-bold">${p.cost.toFixed(3)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </BrutalCard>
+      </div>
+
+      {/* Recent Impressions Table */}
+      <BrutalCard shadow="lg" data-testid="recent-impressions">
+        <h3 className="text-xl font-black uppercase mb-4">Recent Impressions</h3>
+        {(dashboard?.recent_impressions?.length || 0) === 0 ? (
+          <EmptyAnalytics message="No impressions yet. Create campaigns and wait for stories to be generated!" />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left"><thead><tr className="border-b-4 border-black">
+              <th className="py-3 px-3 font-black text-xs uppercase">Date</th>
+              <th className="py-3 px-3 font-black text-xs uppercase">Products</th>
+              <th className="py-3 px-3 font-black text-xs uppercase">Cost</th>
+            </tr></thead><tbody>
+              {dashboard.recent_impressions.map((imp, i) => (
+                <tr key={imp.id || i} className="border-b-2 border-gray-200">
+                  <td className="py-2 px-3 text-sm">{new Date(imp.created_date).toLocaleDateString()}</td>
+                  <td className="py-2 px-3 text-sm">{imp.products_featured?.join(', ') || '-'}</td>
+                  <td className="py-2 px-3 text-sm font-bold">${imp.cost?.toFixed(3)}</td>
+                </tr>
+              ))}
+            </tbody></table>
+          </div>
+        )}
+      </BrutalCard>
     </div>
-    <BrutalCard shadow="lg">
-      <h3 className="text-xl font-black uppercase mb-4">Recent Impressions</h3>
-      {(dashboard?.recent_impressions?.length || 0) === 0 ? (
-        <p className="text-center py-8 text-gray-500 font-bold">No impressions yet. Create campaigns and wait for stories to be generated!</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left"><thead><tr className="border-b-4 border-black">
-            <th className="py-3 px-3 font-black text-xs uppercase">Date</th>
-            <th className="py-3 px-3 font-black text-xs uppercase">Products</th>
-            <th className="py-3 px-3 font-black text-xs uppercase">Cost</th>
-          </tr></thead><tbody>
-            {dashboard.recent_impressions.map((imp, i) => (
-              <tr key={imp.id || i} className="border-b-2 border-gray-200">
-                <td className="py-2 px-3 text-sm">{new Date(imp.created_date).toLocaleDateString()}</td>
-                <td className="py-2 px-3 text-sm">{imp.products_featured?.join(', ') || '-'}</td>
-                <td className="py-2 px-3 text-sm font-bold">${imp.cost?.toFixed(3)}</td>
-              </tr>
-            ))}
-          </tbody></table>
-        </div>
-      )}
-    </BrutalCard>
+  );
+};
+
+// Chart sub-components
+const ImpressionsChart = ({ data }) => (
+  <ResponsiveContainer width="100%" height="100%">
+    <AreaChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+      <defs>
+        <linearGradient id="impressionGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+          <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+      <XAxis dataKey="date" tick={{ fontSize: 11, fontWeight: 600 }}
+        tickFormatter={(v) => { const d = new Date(v); return `${d.getMonth()+1}/${d.getDate()}`; }} />
+      <YAxis tick={{ fontSize: 11, fontWeight: 600 }} />
+      <Tooltip contentStyle={{ border: '3px solid #000', fontWeight: 700 }}
+        formatter={(val, name) => [name === 'cost' ? `$${val.toFixed(3)}` : val, name === 'cost' ? 'Cost' : 'Impressions']} />
+      <Area type="monotone" dataKey="impressions" stroke="#6366f1" strokeWidth={3} fill="url(#impressionGrad)" />
+    </AreaChart>
+  </ResponsiveContainer>
+);
+
+const CampaignChart = ({ data }) => (
+  <ResponsiveContainer width="100%" height="100%">
+    <BarChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+      <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 600 }} />
+      <YAxis tick={{ fontSize: 11, fontWeight: 600 }} />
+      <Tooltip contentStyle={{ border: '3px solid #000', fontWeight: 700 }} />
+      <Bar dataKey="impressions" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+    </BarChart>
+  </ResponsiveContainer>
+);
+
+const ProductChart = ({ data }) => (
+  <ResponsiveContainer width="100%" height="100%">
+    <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 60, bottom: 5 }}>
+      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+      <XAxis type="number" tick={{ fontSize: 11, fontWeight: 600 }} />
+      <YAxis type="category" dataKey="product" tick={{ fontSize: 10, fontWeight: 700 }} width={80} />
+      <Tooltip contentStyle={{ border: '3px solid #000', fontWeight: 700 }} />
+      <Bar dataKey="impressions" fill="#6366f1" radius={[0, 4, 4, 0]} />
+    </BarChart>
+  </ResponsiveContainer>
+);
+
+const MetricCard = ({ label, value, sub, color = 'indigo' }) => {
+  const bgMap = { indigo: 'bg-indigo-50', emerald: 'bg-emerald-50', amber: 'bg-amber-50', rose: 'bg-rose-50' };
+  return (
+    <div className={`${bgMap[color]} border-4 border-black p-4 brutal-shadow-sm`} data-testid={`metric-${label.toLowerCase().replace(/\s/g, '-')}`}>
+      <p className="font-bold text-xs uppercase text-gray-600">{label}</p>
+      <p className="text-2xl font-black mt-1">{value}</p>
+      {sub && <p className="text-xs text-gray-500 mt-0.5">{sub}</p>}
+    </div>
+  );
+};
+
+const EmptyAnalytics = ({ message }) => (
+  <div className="flex flex-col items-center justify-center py-10 text-center">
+    <BarChart3 size={40} className="text-gray-300 mb-3" />
+    <p className="font-bold text-gray-400 text-sm">{message}</p>
   </div>
 );
 

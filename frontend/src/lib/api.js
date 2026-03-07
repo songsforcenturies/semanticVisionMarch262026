@@ -216,6 +216,7 @@ export const brandPortalAPI = {
   getTopupStatus: (sessionId) => apiClient.get(`/brand-portal/topup-status/${sessionId}`),
   getStoryPreview: () => apiClient.get('/brand-portal/story-preview'),
   generateStoryPreview: () => apiClient.post('/brand-portal/story-preview'),
+  getAnalytics: () => apiClient.get('/brand-portal/analytics'),
 };
 
 export default apiClient;
