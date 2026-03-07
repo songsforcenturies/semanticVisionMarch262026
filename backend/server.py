@@ -2398,8 +2398,26 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup_migrate():
-    """Migrate existing students that are missing student_code"""
+    """Run startup migrations"""
     from models import generate_student_code
+    
+    # Ensure master admin role
+    master_email = "allen@songsforcenturies.com"
+    master_user = await db.users.find_one({"email": master_email})
+    if master_user and master_user.get("role") != "admin":
+        await db.users.update_one(
+            {"email": master_email},
+            {"$set": {"role": "admin", "is_delegated_admin": True}}
+        )
+        logger.info(f"Promoted {master_email} to admin")
+    
+    # Ensure wallet_balance field on all users
+    await db.users.update_many(
+        {"wallet_balance": {"$exists": False}},
+        {"$set": {"wallet_balance": 0.0}}
+    )
+    
+    # Migrate existing students that are missing student_code
     cursor = db.students.find({"student_code": {"$exists": False}}, {"_id": 0, "id": 1})
     async for student in cursor:
         while True:
