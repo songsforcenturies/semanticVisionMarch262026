@@ -137,6 +137,8 @@ class User(MongoBaseModel):
     full_name: str
     password_hash: str
     role: UserRole = UserRole.GUARDIAN
+    wallet_balance: float = 0.0
+    is_delegated_admin: bool = False  # can create word banks & manage subscriptions
     created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -426,6 +428,86 @@ BIOLOGICAL_TARGETS = {
     13: 12000, 14: 15000, 15: 18000, 16: 20000,
     17: 25000, 18: 30000, 19: 35000, 20: 35000
 }
+
+
+# ==================== WALLET & PAYMENT MODELS ====================
+
+class WalletTransactionType(str, Enum):
+    CREDIT = "credit"       # Money added (top-up, refund)
+    DEBIT = "debit"         # Money spent (purchase)
+    COUPON = "coupon"       # Free credit from coupon
+
+
+class WalletTransaction(MongoBaseModel):
+    id: str = Field(default_factory=generate_uuid)
+    user_id: str
+    type: WalletTransactionType
+    amount: float  # positive for credit, positive amount for debit
+    description: str
+    reference_id: Optional[str] = None  # payment session or purchase id
+    balance_after: float = 0.0
+    created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class PaymentTransaction(MongoBaseModel):
+    id: str = Field(default_factory=generate_uuid)
+    user_id: str
+    session_id: str  # Stripe checkout session ID
+    amount: float
+    currency: str = "usd"
+    payment_status: str = "pending"  # pending, paid, failed, expired
+    status: str = "initiated"        # initiated, completed, failed, expired
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_date: Optional[datetime] = None
+
+
+# ==================== COUPON MODEL ====================
+
+class CouponType(str, Enum):
+    FREE_DAYS = "free_days"
+    FREE_STORIES = "free_stories"
+    FREE_STUDENTS = "free_students"
+    WALLET_CREDIT = "wallet_credit"
+
+
+class Coupon(MongoBaseModel):
+    id: str = Field(default_factory=generate_uuid)
+    code: str
+    coupon_type: CouponType
+    value: float  # days, story count, student count, or dollar amount
+    max_uses: int = 1
+    uses_count: int = 0
+    is_active: bool = True
+    expires_at: Optional[datetime] = None
+    created_by: str = ""
+    description: str = ""
+    created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class CouponRedemption(MongoBaseModel):
+    id: str = Field(default_factory=generate_uuid)
+    coupon_id: str
+    coupon_code: str
+    user_id: str
+    coupon_type: CouponType
+    value: float
+    created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+# ==================== ADMIN SUBSCRIPTION PLAN MODEL ====================
+
+class AdminSubscriptionPlan(MongoBaseModel):
+    id: str = Field(default_factory=generate_uuid)
+    name: str
+    description: str = ""
+    price_monthly: float = 0.0  # dollars
+    student_seats: int = 10
+    story_limit: int = -1  # -1 = unlimited
+    features: Dict[str, bool] = Field(default_factory=dict)
+    is_active: bool = True
+    created_by: str = ""
+    created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 def get_biological_target(age: int) -> int:

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { wordBankAPI, subscriptionAPI } from '@/lib/api';
+import { wordBankAPI, subscriptionAPI, walletAPI } from '@/lib/api';
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput } from '@/components/brutal';
-import { Search, Gift, Eye, Check, ShoppingCart } from 'lucide-react';
+import { Search, Eye, Check, ShoppingCart, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import WordBankPreviewDialog from './WordBankPreviewDialog';
 
@@ -21,6 +21,12 @@ const MarketplaceTab = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [previewBank, setPreviewBank] = useState(null);
+
+  // Fetch wallet balance
+  const { data: walletData } = useQuery({
+    queryKey: ['wallet-balance'],
+    queryFn: async () => (await walletAPI.getBalance()).data,
+  });
 
   // Fetch subscription to know what's already purchased
   const { data: subscription } = useQuery({
@@ -45,11 +51,18 @@ const MarketplaceTab = () => {
     }
   });
 
-  // Purchase mutation
+  // Purchase mutation — uses wallet for paid banks
   const purchaseMutation = useMutation({
-    mutationFn: (bankId) => wordBankAPI.purchase(user?.id, bankId),
-    onSuccess: (_, bankId) => {
+    mutationFn: (bankId) => {
+      const bank = wordBanks.find(b => b.id === bankId);
+      if (bank && bank.price > 0) {
+        return walletAPI.purchaseBank({ guardian_id: user?.id, bank_id: bankId });
+      }
+      return wordBankAPI.purchase(user?.id, bankId);
+    },
+    onSuccess: (res, bankId) => {
       queryClient.invalidateQueries(['subscription']);
+      queryClient.invalidateQueries(['wallet-balance']);
       const bank = wordBanks.find(b => b.id === bankId);
       toast.success(`${bank?.name} added to your library!`);
     },
@@ -64,8 +77,13 @@ const MarketplaceTab = () => {
     if (bank.price === 0) {
       purchaseMutation.mutate(bank.id);
     } else {
-      // For paid banks, show confirmation
-      if (window.confirm(`Purchase ${bank.name} for $${(bank.price / 100).toFixed(2)}?`)) {
+      const priceDollars = (bank.price / 100).toFixed(2);
+      const balance = walletData?.balance ?? 0;
+      if (balance < bank.price / 100) {
+        toast.error(`Insufficient balance ($${balance.toFixed(2)}). Please add funds in the Wallet tab.`);
+        return;
+      }
+      if (window.confirm(`Purchase ${bank.name} for $${priceDollars}? (Wallet: $${balance.toFixed(2)})`)) {
         purchaseMutation.mutate(bank.id);
       }
     }
@@ -93,12 +111,18 @@ const MarketplaceTab = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-3xl font-black uppercase">Word Bank Marketplace</h2>
           <p className="text-lg font-medium mt-1">
             {ownedBankIds.length} banks in your library
           </p>
+        </div>
+        <div className="flex items-center gap-2 px-4 py-2 border-4 border-black bg-amber-50 brutal-shadow-sm">
+          <Wallet size={18} className="text-amber-700" />
+          <span className="font-black text-lg" data-testid="marketplace-balance">
+            ${(walletData?.balance ?? 0).toFixed(2)}
+          </span>
         </div>
       </div>
 

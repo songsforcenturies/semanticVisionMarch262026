@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -20,7 +20,9 @@ from models import (
     Narrative, NarrativeCreate, NarrativeStatus,
     Assessment, ReadLog, WordBankGift, GiftCreate,
     ClassroomSession, SystemConfig, SessionStatus, ParticipatingStudent,
-    get_biological_target
+    get_biological_target,
+    WalletTransaction, WalletTransactionType, PaymentTransaction,
+    Coupon, CouponType, CouponRedemption, AdminSubscriptionPlan,
 )
 from auth import (
     get_password_hash, verify_password, create_access_token,
@@ -136,7 +138,9 @@ async def login(credentials: UserLogin):
             "id": user["id"],
             "email": user["email"],
             "full_name": user["full_name"],
-            "role": user["role"]
+            "role": user["role"],
+            "wallet_balance": user.get("wallet_balance", 0.0),
+            "is_delegated_admin": user.get("is_delegated_admin", False),
         }
     }
 
@@ -1726,6 +1730,645 @@ async def update_llm_config(
         upsert=True
     )
     return {"message": "LLM config updated", "config": config}
+
+
+# ==================== WALLET & PAYMENT ROUTES ====================
+
+TOPUP_PACKAGES = {
+    "small": 5.00,
+    "medium": 10.00,
+    "large": 25.00,
+    "xl": 50.00,
+    "xxl": 100.00,
+}
+
+
+@api_router.get("/wallet/balance")
+async def get_wallet_balance(current_user: dict = Depends(get_current_user)):
+    """Get user's wallet balance"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0, "wallet_balance": 1})
+    balance = user.get("wallet_balance", 0.0) if user else 0.0
+    return {"balance": round(balance, 2)}
+
+
+@api_router.get("/wallet/transactions")
+async def get_wallet_transactions(current_user: dict = Depends(get_current_user)):
+    """Get wallet transaction history"""
+    transactions = await db.wallet_transactions.find(
+        {"user_id": current_user["id"]}, {"_id": 0}
+    ).sort("created_date", -1).to_list(100)
+    return transactions
+
+
+@api_router.get("/wallet/packages")
+async def get_topup_packages():
+    """Get available top-up packages"""
+    return [{"id": k, "amount": v} for k, v in TOPUP_PACKAGES.items()]
+
+
+class TopupRequest(BaseModel):
+    package_id: str
+    origin_url: str
+
+
+@api_router.post("/wallet/topup")
+async def create_wallet_topup(data: TopupRequest, request: Request, current_user: dict = Depends(get_current_user)):
+    """Create a Stripe checkout session for wallet top-up"""
+    if data.package_id not in TOPUP_PACKAGES:
+        raise HTTPException(status_code=400, detail="Invalid package")
+
+    amount = TOPUP_PACKAGES[data.package_id]
+    origin = data.origin_url.rstrip("/")
+
+    stripe_key = os.environ.get("STRIPE_API_KEY")
+    if not stripe_key:
+        raise HTTPException(status_code=500, detail="Payment system not configured")
+
+    from emergentintegrations.payments.stripe.checkout import (
+        StripeCheckout, CheckoutSessionRequest,
+    )
+
+    host_url = str(request.base_url).rstrip("/")
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=stripe_key, webhook_url=webhook_url)
+
+    success_url = f"{origin}/portal?payment=success&session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{origin}/portal?payment=cancelled"
+
+    metadata = {
+        "user_id": current_user["id"],
+        "package_id": data.package_id,
+        "type": "wallet_topup",
+    }
+
+    checkout_req = CheckoutSessionRequest(
+        amount=amount,
+        currency="usd",
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata=metadata,
+        payment_methods=["card"],
+    )
+    session = await stripe_checkout.create_checkout_session(checkout_req)
+
+    # Create payment transaction record
+    txn = PaymentTransaction(
+        user_id=current_user["id"],
+        session_id=session.session_id,
+        amount=amount,
+        currency="usd",
+        payment_status="pending",
+        status="initiated",
+        metadata=metadata,
+    )
+    await db.payment_transactions.insert_one(txn.model_dump())
+
+    return {"url": session.url, "session_id": session.session_id}
+
+
+@api_router.get("/payments/status/{session_id}")
+async def get_payment_status(session_id: str, request: Request, current_user: dict = Depends(get_current_user)):
+    """Check payment status and credit wallet if paid"""
+    txn = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
+    if not txn:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    if txn.get("payment_status") == "paid":
+        return {"status": txn["status"], "payment_status": "paid", "amount": txn["amount"]}
+
+    stripe_key = os.environ.get("STRIPE_API_KEY")
+    from emergentintegrations.payments.stripe.checkout import StripeCheckout
+
+    host_url = str(request.base_url).rstrip("/")
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=stripe_key, webhook_url=webhook_url)
+
+    checkout_status = await stripe_checkout.get_checkout_status(session_id)
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    if checkout_status.payment_status == "paid" and txn.get("payment_status") != "paid":
+        # Credit wallet — idempotent check on session_id
+        already_credited = await db.payment_transactions.find_one(
+            {"session_id": session_id, "payment_status": "paid"}
+        )
+        if not already_credited:
+            amount = txn["amount"]
+            user_id = txn["user_id"]
+
+            # Update payment transaction
+            await db.payment_transactions.update_one(
+                {"session_id": session_id},
+                {"$set": {"payment_status": "paid", "status": "completed", "updated_date": now_iso}}
+            )
+
+            # Credit wallet
+            user = await db.users.find_one({"id": user_id}, {"_id": 0, "wallet_balance": 1})
+            old_balance = user.get("wallet_balance", 0.0) if user else 0.0
+            new_balance = round(old_balance + amount, 2)
+
+            await db.users.update_one(
+                {"id": user_id},
+                {"$set": {"wallet_balance": new_balance}}
+            )
+
+            # Create wallet transaction
+            wallet_txn = WalletTransaction(
+                user_id=user_id,
+                type=WalletTransactionType.CREDIT,
+                amount=amount,
+                description=f"Wallet top-up (${amount:.2f})",
+                reference_id=session_id,
+                balance_after=new_balance,
+            )
+            await db.wallet_transactions.insert_one(wallet_txn.model_dump())
+
+        return {"status": "completed", "payment_status": "paid", "amount": txn["amount"]}
+
+    elif checkout_status.status == "expired":
+        await db.payment_transactions.update_one(
+            {"session_id": session_id},
+            {"$set": {"payment_status": "expired", "status": "expired", "updated_date": now_iso}}
+        )
+        return {"status": "expired", "payment_status": "expired", "amount": txn["amount"]}
+
+    return {"status": txn.get("status", "initiated"), "payment_status": checkout_status.payment_status, "amount": txn["amount"]}
+
+
+# ==================== STRIPE WEBHOOK ====================
+
+@app.post("/api/webhook/stripe")
+async def stripe_webhook(request: Request):
+    """Handle Stripe webhook events"""
+    body = await request.body()
+    sig = request.headers.get("Stripe-Signature")
+    stripe_key = os.environ.get("STRIPE_API_KEY")
+
+    try:
+        from emergentintegrations.payments.stripe.checkout import StripeCheckout
+        host_url = str(request.base_url).rstrip("/")
+        webhook_url = f"{host_url}/api/webhook/stripe"
+        stripe_checkout = StripeCheckout(api_key=stripe_key, webhook_url=webhook_url)
+        webhook_response = await stripe_checkout.handle_webhook(body, sig)
+
+        if webhook_response.payment_status == "paid":
+            session_id = webhook_response.session_id
+            txn = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
+            if txn and txn.get("payment_status") != "paid":
+                amount = txn["amount"]
+                user_id = txn["user_id"]
+                now_iso = datetime.now(timezone.utc).isoformat()
+
+                await db.payment_transactions.update_one(
+                    {"session_id": session_id},
+                    {"$set": {"payment_status": "paid", "status": "completed", "updated_date": now_iso}}
+                )
+
+                user = await db.users.find_one({"id": user_id}, {"_id": 0, "wallet_balance": 1})
+                old_balance = user.get("wallet_balance", 0.0) if user else 0.0
+                new_balance = round(old_balance + amount, 2)
+
+                await db.users.update_one(
+                    {"id": user_id},
+                    {"$set": {"wallet_balance": new_balance}}
+                )
+
+                wallet_txn = WalletTransaction(
+                    user_id=user_id,
+                    type=WalletTransactionType.CREDIT,
+                    amount=amount,
+                    description=f"Wallet top-up (${amount:.2f})",
+                    reference_id=session_id,
+                    balance_after=new_balance,
+                )
+                await db.wallet_transactions.insert_one(wallet_txn.model_dump())
+
+        return {"status": "ok"}
+    except Exception as e:
+        logger.error(f"Webhook error: {str(e)}")
+        return {"status": "error", "detail": str(e)}
+
+
+# ==================== WALLET PURCHASE (WORD BANK) ====================
+
+@api_router.post("/wallet/purchase-bank")
+async def purchase_bank_with_wallet(
+    request_data: PurchaseRequest,
+    current_user: dict = Depends(get_current_guardian)
+):
+    """Purchase a word bank using wallet balance"""
+    bank = await db.word_banks.find_one({"id": request_data.bank_id})
+    if not bank:
+        raise HTTPException(status_code=404, detail="Word bank not found")
+
+    price_dollars = bank.get("price", 0) / 100.0  # price stored in cents
+
+    if price_dollars > 0:
+        user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0, "wallet_balance": 1})
+        balance = user.get("wallet_balance", 0.0) if user else 0.0
+
+        if balance < price_dollars:
+            raise HTTPException(status_code=400, detail=f"Insufficient balance. Need ${price_dollars:.2f}, have ${balance:.2f}")
+
+        # Debit wallet
+        new_balance = round(balance - price_dollars, 2)
+        await db.users.update_one(
+            {"id": current_user["id"]},
+            {"$set": {"wallet_balance": new_balance}}
+        )
+
+        wallet_txn = WalletTransaction(
+            user_id=current_user["id"],
+            type=WalletTransactionType.DEBIT,
+            amount=price_dollars,
+            description=f"Purchased: {bank['name']}",
+            reference_id=request_data.bank_id,
+            balance_after=new_balance,
+        )
+        await db.wallet_transactions.insert_one(wallet_txn.model_dump())
+
+    # Add to subscription
+    subscription = await db.subscriptions.find_one({"guardian_id": request_data.guardian_id})
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+
+    if request_data.bank_id in subscription.get("bank_access", []):
+        raise HTTPException(status_code=400, detail="Word bank already purchased")
+
+    await db.subscriptions.update_one(
+        {"guardian_id": request_data.guardian_id},
+        {"$push": {"bank_access": request_data.bank_id}}
+    )
+    await db.word_banks.update_one(
+        {"id": request_data.bank_id},
+        {"$inc": {"purchase_count": 1}}
+    )
+
+    return {"message": "Word bank purchased", "bank_id": request_data.bank_id, "new_balance": new_balance if price_dollars > 0 else None}
+
+
+# ==================== COUPON ROUTES ====================
+
+class CouponCreate(BaseModel):
+    code: str
+    coupon_type: CouponType
+    value: float
+    max_uses: int = 1
+    expires_at: Optional[str] = None
+    description: str = ""
+
+
+@api_router.post("/admin/coupons")
+async def create_coupon(data: CouponCreate, current_user: dict = Depends(get_current_user)):
+    """Create a digital coupon (admin only)"""
+    if current_user.get("role") != "admin":
+        user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+        if not user or not user.get("is_delegated_admin"):
+            raise HTTPException(status_code=403, detail="Admin access required")
+
+    existing = await db.coupons.find_one({"code": data.code.upper()})
+    if existing:
+        raise HTTPException(status_code=400, detail="Coupon code already exists")
+
+    coupon = Coupon(
+        code=data.code.upper(),
+        coupon_type=data.coupon_type,
+        value=data.value,
+        max_uses=data.max_uses,
+        expires_at=datetime.fromisoformat(data.expires_at) if data.expires_at else None,
+        created_by=current_user["id"],
+        description=data.description,
+    )
+    await db.coupons.insert_one(coupon.model_dump())
+    result = coupon.model_dump()
+    return result
+
+
+@api_router.get("/admin/coupons")
+async def list_coupons(current_user: dict = Depends(get_current_user)):
+    """List all coupons"""
+    if current_user.get("role") != "admin":
+        user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+        if not user or not user.get("is_delegated_admin"):
+            raise HTTPException(status_code=403, detail="Admin access required")
+
+    coupons = await db.coupons.find({}, {"_id": 0}).sort("created_date", -1).to_list(200)
+    return coupons
+
+
+@api_router.delete("/admin/coupons/{coupon_id}")
+async def delete_coupon(coupon_id: str, current_user: dict = Depends(get_current_user)):
+    """Delete a coupon"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    result = await db.coupons.delete_one({"id": coupon_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Coupon not found")
+    return {"message": "Coupon deleted"}
+
+
+class RedeemCouponRequest(BaseModel):
+    code: str
+
+
+@api_router.post("/coupons/redeem")
+async def redeem_coupon(data: RedeemCouponRequest, current_user: dict = Depends(get_current_user)):
+    """Redeem a coupon code"""
+    code = data.code.strip().upper()
+    coupon = await db.coupons.find_one({"code": code, "is_active": True}, {"_id": 0})
+    if not coupon:
+        raise HTTPException(status_code=404, detail="Invalid or expired coupon code")
+
+    # Check expiration
+    if coupon.get("expires_at"):
+        exp = coupon["expires_at"]
+        if isinstance(exp, str):
+            exp = datetime.fromisoformat(exp)
+        if exp < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="Coupon has expired")
+
+    # Check usage limit
+    if coupon["uses_count"] >= coupon["max_uses"]:
+        raise HTTPException(status_code=400, detail="Coupon usage limit reached")
+
+    # Check if user already redeemed
+    existing = await db.coupon_redemptions.find_one(
+        {"coupon_id": coupon["id"], "user_id": current_user["id"]}
+    )
+    if existing:
+        raise HTTPException(status_code=400, detail="You have already redeemed this coupon")
+
+    coupon_type = coupon["coupon_type"]
+    value = coupon["value"]
+
+    # Apply coupon based on type
+    if coupon_type == "wallet_credit":
+        user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0, "wallet_balance": 1})
+        old_balance = user.get("wallet_balance", 0.0) if user else 0.0
+        new_balance = round(old_balance + value, 2)
+        await db.users.update_one(
+            {"id": current_user["id"]},
+            {"$set": {"wallet_balance": new_balance}}
+        )
+        wallet_txn = WalletTransaction(
+            user_id=current_user["id"],
+            type=WalletTransactionType.COUPON,
+            amount=value,
+            description=f"Coupon: {code} (+${value:.2f})",
+            reference_id=coupon["id"],
+            balance_after=new_balance,
+        )
+        await db.wallet_transactions.insert_one(wallet_txn.model_dump())
+        message = f"${value:.2f} added to your wallet!"
+
+    elif coupon_type == "free_stories":
+        # Add bonus stories to subscription
+        sub = await db.subscriptions.find_one({"guardian_id": current_user["id"]})
+        if sub:
+            bonus = sub.get("bonus_stories", 0) + int(value)
+            await db.subscriptions.update_one(
+                {"guardian_id": current_user["id"]},
+                {"$set": {"bonus_stories": bonus}}
+            )
+        message = f"{int(value)} free stories added!"
+
+    elif coupon_type == "free_students":
+        sub = await db.subscriptions.find_one({"guardian_id": current_user["id"]})
+        if sub:
+            seats = sub.get("student_seats", 10) + int(value)
+            await db.subscriptions.update_one(
+                {"guardian_id": current_user["id"]},
+                {"$set": {"student_seats": seats}}
+            )
+        message = f"{int(value)} additional student seats added!"
+
+    elif coupon_type == "free_days":
+        sub = await db.subscriptions.find_one({"guardian_id": current_user["id"]})
+        if sub:
+            from datetime import timedelta
+            trial_end = datetime.now(timezone.utc) + timedelta(days=int(value))
+            await db.subscriptions.update_one(
+                {"guardian_id": current_user["id"]},
+                {"$set": {"plan": "starter", "status": "active", "trial_ends": trial_end.isoformat()}}
+            )
+        message = f"{int(value)} free days of premium access activated!"
+
+    else:
+        raise HTTPException(status_code=400, detail="Unknown coupon type")
+
+    # Record redemption
+    redemption = CouponRedemption(
+        coupon_id=coupon["id"],
+        coupon_code=code,
+        user_id=current_user["id"],
+        coupon_type=coupon_type,
+        value=value,
+    )
+    await db.coupon_redemptions.insert_one(redemption.model_dump())
+
+    # Increment usage
+    await db.coupons.update_one({"id": coupon["id"]}, {"$inc": {"uses_count": 1}})
+
+    return {"message": message, "coupon_type": coupon_type, "value": value}
+
+
+# ==================== ADMIN DELEGATION ROUTES ====================
+
+class DelegateRequest(BaseModel):
+    email: str
+    is_delegated: bool = True
+
+
+@api_router.post("/admin/delegate")
+async def delegate_admin(data: DelegateRequest, current_user: dict = Depends(get_current_user)):
+    """Delegate or revoke admin privileges for a user"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Master admin access required")
+
+    target_user = await db.users.find_one({"email": data.email})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    await db.users.update_one(
+        {"email": data.email},
+        {"$set": {"is_delegated_admin": data.is_delegated}}
+    )
+    action = "granted" if data.is_delegated else "revoked"
+    return {"message": f"Delegated admin {action} for {data.email}"}
+
+
+@api_router.get("/admin/users")
+async def list_all_users(current_user: dict = Depends(get_current_user)):
+    """List all users (admin only)"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    users = await db.users.find(
+        {}, {"_id": 0, "password_hash": 0}
+    ).sort("created_date", -1).to_list(500)
+    return users
+
+
+# ==================== ADMIN SUBSCRIPTION PLANS ====================
+
+class PlanCreate(BaseModel):
+    name: str
+    description: str = ""
+    price_monthly: float = 0.0
+    student_seats: int = 10
+    story_limit: int = -1
+    features: dict = {}
+
+
+@api_router.post("/admin/plans")
+async def create_plan(data: PlanCreate, current_user: dict = Depends(get_current_user)):
+    """Create a subscription plan (admin/delegated)"""
+    if current_user.get("role") != "admin":
+        user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+        if not user or not user.get("is_delegated_admin"):
+            raise HTTPException(status_code=403, detail="Admin access required")
+
+    plan = AdminSubscriptionPlan(
+        name=data.name,
+        description=data.description,
+        price_monthly=data.price_monthly,
+        student_seats=data.student_seats,
+        story_limit=data.story_limit,
+        features=data.features,
+        created_by=current_user["id"],
+    )
+    await db.subscription_plans.insert_one(plan.model_dump())
+    result = plan.model_dump()
+    return result
+
+
+@api_router.get("/admin/plans")
+async def list_plans(current_user: dict = Depends(get_current_user)):
+    """List subscription plans"""
+    plans = await db.subscription_plans.find({}, {"_id": 0}).sort("created_date", -1).to_list(50)
+    return plans
+
+
+@api_router.delete("/admin/plans/{plan_id}")
+async def delete_plan(plan_id: str, current_user: dict = Depends(get_current_user)):
+    """Delete a subscription plan"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    result = await db.subscription_plans.delete_one({"id": plan_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    return {"message": "Plan deleted"}
+
+
+# ==================== COMPREHENSIVE ADMIN STATISTICS ====================
+
+@api_router.get("/admin/stats")
+async def get_admin_stats(current_user: dict = Depends(get_current_user)):
+    """Get comprehensive platform statistics"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    # User counts
+    total_guardians = await db.users.count_documents({"role": "guardian"})
+    total_teachers = await db.users.count_documents({"role": "teacher"})
+    total_students = await db.students.count_documents({})
+
+    # Content stats
+    total_word_banks = await db.word_banks.count_documents({})
+    total_narratives = await db.narratives.count_documents({})
+    total_assessments = await db.assessments.count_documents({})
+    completed_assessments = await db.assessments.count_documents({"status": "completed"})
+
+    # Reading stats
+    pipeline = [{"$group": {"_id": None, "total_seconds": {"$sum": "$duration_seconds"}, "total_words": {"$sum": "$words_read"}}}]
+    reading_agg = await db.read_logs.aggregate(pipeline).to_list(1)
+    total_reading_seconds = reading_agg[0]["total_seconds"] if reading_agg else 0
+    total_words_read = reading_agg[0]["total_words"] if reading_agg else 0
+
+    # Payment stats
+    total_revenue_pipeline = [
+        {"$match": {"payment_status": "paid"}},
+        {"$group": {"_id": None, "total": {"$sum": "$amount"}, "count": {"$sum": 1}}}
+    ]
+    revenue_agg = await db.payment_transactions.aggregate(total_revenue_pipeline).to_list(1)
+    total_revenue = revenue_agg[0]["total"] if revenue_agg else 0
+    total_payments = revenue_agg[0]["count"] if revenue_agg else 0
+
+    # Coupon stats
+    total_coupons = await db.coupons.count_documents({})
+    total_redemptions = await db.coupon_redemptions.count_documents({})
+
+    # Classroom stats
+    total_sessions = await db.classroom_sessions.count_documents({})
+    active_sessions = await db.classroom_sessions.count_documents({"status": {"$in": ["waiting", "active"]}})
+
+    # AI cost stats
+    cost_pipeline = [{"$group": {"_id": None, "total": {"$sum": "$estimated_cost"}, "count": {"$sum": 1}}}]
+    cost_agg = await db.cost_logs.aggregate(cost_pipeline).to_list(1)
+    total_ai_cost = cost_agg[0]["total"] if cost_agg else 0
+    total_ai_calls = cost_agg[0]["count"] if cost_agg else 0
+
+    # Recent registrations (last 30 days)
+    thirty_days_ago = datetime.now(timezone.utc).replace(day=1)
+    recent_users = await db.users.count_documents({"created_date": {"$gte": thirty_days_ago}})
+
+    return {
+        "users": {
+            "guardians": total_guardians,
+            "teachers": total_teachers,
+            "students": total_students,
+            "recent_signups": recent_users,
+        },
+        "content": {
+            "word_banks": total_word_banks,
+            "narratives": total_narratives,
+            "assessments_total": total_assessments,
+            "assessments_completed": completed_assessments,
+        },
+        "reading": {
+            "total_reading_hours": round(total_reading_seconds / 3600, 1),
+            "total_words_read": total_words_read,
+        },
+        "revenue": {
+            "total_revenue": round(total_revenue, 2),
+            "total_payments": total_payments,
+        },
+        "coupons": {
+            "total_coupons": total_coupons,
+            "total_redemptions": total_redemptions,
+        },
+        "classrooms": {
+            "total_sessions": total_sessions,
+            "active_sessions": active_sessions,
+        },
+        "ai": {
+            "total_cost": round(total_ai_cost, 4),
+            "total_calls": total_ai_calls,
+        },
+    }
+
+
+# ==================== ADMIN WORD BANK MANAGEMENT (DELEGATED) ====================
+
+@api_router.post("/admin/word-banks")
+async def admin_create_word_bank(
+    bank_data: WordBankCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create a word bank (admin or delegated admin)"""
+    if current_user.get("role") != "admin":
+        user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+        if not user or not user.get("is_delegated_admin"):
+            raise HTTPException(status_code=403, detail="Admin access required")
+
+    total_tokens = len(bank_data.baseline_words) + len(bank_data.target_words) + len(bank_data.stretch_words)
+    word_bank = WordBank(
+        **bank_data.model_dump(),
+        owner_id=current_user["id"],
+        total_tokens=total_tokens
+    )
+    bank_dict = word_bank.model_dump()
+    await db.word_banks.insert_one(bank_dict)
+    return word_bank
 
 
 # ==================== HEALTH CHECK ====================

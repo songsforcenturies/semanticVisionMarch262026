@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate, Routes, Route } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { BrutalButton, BrutalCard } from '@/components/brutal';
-import { LogOut, Users, ShoppingBag, TrendingUp, Home } from 'lucide-react';
+import { LogOut, Users, ShoppingBag, TrendingUp, Home, Wallet } from 'lucide-react';
 import StudentsTab from '@/components/guardian/StudentsTab';
 import MarketplaceTab from '@/components/guardian/MarketplaceTab';
 import ProgressTab from '@/components/guardian/ProgressTab';
+import WalletTab from '@/components/guardian/WalletTab';
 
 const GuardianPortal = () => {
   const { user, logout } = useAuth();
@@ -20,7 +21,8 @@ const GuardianPortal = () => {
   const tabs = [
     { id: 'students', label: 'Students', icon: Users, color: 'indigo' },
     { id: 'marketplace', label: 'Marketplace', icon: ShoppingBag, color: 'emerald' },
-    { id: 'progress', label: 'Progress', icon: TrendingUp, color: 'amber' }
+    { id: 'wallet', label: 'Wallet', icon: Wallet, color: 'amber' },
+    { id: 'progress', label: 'Progress', icon: TrendingUp, color: 'rose' },
   ];
 
   return (
@@ -78,6 +80,7 @@ const GuardianPortal = () => {
                 size="lg"
                 onClick={() => setActiveTab(tab.id)}
                 className="flex items-center gap-2"
+                data-testid={`tab-${tab.id}`}
               >
                 <Icon size={24} />
                 {tab.label}
@@ -90,6 +93,7 @@ const GuardianPortal = () => {
         <div>
           {activeTab === 'students' && <StudentsTab />}
           {activeTab === 'marketplace' && <MarketplaceTab />}
+          {activeTab === 'wallet' && <WalletTab />}
           {activeTab === 'progress' && <ProgressTab />}
         </div>
       </div>

@@ -128,6 +128,33 @@ export const adminAPI = {
   updateModels: (data) => apiClient.post('/admin/models', data),
   getSettings: () => apiClient.get('/admin/settings'),
   updateSettings: (data) => apiClient.post('/admin/settings', data),
+  getStats: () => apiClient.get('/admin/stats'),
+  getUsers: () => apiClient.get('/admin/users'),
+  delegateAdmin: (data) => apiClient.post('/admin/delegate', data),
+  getCoupons: () => apiClient.get('/admin/coupons'),
+  createCoupon: (data) => apiClient.post('/admin/coupons', data),
+  deleteCoupon: (id) => apiClient.delete(`/admin/coupons/${id}`),
+  getPlans: () => apiClient.get('/admin/plans'),
+  createPlan: (data) => apiClient.post('/admin/plans', data),
+  deletePlan: (id) => apiClient.delete(`/admin/plans/${id}`),
+  createWordBank: (data) => apiClient.post('/admin/word-banks', data),
+};
+
+// ==================== WALLET API ====================
+
+export const walletAPI = {
+  getBalance: () => apiClient.get('/wallet/balance'),
+  getTransactions: () => apiClient.get('/wallet/transactions'),
+  getPackages: () => apiClient.get('/wallet/packages'),
+  topup: (data) => apiClient.post('/wallet/topup', data),
+  purchaseBank: (data) => apiClient.post('/wallet/purchase-bank', data),
+  getPaymentStatus: (sessionId) => apiClient.get(`/payments/status/${sessionId}`),
+};
+
+// ==================== COUPON API ====================
+
+export const couponAPI = {
+  redeem: (code) => apiClient.post('/coupons/redeem', { code }),
 };
 
 export default apiClient;
