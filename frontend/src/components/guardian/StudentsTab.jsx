@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { studentAPI, subscriptionAPI } from '@/lib/api';
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalProgress } from '@/components/brutal';
-import { Plus, Edit, Trash2, Copy, Check } from 'lucide-react';
+import { Plus, Edit, Trash2, Copy, Check, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import StudentFormDialog from './StudentFormDialog';
 import DeleteConfirmDialog from './DeleteConfirmDialog';
@@ -15,6 +15,7 @@ const StudentsTab = () => {
   const [editingStudent, setEditingStudent] = useState(null);
   const [deletingStudent, setDeletingStudent] = useState(null);
   const [copiedPin, setCopiedPin] = useState(null);
+  const [assigningBanksStudent, setAssigningBanksStudent] = useState(null);
 
   // Fetch students
   const { data: students = [], isLoading: studentsLoading } = useQuery({
@@ -52,6 +53,12 @@ const StudentsTab = () => {
 
   const handleEdit = (student) => {
     setEditingStudent(student);
+    setIsFormOpen(true);
+  };
+
+  const handleAssignBanks = (student) => {
+    setEditingStudent(student);
+    setAssigningBanksStudent(student);
     setIsFormOpen(true);
   };
 
@@ -218,33 +225,46 @@ const StudentsTab = () => {
                     <p className="text-2xl font-black">{student.mastered_tokens?.length || 0}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-bold uppercase text-gray-600">Reach Score</p>
-                    <p className="text-2xl font-black">{Math.round(student.agentic_reach_score || 0)}</p>
+                    <p className="text-xs font-bold uppercase text-gray-600">Word Banks</p>
+                    <p className="text-2xl font-black">{student.assigned_banks?.length || 0}</p>
                   </div>
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <BrutalButton
+                    variant="indigo"
+                    size="sm"
+                    fullWidth
+                    onClick={() => handleEdit(student)}
+                    className="flex items-center justify-center gap-1"
+                  >
+                    <Edit size={16} />
+                    Edit
+                  </BrutalButton>
+                  <BrutalButton
+                    variant="rose"
+                    size="sm"
+                    fullWidth
+                    onClick={() => handleDelete(student)}
+                    className="flex items-center justify-center gap-1"
+                  >
+                    <Trash2 size={16} />
+                    Delete
+                  </BrutalButton>
+                </div>
+                
                 <BrutalButton
-                  variant="indigo"
+                  variant="emerald"
                   size="sm"
                   fullWidth
-                  onClick={() => handleEdit(student)}
+                  onClick={() => handleAssignBanks(student)}
                   className="flex items-center justify-center gap-1"
                 >
-                  <Edit size={16} />
-                  Edit
-                </BrutalButton>
-                <BrutalButton
-                  variant="rose"
-                  size="sm"
-                  fullWidth
-                  onClick={() => handleDelete(student)}
-                  className="flex items-center justify-center gap-1"
-                >
-                  <Trash2 size={16} />
-                  Delete
+                  <BookOpen size={16} />
+                  Assign Word Banks
                 </BrutalButton>
               </div>
             </BrutalCard>
@@ -258,9 +278,11 @@ const StudentsTab = () => {
         onClose={() => {
           setIsFormOpen(false);
           setEditingStudent(null);
+          setAssigningBanksStudent(null);
         }}
         student={editingStudent}
         guardianId={user?.id}
+        focusOnBanks={!!assigningBanksStudent}
       />
 
       {/* Delete Confirmation Dialog */}

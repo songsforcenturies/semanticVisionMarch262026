@@ -4,7 +4,7 @@ import { studentAPI, subscriptionAPI, wordBankAPI } from '@/lib/api';
 import { BrutalButton, BrutalInput, BrutalCard, BrutalBadge } from '@/components/brutal';
 import { Dialog } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { X } from 'lucide-react';
+import { X, Check } from 'lucide-react';
 
 const GRADE_LEVELS = [
   { value: 'pre-k', label: 'Pre-K' },
@@ -14,7 +14,7 @@ const GRADE_LEVELS = [
   { value: 'adult', label: 'Adult' }
 ];
 
-const StudentFormDialog = ({ isOpen, onClose, student, guardianId }) => {
+const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks = false }) => {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     full_name: '',
@@ -239,10 +239,15 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId }) => {
 
           {/* Word Bank Assignment */}
           {student && ownedBanks.length > 0 && (
-            <div>
+            <div className={focusOnBanks ? 'border-4 border-emerald-500 p-4 bg-emerald-50' : ''}>
               <label className="block mb-3 font-bold uppercase text-sm">
-                Assign Word Banks ({formData.assigned_banks.length} selected)
+                {focusOnBanks && '✨ '}Assign Word Banks ({formData.assigned_banks.length} selected)
               </label>
+              {focusOnBanks && (
+                <p className="mb-3 text-sm font-medium text-emerald-700">
+                  Select which word banks this student can use to generate stories:
+                </p>
+              )}
               <div className="space-y-2 max-h-48 overflow-y-auto border-4 border-black p-4 bg-gray-50">
                 {ownedBanks.map((bank) => {
                   const isSelected = formData.assigned_banks.includes(bank.id);
@@ -250,7 +255,7 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId }) => {
                     <label
                       key={bank.id}
                       className={`flex items-center gap-3 p-3 border-4 border-black cursor-pointer transition-colors ${
-                        isSelected ? 'bg-indigo-100' : 'bg-white hover:bg-gray-100'
+                        isSelected ? 'bg-emerald-200' : 'bg-white hover:bg-gray-100'
                       }`}
                     >
                       <input
@@ -265,6 +270,9 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId }) => {
                           {bank.total_tokens} words • {bank.specialty || bank.category}
                         </p>
                       </div>
+                      {isSelected && (
+                        <Check size={20} className="text-emerald-600" />
+                      )}
                     </label>
                   );
                 })}
@@ -272,13 +280,14 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId }) => {
               {student && (
                 <BrutalButton
                   type="button"
-                  variant="indigo"
-                  size="sm"
+                  variant="emerald"
+                  size="md"
+                  fullWidth
                   onClick={handleSaveBanks}
                   disabled={assignBanksMutation.isPending}
-                  className="mt-2"
+                  className="mt-3"
                 >
-                  {assignBanksMutation.isPending ? 'Saving...' : 'Save Bank Assignments'}
+                  {assignBanksMutation.isPending ? 'Saving...' : '💾 Save Bank Assignments'}
                 </BrutalButton>
               )}
             </div>
