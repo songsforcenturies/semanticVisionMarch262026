@@ -53,155 +53,120 @@ const StoryGenerationDialog = ({ isOpen, onClose, student }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
-      <BrutalCard shadow="xl" className="w-full max-w-2xl bg-white">
-        <div className="flex items-start justify-between mb-6">
+      <div className="w-full max-w-2xl bg-white border-4 border-black brutal-shadow-xl flex flex-col" style={{ maxHeight: '90vh' }}>
+        {/* Fixed Header */}
+        <div className="flex items-start justify-between p-6 pb-4 border-b-4 border-black shrink-0">
           <div className="flex items-center gap-3">
             <Sparkles size={32} className="text-indigo-600" />
-            <h2 className="text-3xl font-black uppercase">Generate Your Story</h2>
+            <h2 className="text-2xl font-black uppercase">Generate Your Story</h2>
           </div>
           <button
             onClick={onClose}
             disabled={isGenerating}
             className="p-2 hover:bg-gray-100 border-4 border-black brutal-active"
+            data-testid="story-dialog-close"
           >
             <X size={24} />
           </button>
         </div>
 
-        <form onSubmit={handleGenerate} className="space-y-6">
+        {/* Scrollable Content */}
+        <div className="overflow-y-auto flex-1 p-6 space-y-4">
           {/* Student Info */}
-          <BrutalCard variant="indigo" className="bg-indigo-50">
-            <p className="font-bold text-sm uppercase mb-2">Story will be personalized for:</p>
-            <p className="text-xl font-black mb-2">{student.full_name}</p>
-            {student.interests && student.interests.length > 0 && (
-              <div className="mb-2">
-                <p className="font-bold text-xs uppercase mb-1">Your Interests:</p>
-                <div className="flex flex-wrap gap-1">
-                  {student.interests.map((interest, idx) => (
-                    <BrutalBadge key={idx} variant="indigo" size="sm">
-                      {interest}
-                    </BrutalBadge>
-                  ))}
-                </div>
-              </div>
-            )}
-            {student.virtues && student.virtues.length > 0 && (
-              <div>
-                <p className="font-bold text-xs uppercase mb-1">✨ Life Lessons You'll Learn:</p>
-                <div className="flex flex-wrap gap-1">
-                  {student.virtues.map((virtue, idx) => (
-                    <BrutalBadge key={idx} variant="emerald" size="sm">
-                      {virtue}
-                    </BrutalBadge>
-                  ))}
-                </div>
-              </div>
-            )}
-          </BrutalCard>
+          <div className="bg-indigo-50 border-4 border-black p-4">
+            <p className="font-bold text-sm uppercase mb-1">Story personalized for: <span className="text-lg">{student.full_name}</span></p>
+            <div className="flex flex-wrap gap-1 mt-2">
+              {student.interests?.map((interest, idx) => (
+                <BrutalBadge key={idx} variant="indigo" size="sm">{interest}</BrutalBadge>
+              ))}
+              {student.virtues?.map((virtue, idx) => (
+                <BrutalBadge key={idx} variant="emerald" size="sm">{virtue}</BrutalBadge>
+              ))}
+            </div>
+          </div>
 
-          {/* Word Banks */}
-          {student.assigned_banks && student.assigned_banks.length > 0 && (
-            <BrutalCard className="bg-emerald-50 border-emerald-500">
-              <p className="font-bold text-sm uppercase mb-2">
-                Using vocabulary from {student.assigned_banks.length} word bank(s)
-              </p>
-              <p className="text-xs font-medium text-gray-600">
-                Your story will include words to help you learn!
-              </p>
-            </BrutalCard>
+          {/* Word Banks Count */}
+          {student.assigned_banks?.length > 0 && (
+            <p className="font-bold text-sm text-emerald-700">
+              Using vocabulary from {student.assigned_banks.length} word bank(s)
+            </p>
           )}
 
           {/* Story Prompt Input */}
           <div>
-            <label className="block mb-3 font-bold uppercase text-sm">
-              What kind of story do you want? ✨
-            </label>
+            <label className="block mb-2 font-bold uppercase text-sm">What kind of story do you want?</label>
             <textarea
               value={storyPrompt}
               onChange={(e) => setStoryPrompt(e.target.value)}
-              placeholder="Describe your story idea... (e.g., 'A space adventure where I discover a new planet')"
-              rows={4}
+              placeholder="Describe your story idea..."
+              rows={3}
               disabled={isGenerating}
               className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500 resize-none"
               required
+              data-testid="story-prompt-input"
             />
           </div>
 
-          {/* Suggested Prompts */}
+          {/* Suggested Prompts - Compact */}
           <div>
-            <p className="font-bold text-sm uppercase mb-2">Need ideas? Try these:</p>
-            <div className="grid grid-cols-1 gap-2">
+            <p className="font-bold text-xs uppercase mb-2">Quick ideas:</p>
+            <div className="flex flex-wrap gap-2">
               {suggestedPrompts.map((prompt, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => setStoryPrompt(prompt)}
                   disabled={isGenerating}
-                  className="text-left p-3 border-4 border-black bg-white hover:bg-indigo-50 font-medium transition-colors brutal-active text-sm"
+                  className="px-3 py-1.5 border-2 border-black bg-white hover:bg-indigo-50 font-medium transition-colors text-xs"
                 >
-                  💡 {prompt}
+                  {prompt}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Info Box */}
-          <BrutalCard className="bg-amber-50 border-amber-500">
-            <p className="font-bold text-sm mb-2">📚 Your story will have:</p>
-            <ul className="space-y-1 text-sm font-medium">
-              <li>✅ 5 exciting chapters</li>
-              <li>✅ Vocabulary words to learn</li>
-              <li>✅ Questions to test your understanding</li>
-              {student.virtues && student.virtues.length > 0 && (
-                <li>✨ Life lessons about {student.virtues.slice(0, 2).join(' and ')}</li>
-              )}
-              <li>✅ A personalized adventure just for you!</li>
-            </ul>
-          </BrutalCard>
-
-          {/* Generate Button */}
-          <div className="flex gap-4">
-            <BrutalButton
-              type="submit"
-              variant="indigo"
-              size="lg"
-              fullWidth
-              disabled={isGenerating}
-              className="flex items-center justify-center gap-2"
-            >
-              {isGenerating ? (
-                <>
-                  <div className="animate-spin">⏳</div>
-                  Generating Your Story...
-                </>
-              ) : (
-                <>
-                  <Sparkles size={24} />
-                  Generate Story
-                </>
-              )}
-            </BrutalButton>
-            
-            <BrutalButton
-              type="button"
-              variant="ghost"
-              size="lg"
-              onClick={onClose}
-              disabled={isGenerating}
-            >
-              Cancel
-            </BrutalButton>
-          </div>
-
           {isGenerating && (
-            <BrutalCard variant="amber" className="bg-yellow-100">
-              <p className="font-bold text-center">
-                ⚡ AI is creating your personalized story... This may take 30-60 seconds!
-              </p>
-            </BrutalCard>
+            <div className="bg-yellow-100 border-4 border-black p-4 text-center">
+              <p className="font-bold">AI is creating your story... This may take 30-60 seconds!</p>
+            </div>
           )}
-        </form>
-      </BrutalCard>
+        </div>
+
+        {/* Fixed Footer Buttons */}
+        <div className="p-6 pt-4 border-t-4 border-black shrink-0 flex gap-4">
+          <BrutalButton
+            type="button"
+            variant="indigo"
+            size="lg"
+            fullWidth
+            disabled={isGenerating || !storyPrompt.trim()}
+            onClick={handleGenerate}
+            className="flex items-center justify-center gap-2"
+            data-testid="generate-story-btn"
+          >
+            {isGenerating ? (
+              <>
+                <div className="animate-spin">...</div>
+                Generating...
+              </>
+            ) : (
+              <>
+                <Sparkles size={20} />
+                Generate Story
+              </>
+            )}
+          </BrutalButton>
+          <BrutalButton
+            type="button"
+            variant="default"
+            size="lg"
+            onClick={onClose}
+            disabled={isGenerating}
+          >
+            Cancel
+          </BrutalButton>
+        </div>
+      </div>
     </div>
   );
 };

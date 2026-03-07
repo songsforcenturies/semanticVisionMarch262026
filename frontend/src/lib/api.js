@@ -116,4 +116,12 @@ export const classroomAPI = {
   analytics: (id) => apiClient.get(`/classroom-sessions/${id}/analytics`),
 };
 
+// ==================== ADMIN API ====================
+
+export const adminAPI = {
+  getCosts: () => apiClient.get('/admin/costs'),
+  getModels: () => apiClient.get('/admin/models'),
+  updateModels: (data) => apiClient.post('/admin/models', data),
+};
+
 export default apiClient;

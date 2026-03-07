@@ -1,12 +1,13 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
+import json as json_lib
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict
 from datetime import datetime, timezone
 from pydantic import BaseModel
 
@@ -45,6 +46,39 @@ api_router = APIRouter(prefix="/api")
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+# ==================== WEBSOCKET CONNECTION MANAGER ====================
+
+class ConnectionManager:
+    """Manages WebSocket connections per session"""
+    def __init__(self):
+        self.active_connections: Dict[str, List[WebSocket]] = {}
+
+    async def connect(self, websocket: WebSocket, session_id: str):
+        await websocket.accept()
+        if session_id not in self.active_connections:
+            self.active_connections[session_id] = []
+        self.active_connections[session_id].append(websocket)
+
+    def disconnect(self, websocket: WebSocket, session_id: str):
+        if session_id in self.active_connections:
+            self.active_connections[session_id] = [c for c in self.active_connections[session_id] if c != websocket]
+            if not self.active_connections[session_id]:
+                del self.active_connections[session_id]
+
+    async def broadcast(self, session_id: str, message: dict):
+        if session_id in self.active_connections:
+            dead = []
+            for conn in self.active_connections[session_id]:
+                try:
+                    await conn.send_json(message)
+                except Exception:
+                    dead.append(conn)
+            for d in dead:
+                self.disconnect(d, session_id)
+
+ws_manager = ConnectionManager()
 
 
 # ==================== AUTHENTICATION ROUTES ====================
@@ -760,6 +794,12 @@ async def create_narrative(narrative_data: NarrativeCreate):
     
     # Generate story using AI
     try:
+        # Ensure story service has db reference
+        story_service.set_db(db)
+        
+        # Get guardian info for cost tracking
+        guardian = await db.users.find_one({"id": student["guardian_id"]}, {"_id": 0, "full_name": 1})
+        
         story_data = await story_service.generate_story(
             student_name=student["full_name"],
             student_age=student.get("age", 10),
@@ -769,7 +809,10 @@ async def create_narrative(narrative_data: NarrativeCreate):
             prompt=narrative_data.prompt,
             baseline_words=baseline_words,
             target_words=target_words,
-            stretch_words=stretch_words
+            stretch_words=stretch_words,
+            student_id=student["id"],
+            guardian_id=student.get("guardian_id", ""),
+            guardian_name=guardian.get("full_name", "") if guardian else "",
         )
         
         # Create narrative object
@@ -1276,6 +1319,14 @@ async def join_classroom_session(data: JoinSessionRequest):
         {"id": session["id"]},
         {"$push": {"participating_students": participant}}
     )
+    # Broadcast real-time update to teacher's WebSocket
+    await ws_manager.broadcast(session["id"], {
+        "type": "student_joined",
+        "student_name": student["full_name"],
+        "student_id": data.student_id,
+        "joined_at": participant["joined_at"],
+        "total_students": len(session.get("participating_students", [])) + 1,
+    })
     return {"message": "Joined session", "session_id": session["id"], "title": session["title"]}
 
 
@@ -1350,6 +1401,101 @@ async def get_session_analytics(
             "avg_reading_seconds": round(total_reading / n),
         },
     }
+
+
+# ==================== WEBSOCKET ROUTES ====================
+
+@app.websocket("/ws/session/{session_id}")
+async def websocket_session(websocket: WebSocket, session_id: str):
+    """WebSocket for real-time session updates"""
+    await ws_manager.connect(websocket, session_id)
+    try:
+        while True:
+            await websocket.receive_text()  # Keep alive
+    except WebSocketDisconnect:
+        ws_manager.disconnect(websocket, session_id)
+
+
+# ==================== ADMIN ROUTES ====================
+
+@api_router.get("/admin/costs")
+async def get_admin_costs(current_user: dict = Depends(get_current_user)):
+    """Get cost tracking data for admin"""
+    if current_user.get("role") not in ["admin", "guardian", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    # Get all cost logs
+    cost_logs = await db.cost_logs.find({}, {"_id": 0}).sort("created_date", -1).to_list(500)
+
+    # Aggregate by user
+    user_costs = {}
+    model_costs = {}
+    total_cost = 0
+    for log in cost_logs:
+        uid = log.get("user_id", "unknown")
+        model = log.get("model", "unknown")
+        cost = log.get("estimated_cost", 0)
+        total_cost += cost
+
+        if uid not in user_costs:
+            user_costs[uid] = {"user_id": uid, "user_name": log.get("user_name", "Unknown"), "total_cost": 0, "story_count": 0}
+        user_costs[uid]["total_cost"] += cost
+        user_costs[uid]["story_count"] += 1
+
+        if model not in model_costs:
+            model_costs[model] = {"model": model, "total_cost": 0, "usage_count": 0}
+        model_costs[model]["total_cost"] += cost
+        model_costs[model]["usage_count"] += 1
+
+    return {
+        "total_cost": round(total_cost, 4),
+        "total_stories": len(cost_logs),
+        "per_user": sorted(user_costs.values(), key=lambda x: x["total_cost"], reverse=True),
+        "per_model": sorted(model_costs.values(), key=lambda x: x["total_cost"], reverse=True),
+        "recent_logs": cost_logs[:50],
+    }
+
+
+@api_router.get("/admin/models")
+async def get_available_models(current_user: dict = Depends(get_current_user)):
+    """Get list of configured LLM models"""
+    config = await db.system_config.find_one({"key": "llm_config"}, {"_id": 0})
+    default_config = {
+        "provider": "emergent",
+        "model": "gpt-5.2",
+        "fallback_provider": None,
+        "fallback_model": None,
+        "openrouter_key": None,
+    }
+    return config.get("value", default_config) if config else default_config
+
+
+class LLMConfigUpdate(BaseModel):
+    provider: str  # "emergent" | "openrouter"
+    model: str
+    openrouter_key: Optional[str] = None
+
+
+@api_router.post("/admin/models")
+async def update_llm_config(
+    data: LLMConfigUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update LLM configuration (admin only)"""
+    if current_user.get("role") not in ["admin", "guardian", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    config = {
+        "provider": data.provider,
+        "model": data.model,
+        "openrouter_key": data.openrouter_key,
+    }
+    await db.system_config.update_one(
+        {"key": "llm_config"},
+        {"$set": {"key": "llm_config", "value": config, "updated_date": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+    return {"message": "LLM config updated", "config": config}
 
 
 # ==================== HEALTH CHECK ====================

@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { classroomAPI, wordBankAPI } from '@/lib/api';
 import { BrutalCard, BrutalButton, BrutalBadge } from '@/components/brutal';
 import { BrutalInput } from '@/components/brutal';
-import { Plus, Play, Square, Copy, Check, Users, Clock, Hash } from 'lucide-react';
+import { Plus, Play, Square, Copy, Check, Users, Clock, Hash, Wifi } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -17,6 +17,8 @@ const SessionsTab = () => {
   const [selectedSession, setSelectedSession] = useState(null);
   const [copiedCode, setCopiedCode] = useState(null);
   const [formData, setFormData] = useState({ title: '', description: '', bank_ids: [] });
+  const [wsConnected, setWsConnected] = useState(false);
+  const wsRef = useRef(null);
 
   const { data: sessions = [], isLoading } = useQuery({
     queryKey: ['classroom-sessions'],
@@ -68,6 +70,36 @@ const SessionsTab = () => {
     createMutation.mutate(formData);
   };
 
+  // WebSocket for real-time roster updates
+  useEffect(() => {
+    if (!selectedSession) {
+      if (wsRef.current) { wsRef.current.close(); wsRef.current = null; setWsConnected(false); }
+      return;
+    }
+    const wsUrl = process.env.REACT_APP_BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://');
+    const ws = new WebSocket(`${wsUrl}/ws/session/${selectedSession.id}`);
+    wsRef.current = ws;
+    ws.onopen = () => setWsConnected(true);
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'student_joined') {
+        toast.success(`${data.student_name} joined the session!`);
+        // Refresh session data
+        queryClient.invalidateQueries(['classroom-sessions']);
+        setSelectedSession(prev => ({
+          ...prev,
+          participating_students: [
+            ...(prev.participating_students || []),
+            { student_name: data.student_name, student_id: data.student_id, joined_at: data.joined_at }
+          ]
+        }));
+      }
+    };
+    ws.onclose = () => setWsConnected(false);
+    ws.onerror = () => setWsConnected(false);
+    return () => { ws.close(); setWsConnected(false); };
+  }, [selectedSession?.id, queryClient]);
+
   const toggleBank = (bankId) => {
     setFormData(prev => ({
       ...prev,
@@ -91,6 +123,11 @@ const SessionsTab = () => {
             </BrutalButton>
             <h2 className="text-3xl font-black uppercase">{s.title}</h2>
             <BrutalBadge variant={statusColors[s.status]} size="lg">{s.status}</BrutalBadge>
+            {wsConnected && (
+              <BrutalBadge variant="emerald" size="sm" data-testid="ws-connected-badge">
+                <Wifi size={12} className="inline mr-1" /> Live
+              </BrutalBadge>
+            )}
           </div>
           <div className="flex gap-2">
             {s.status === 'waiting' && (

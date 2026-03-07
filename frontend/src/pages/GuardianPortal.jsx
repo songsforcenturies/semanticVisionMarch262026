@@ -42,14 +42,25 @@ const GuardianPortal = () => {
                 <p className="text-lg font-medium mt-1">Welcome, {user?.full_name}!</p>
               </div>
             </div>
-            <BrutalButton
-              variant="dark"
-              onClick={handleLogout}
-              className="flex items-center gap-2"
-            >
-              <LogOut size={20} />
-              Logout
-            </BrutalButton>
+            <div className="flex gap-2">
+              <BrutalButton
+                variant="default"
+                size="sm"
+                onClick={() => navigate('/admin')}
+                className="flex items-center gap-1"
+                data-testid="admin-link"
+              >
+                Admin
+              </BrutalButton>
+              <BrutalButton
+                variant="dark"
+                onClick={handleLogout}
+                className="flex items-center gap-2"
+              >
+                <LogOut size={20} />
+                Logout
+              </BrutalButton>
+            </div>
           </div>
         </div>
       </header>

@@ -13,6 +13,7 @@ import StudentAcademy from "@/pages/StudentAcademy";
 import TeacherLogin from "@/pages/TeacherLogin";
 import TeacherRegister from "@/pages/TeacherRegister";
 import TeacherPortal from "@/pages/TeacherPortal";
+import AdminPortal from "@/pages/AdminPortal";
 
 // Protected route component
 const ProtectedRoute = ({ children, requireAuth = true }) => {
@@ -73,6 +74,16 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <TeacherPortal />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Admin protected routes */}
+          <Route
+            path="/admin/*"
+            element={
+              <ProtectedRoute>
+                <AdminPortal />
               </ProtectedRoute>
             }
           />
