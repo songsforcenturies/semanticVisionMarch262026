@@ -31,7 +31,8 @@ class StoryGenerationService:
         prompt: str,
         baseline_words: List[Dict[str, str]],
         target_words: List[Dict[str, str]],
-        stretch_words: List[Dict[str, str]]
+        stretch_words: List[Dict[str, str]],
+        virtues: List[str] = []
     ) -> Dict[str, Any]:
         """
         Generate a 5-chapter educational story

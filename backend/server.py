@@ -1260,7 +1260,7 @@ async def join_classroom_session(data: JoinSessionRequest):
     # Check if already joined
     for p in session.get("participating_students", []):
         if p["student_id"] == data.student_id:
-            return {"message": "Already joined", "session_id": session["id"]}
+            return {"message": "Already joined", "session_id": session["id"], "title": session["title"]}
 
     student = await db.students.find_one({"id": data.student_id}, {"_id": 0})
     if not student:

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import { studentAPI, narrativeAPI } from '@/lib/api';
-import { BrutalButton, BrutalCard, BrutalBadge, BrutalProgress } from '@/components/brutal';
-import { BookOpen, Plus, LogOut, TrendingUp, Clock, BookMarked, Home } from 'lucide-react';
+import { studentAPI, narrativeAPI, classroomAPI } from '@/lib/api';
+import { BrutalButton, BrutalCard, BrutalBadge, BrutalProgress, BrutalInput } from '@/components/brutal';
+import { BookOpen, Plus, LogOut, TrendingUp, Clock, BookMarked, Home, Users } from 'lucide-react';
+import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import StoryGenerationDialog from '@/components/student/StoryGenerationDialog';
 import NarrativeReader from '@/components/student/NarrativeReader';
@@ -13,6 +14,9 @@ const StudentAcademy = () => {
   const navigate = useNavigate();
   const [showStoryDialog, setShowStoryDialog] = useState(false);
   const [selectedNarrative, setSelectedNarrative] = useState(null);
+  const [sessionCode, setSessionCode] = useState('');
+  const [joiningSession, setJoiningSession] = useState(false);
+  const [joinedSession, setJoinedSession] = useState(null);
 
   // Fetch full student data
   const { data: studentData, isLoading: studentLoading } = useQuery({
@@ -37,6 +41,21 @@ const StudentAcademy = () => {
   const handleLogout = () => {
     studentLogout();
     navigate('/student-login');
+  };
+
+  const handleJoinSession = async (e) => {
+    e.preventDefault();
+    if (!sessionCode.trim() || !student?.id) return;
+    setJoiningSession(true);
+    try {
+      const res = await classroomAPI.join(sessionCode.trim(), student.id);
+      setJoinedSession(res.data);
+      toast.success(`Joined session: ${res.data.title}`);
+      setSessionCode('');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Could not join session. Check the code and try again.');
+    }
+    setJoiningSession(false);
   };
 
   if (studentLoading) {
@@ -147,6 +166,47 @@ const StudentAcademy = () => {
                 </p>
               </div>
             </div>
+          </BrutalCard>
+        </div>
+
+        {/* Join Classroom Session */}
+        <div className="mb-8">
+          <BrutalCard shadow="lg" variant="emerald">
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-3">
+                <Users size={32} className="text-teal-600" />
+                <div>
+                  <h3 className="text-xl font-black uppercase">Join Classroom Session</h3>
+                  <p className="text-sm font-medium text-gray-600">Enter the code from your teacher</p>
+                </div>
+              </div>
+              <form onSubmit={handleJoinSession} className="flex items-center gap-2 ml-auto">
+                <input
+                  type="text"
+                  value={sessionCode}
+                  onChange={(e) => setSessionCode(e.target.value)}
+                  placeholder="Enter 6-digit code"
+                  maxLength={6}
+                  className="border-4 border-black px-4 py-2 font-mono font-bold text-lg text-center w-44 brutal-shadow-sm"
+                  data-testid="session-code-input"
+                />
+                <BrutalButton
+                  type="submit"
+                  variant="dark"
+                  disabled={joiningSession || sessionCode.length < 6}
+                  data-testid="join-session-btn"
+                >
+                  {joiningSession ? 'Joining...' : 'Join'}
+                </BrutalButton>
+              </form>
+            </div>
+            {joinedSession && (
+              <div className="mt-4 pt-4 border-t-4 border-black" data-testid="joined-session-info">
+                <p className="font-bold text-lg text-emerald-700">
+                  Joined: {joinedSession.title}
+                </p>
+              </div>
+            )}
           </BrutalCard>
         </div>
 
