@@ -4,10 +4,11 @@
 Build "LexiMaster," a high-quality educational platform for students, guardians, and teachers focusing on vocabulary building and character education through AI-generated stories.
 
 ## Architecture
-- **Backend:** FastAPI + MongoDB (Motor async driver) + JWT auth
-- **Frontend:** React 18 + Tailwind CSS + Shadcn/UI + React Query + Neo-Brutalist design + Recharts
-- **AI:** OpenAI via Emergent LLM Key for story/assessment generation
-- **Auth:** JWT for guardians & teachers, code+PIN for students (no JWT)
+- **Backend:** FastAPI + MongoDB (Motor async driver) + JWT auth + WebSockets
+- **Frontend:** React 18 + Tailwind CSS + Shadcn/UI + React Query + Recharts + Neo-Brutalist design
+- **AI:** Emergent LLM Key (OpenAI) + OpenRouter (configurable) for story/assessment generation
+- **Auth:** JWT for guardians & teachers, code+PIN for students
+- **Real-time:** WebSocket for live classroom session updates
 
 ## Core Features (All Phases Complete)
 - **Phase 1:** Foundation & Auth (guardian email/password, student code+PIN)
@@ -17,45 +18,49 @@ Build "LexiMaster," a high-quality educational platform for students, guardians,
 - **Phase 5:** Vocabulary Assessment (AI-driven post-reading quizzes)
 
 ## Additional Features
-- Global header with home navigation on all pages
+- Global header with home navigation
 - Student 2FA: unique student_code + PIN
-- Character Education: guardians add virtues woven into AI stories
-- Startup migration: auto-assigns student_codes to legacy students
+- Character Education: virtues woven into AI stories
 - Reset PIN: guardians regenerate student PINs
-- Student Progress Dashboard: reading stats, vocabulary mastery charts, assessment history, story history
-- Export Student Data: JSON download + printable HTML report
-- Teacher Portal: classroom sessions, student join codes, class analytics/leaderboard
+- Student Progress Dashboard: charts, stats, story history, export
+- Export Student Data: JSON + printable HTML
+- Teacher Portal: classroom sessions, join codes, analytics
+- Student Session Join: enter teacher's 6-digit code
+- Admin Dashboard: cost tracking per story/user, LLM provider config
+- WebSocket real-time roster updates for classroom sessions
+- OpenRouter integration for free/cheap LLM models
 
 ## DB Schema
-- **User:** {id, email, hashed_password, full_name, role (guardian|teacher|admin)}
+- **User:** {id, email, hashed_password, full_name, role}
 - **Student:** {id, guardian_id, full_name, student_code, access_pin, age, grade_level, interests, virtues, assigned_banks, mastered_tokens, status}
-- **WordBank:** {id, name, description, category, words (baseline/target/stretch), price, owner_id}
+- **WordBank:** {id, name, description, category, words, price, owner_id}
 - **Narrative:** {id, student_id, title, chapters, bank_ids, status}
 - **Assessment:** {id, student_id, narrative_id, questions, score, status}
 - **ClassroomSession:** {id, teacher_id, title, session_code, status, participating_students, bank_ids}
+- **CostLog:** {id, student_id, user_id, model, provider, tokens, estimated_cost, duration, success}
+- **SystemConfig:** {key, value} (stores LLM provider config)
 
 ## Key API Endpoints
-- POST /api/auth/register, /api/auth/login (guardian & teacher)
-- POST /api/auth/student-login (student code+PIN)
+- POST /api/auth/register, /api/auth/login
+- POST /api/auth/student-login
 - CRUD /api/students, POST /api/students/{id}/reset-pin
 - GET /api/students/{id}/progress, GET /api/students/{id}/export
 - GET /api/word-banks, POST /api/word-banks/purchase
-- POST /api/narratives (AI story gen)
-- POST /api/assessments (AI assessment gen)
+- POST /api/narratives, POST /api/assessments
 - POST/GET /api/classroom-sessions, POST /api/classroom-sessions/join
 - POST /api/classroom-sessions/{id}/start|end
 - GET /api/classroom-sessions/{id}/analytics
+- GET /api/admin/costs, GET/POST /api/admin/models
+- WS /ws/session/{id}
 
 ## Bug Fixes
-- **2026-03-07:** Fixed student login failure — existing students missing student_code field and had 6-digit PINs. Added startup migration + relaxed PIN validation.
-- **2026-03-07:** Fixed story generation error — `generate_story()` was missing `virtues` parameter in its function signature, causing "unexpected keyword argument" error.
+- **2026-03-07:** Fixed student login (missing student_code + PIN length)
+- **2026-03-07:** Fixed story generation (missing virtues parameter)
+- **2026-03-07:** Fixed story dialog (scrollable + sticky buttons)
 
 ## Feature Additions
-- **2026-03-07:** Reset PIN — Guardians can regenerate a student's PIN from the dashboard.
-- **2026-03-07:** Student Progress Dashboard — reading stats, vocabulary mastery (pie chart), assessment history (bar chart), story history, word banks, virtues. Uses recharts.
-- **2026-03-07:** Export Student Data — JSON download + printable HTML report with Print/Save as PDF.
-- **2026-03-07:** Teacher Portal — register/login, classroom sessions with 6-digit join codes, session lifecycle management, class roster, class-wide analytics with leaderboard.
-- **2026-03-07:** Student Session Join — students can enter a 6-digit session code in their Academy dashboard to join a teacher's classroom session.
+- **2026-03-07:** Reset PIN, Progress Dashboard, Export, Teacher Portal, Session Join, Admin Dashboard, WebSocket, OpenRouter support
 
 ## Backlog
-- Refactor monolithic server.py into modular route/model/service files
+- Refactor monolithic server.py into modular files
+- Add balance to Emergent LLM Universal Key to enable story generation
