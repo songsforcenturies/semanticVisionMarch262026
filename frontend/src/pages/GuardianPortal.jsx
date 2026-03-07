@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Routes, Route } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { BrutalButton, BrutalCard } from '@/components/brutal';
-import { LogOut, Users, ShoppingBag, TrendingUp } from 'lucide-react';
+import { LogOut, Users, ShoppingBag, TrendingUp, Home } from 'lucide-react';
 import StudentsTab from '@/components/guardian/StudentsTab';
 import MarketplaceTab from '@/components/guardian/MarketplaceTab';
 import ProgressTab from '@/components/guardian/ProgressTab';
@@ -29,9 +29,18 @@ const GuardianPortal = () => {
       <header className="bg-white border-b-6 border-black brutal-shadow-md">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-black uppercase">LexiMaster Portal</h1>
-              <p className="text-lg font-medium mt-1">Welcome, {user?.full_name}!</p>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate('/')}
+                className="p-3 border-4 border-black bg-indigo-100 brutal-shadow-sm hover:brutal-shadow-md transition-all brutal-active"
+                title="Home"
+              >
+                <Home size={24} />
+              </button>
+              <div>
+                <h1 className="text-4xl font-black uppercase">LexiMaster Portal</h1>
+                <p className="text-lg font-medium mt-1">Welcome, {user?.full_name}!</p>
+              </div>
             </div>
             <BrutalButton
               variant="dark"

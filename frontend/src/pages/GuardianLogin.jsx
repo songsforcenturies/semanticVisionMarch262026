@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { BrutalButton, BrutalInput, BrutalCard } from '@/components/brutal';
 import { toast } from 'sonner';
 import { BookOpen } from 'lucide-react';
+import HomeHeader from '@/components/HomeHeader';
 
 const GuardianLogin = () => {
   const navigate = useNavigate();
@@ -28,8 +29,11 @@ const GuardianLogin = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-50 p-4">
-      <BrutalCard shadow="xl" className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50">
+      <HomeHeader showAuth={false} />
+      
+      <div className="flex items-center justify-center p-4 py-12">
+        <BrutalCard shadow="xl" className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-4">
             <BookOpen size={48} className="text-indigo-600" />
@@ -84,6 +88,7 @@ const GuardianLogin = () => {
           </div>
         </form>
       </BrutalCard>
+    </div>
     </div>
   );
 };

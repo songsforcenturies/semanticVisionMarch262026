@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { BrutalButton, BrutalInput, BrutalCard } from '@/components/brutal';
 import { toast } from 'sonner';
-import { BookOpen, ArrowLeft } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
+import HomeHeader from '@/components/HomeHeader';
 
 const StudentLogin = () => {
   const navigate = useNavigate();
@@ -35,15 +36,11 @@ const StudentLogin = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-yellow-50 p-4">
-      <BrutalCard shadow="xl" className="w-full max-w-md bg-amber-50">
-        <button
-          onClick={() => navigate('/')}
-          className="mb-6 flex items-center gap-2 font-bold hover:text-amber-600"
-        >
-          <ArrowLeft size={20} />
-          Back to Home
-        </button>
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-yellow-50">
+      <HomeHeader showAuth={false} />
+      
+      <div className="flex items-center justify-center p-4 py-12">
+        <BrutalCard shadow="xl" className="w-full max-w-md bg-amber-50">
 
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-4">
@@ -85,6 +82,7 @@ const StudentLogin = () => {
           </div>
         </form>
       </BrutalCard>
+    </div>
     </div>
   );
 };

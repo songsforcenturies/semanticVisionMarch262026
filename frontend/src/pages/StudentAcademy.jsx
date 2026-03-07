@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { studentAPI, narrativeAPI } from '@/lib/api';
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalProgress } from '@/components/brutal';
-import { BookOpen, Plus, LogOut, TrendingUp, Clock, BookMarked } from 'lucide-react';
+import { BookOpen, Plus, LogOut, TrendingUp, Clock, BookMarked, Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import StoryGenerationDialog from '@/components/student/StoryGenerationDialog';
 import NarrativeReader from '@/components/student/NarrativeReader';
@@ -65,9 +65,18 @@ const StudentAcademy = () => {
       <header className="bg-white border-b-6 border-black brutal-shadow-md">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-black uppercase">LexiMaster Academy</h1>
-              <p className="text-xl font-bold mt-1">Welcome, {studentData?.full_name}!</p>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate('/')}
+                className="p-3 border-4 border-black bg-amber-100 brutal-shadow-sm hover:brutal-shadow-md transition-all brutal-active"
+                title="Home"
+              >
+                <Home size={24} />
+              </button>
+              <div>
+                <h1 className="text-4xl font-black uppercase">LexiMaster Academy</h1>
+                <p className="text-xl font-bold mt-1">Welcome, {studentData?.full_name}!</p>
+              </div>
             </div>
             <BrutalButton
               variant="rose"
