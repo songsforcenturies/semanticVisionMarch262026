@@ -5,6 +5,7 @@ import { BrutalButton, BrutalCard, BrutalBadge, BrutalProgress } from '@/compone
 import { ArrowLeft, ArrowRight, Clock, BookOpen, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import VisionCheckModal from './VisionCheckModal';
+import VocabularyAssessment from './VocabularyAssessment';
 
 const NarrativeReader = ({ narrative, student, onClose }) => {
   const queryClient = useQueryClient();
@@ -13,10 +14,13 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
   const [sessionStart, setSessionStart] = useState(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [showVisionCheck, setShowVisionCheck] = useState(false);
+  const [showAssessment, setShowAssessment] = useState(false);
+  const [completedChapters, setCompletedChapters] = useState(narrative.chapters_completed || []);
 
   const chapter = narrative.chapters[currentChapter - 1];
   const isLastChapter = currentChapter === 5;
-  const isChapterCompleted = narrative.chapters_completed?.includes(currentChapter);
+  const isChapterCompleted = completedChapters.includes(currentChapter);
+  const allChaptersCompleted = completedChapters.length === 5;
 
   // Timer effect
   useEffect(() => {
@@ -71,20 +75,23 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
     setShowVisionCheck(false);
     
     if (passed) {
-      toast.success('Great job! Moving to next chapter...');
+      // Mark chapter as completed
+      const newCompletedChapters = [...new Set([...completedChapters, currentChapter])];
+      setCompletedChapters(newCompletedChapters);
       
-      // Move to next chapter if not last
-      if (!isLastChapter) {
+      // Check if all chapters are now completed
+      if (newCompletedChapters.length === 5) {
+        toast.success('🎉 Story completed! Time for vocabulary assessment!');
+        setTimeout(() => {
+          setShowAssessment(true);
+        }, 1500);
+      } else if (!isLastChapter) {
+        toast.success('Great job! Moving to next chapter...');
         setTimeout(() => {
           setCurrentChapter(prev => prev + 1);
           setElapsedSeconds(0);
           setSessionStart(null);
         }, 1000);
-      } else {
-        toast.success('🎉 Story completed! Well done!');
-        setTimeout(() => {
-          onClose();
-        }, 2000);
       }
     } else {
       toast.error('Try reading the chapter again!');
@@ -101,6 +108,17 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Show assessment if all chapters completed
+  if (showAssessment) {
+    return (
+      <VocabularyAssessment
+        narrative={narrative}
+        student={student}
+        onClose={onClose}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-50">

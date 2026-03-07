@@ -87,9 +87,9 @@ export const readLogAPI = {
 
 export const assessmentAPI = {
   create: (data) => apiClient.post('/assessments', data),
-  getAll: (studentId) => apiClient.get('/assessments', { params: { student_id: studentId } }),
+  getAll: (params) => apiClient.get('/assessments', { params }),
   getById: (id) => apiClient.get(`/assessments/${id}`),
-  submit: (id, data) => apiClient.patch(`/assessments/${id}/submit`, data),
+  evaluate: (id, answers) => apiClient.post(`/assessments/${id}/evaluate`, answers),
 };
 
 // ==================== READ LOG API ====================
@@ -97,6 +97,15 @@ export const assessmentAPI = {
 export const readLogAPI = {
   create: (data) => apiClient.post('/read-logs', data),
   getAll: (studentId) => apiClient.get('/read-logs', { params: { student_id: studentId } }),
+};
+
+// ==================== ASSESSMENT API ====================
+
+export const assessmentAPI = {
+  create: (data) => apiClient.post('/assessments', data),
+  getAll: (params) => apiClient.get('/assessments', { params }),
+  getById: (id) => apiClient.get(`/assessments/${id}`),
+  evaluate: (id, answers) => apiClient.post(`/assessments/${id}/evaluate`, answers),
 };
 
 // ==================== GIFT API ====================

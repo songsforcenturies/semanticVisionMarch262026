@@ -610,6 +610,248 @@ async def get_read_logs(student_id: Optional[str] = None):
     return logs
 
 
+# ==================== ASSESSMENT ROUTES ====================
+
+class AssessmentCreate(BaseModel):
+    student_id: str
+    narrative_id: str
+    type: str = "token_verification"
+
+
+@api_router.post("/assessments")
+async def create_assessment(assessment_data: AssessmentCreate):
+    """Create a vocabulary assessment for a completed narrative"""
+    from models import Assessment, AssessmentQuestion, AssessmentType, QuestionType
+    
+    # Get narrative
+    narrative = await db.narratives.find_one({"id": assessment_data.narrative_id})
+    if not narrative:
+        raise HTTPException(status_code=404, detail="Narrative not found")
+    
+    # Get words to test (target + stretch)
+    tokens_to_verify = narrative.get("tokens_to_verify", [])
+    
+    if not tokens_to_verify:
+        raise HTTPException(status_code=400, detail="No tokens to verify in this narrative")
+    
+    # Create questions for each token
+    questions = []
+    for word in tokens_to_verify:
+        question = AssessmentQuestion(
+            word=word,
+            question_type=QuestionType.DEFINITION,
+            prompt=f"Provide a definition for '{word}' and use it in a sentence.",
+            correct_answer=""  # Will be filled from word bank
+        )
+        questions.append(question)
+    
+    assessment = Assessment(
+        student_id=assessment_data.student_id,
+        narrative_id=assessment_data.narrative_id,
+        type=AssessmentType.TOKEN_VERIFICATION,
+        questions=questions,
+        total_questions=len(questions)
+    )
+    
+    assessment_dict = assessment.model_dump()
+    await db.assessments.insert_one(assessment_dict)
+    
+    return assessment
+
+
+class AssessmentAnswer(BaseModel):
+    word: str
+    definition: str
+    sentence: str
+
+
+class AssessmentSubmission(BaseModel):
+    answers: List[AssessmentAnswer]
+
+
+@api_router.post("/assessments/{assessment_id}/evaluate")
+async def evaluate_assessment(assessment_id: str, submission: AssessmentSubmission):
+    """Evaluate student responses using LLM"""
+    
+    # Get assessment
+    assessment = await db.assessments.find_one({"id": assessment_id})
+    if not assessment:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+    
+    # Get narrative to find correct definitions
+    narrative = await db.narratives.find_one({"id": assessment["narrative_id"]})
+    if not narrative:
+        raise HTTPException(status_code=404, detail="Narrative not found")
+    
+    # Get word banks to find correct definitions
+    word_definitions = {}
+    for bank_id in narrative.get("bank_ids", []):
+        bank = await db.word_banks.find_one({"id": bank_id})
+        if bank:
+            for tier in ["baseline_words", "target_words", "stretch_words"]:
+                for word_obj in bank.get(tier, []):
+                    word_definitions[word_obj["word"]] = {
+                        "definition": word_obj["definition"],
+                        "example": word_obj["example_sentence"]
+                    }
+    
+    # Prepare LLM evaluation
+    try:
+        api_key = os.environ.get('EMERGENT_LLM_KEY')
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        
+        # Build evaluation prompt
+        evaluation_requests = []
+        for answer in submission.answers:
+            correct_info = word_definitions.get(answer.word, {})
+            evaluation_requests.append({
+                "word": answer.word,
+                "correct_definition": correct_info.get("definition", ""),
+                "correct_example": correct_info.get("example", ""),
+                "student_definition": answer.definition,
+                "student_sentence": answer.sentence
+            })
+        
+        prompt = f"""Evaluate these vocabulary responses from a student. For each word, determine if the student demonstrates understanding.
+
+Evaluation Criteria:
+- Definition: Does it capture the core meaning? (Allow for different wording)
+- Sentence: Is the word used correctly in context?
+- Overall: If both are reasonable, mark as correct
+
+Words to evaluate:
+{json.dumps(evaluation_requests, indent=2)}
+
+Return ONLY valid JSON (no markdown):
+{{
+  "results": [
+    {{
+      "word": "word",
+      "definition_correct": true/false,
+      "sentence_correct": true/false,
+      "overall_correct": true/false,
+      "feedback": "brief encouraging feedback"
+    }}
+  ]
+}}"""
+
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"assess_{assessment_id}",
+            system_message="You are an educational assessment evaluator. Be encouraging but fair in evaluating student vocabulary understanding."
+        )
+        chat.with_model("openai", "gpt-5.2")
+        
+        message = UserMessage(text=prompt)
+        response = await chat.send_message(message)
+        
+        evaluation = json.loads(response)
+        
+        # Update assessment with results
+        correct_count = sum(1 for r in evaluation["results"] if r["overall_correct"])
+        accuracy = (correct_count / len(submission.answers)) * 100 if submission.answers else 0
+        
+        # Update questions with student answers and feedback
+        updated_questions = []
+        for i, answer in enumerate(submission.answers):
+            result = evaluation["results"][i]
+            question = assessment["questions"][i]
+            question.update({
+                "student_definition": answer.definition,
+                "student_sentence": answer.sentence,
+                "is_correct": result["overall_correct"],
+                "feedback": result["feedback"]
+            })
+            updated_questions.append(question)
+        
+        # Determine mastered tokens (80%+ accuracy)
+        tokens_mastered = [
+            r["word"] for r in evaluation["results"] 
+            if r["overall_correct"]
+        ]
+        
+        # Update assessment
+        await db.assessments.update_one(
+            {"id": assessment_id},
+            {
+                "$set": {
+                    "questions": updated_questions,
+                    "correct_count": correct_count,
+                    "accuracy_percentage": round(accuracy, 1),
+                    "tokens_mastered": tokens_mastered,
+                    "status": "completed",
+                    "completed_at": datetime.now(timezone.utc).isoformat()
+                }
+            }
+        )
+        
+        # Update student mastered tokens if 80%+ accuracy
+        if accuracy >= 80:
+            student = await db.students.find_one({"id": assessment["student_id"]})
+            if student:
+                from models import MasteredToken
+                
+                existing_tokens = [t["token"] for t in student.get("mastered_tokens", [])]
+                new_tokens = []
+                
+                for word in tokens_mastered:
+                    if word not in existing_tokens:
+                        new_tokens.append(MasteredToken(
+                            token=word,
+                            source_type="narrative",
+                            source_id=assessment["narrative_id"],
+                            mastered_date=datetime.now(timezone.utc)
+                        ).model_dump())
+                
+                if new_tokens:
+                    await db.students.update_one(
+                        {"id": assessment["student_id"]},
+                        {"$push": {"mastered_tokens": {"$each": new_tokens}}}
+                    )
+                    
+                    # Recalculate agentic reach score
+                    updated_student = await db.students.find_one({"id": assessment["student_id"]})
+                    mastered_count = len(updated_student.get("mastered_tokens", []))
+                    
+                    # Simple formula: mastered_tokens * 0.5 + (accuracy * 0.3)
+                    agentic_score = (mastered_count * 0.5) + (accuracy * 3)
+                    
+                    await db.students.update_one(
+                        {"id": assessment["student_id"]},
+                        {"$set": {"agentic_reach_score": round(agentic_score, 1)}}
+                    )
+        
+        # Return updated assessment
+        updated_assessment = await db.assessments.find_one({"id": assessment_id}, {"_id": 0})
+        return updated_assessment
+        
+    except Exception as e:
+        logger.error(f"Assessment evaluation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Evaluation failed: {str(e)}")
+
+
+@api_router.get("/assessments")
+async def get_assessments(student_id: Optional[str] = None, narrative_id: Optional[str] = None):
+    """Get assessments with optional filters"""
+    query = {}
+    if student_id:
+        query["student_id"] = student_id
+    if narrative_id:
+        query["narrative_id"] = narrative_id
+    
+    assessments = await db.assessments.find(query, {"_id": 0}).to_list(1000)
+    return assessments
+
+
+@api_router.get("/assessments/{assessment_id}")
+async def get_assessment(assessment_id: str):
+    """Get a specific assessment"""
+    assessment = await db.assessments.find_one({"id": assessment_id}, {"_id": 0})
+    if not assessment:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+    return assessment
+
+
 # ==================== HEALTH CHECK ====================
 
 @api_router.get("/")
