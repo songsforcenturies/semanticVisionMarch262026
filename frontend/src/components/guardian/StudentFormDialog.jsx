@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { studentAPI } from '@/lib/api';
-import { BrutalButton, BrutalInput, BrutalCard } from '@/components/brutal';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { studentAPI, subscriptionAPI, wordBankAPI } from '@/lib/api';
+import { BrutalButton, BrutalInput, BrutalCard, BrutalBadge } from '@/components/brutal';
 import { Dialog } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { X } from 'lucide-react';
@@ -20,7 +20,28 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId }) => {
     full_name: '',
     age: '',
     grade_level: '',
-    interests: ''
+    interests: '',
+    assigned_banks: []
+  });
+
+  // Fetch subscription to get available word banks
+  const { data: subscription } = useQuery({
+    queryKey: ['subscription', guardianId],
+    queryFn: async () => {
+      const response = await subscriptionAPI.get(guardianId);
+      return response.data;
+    },
+    enabled: !!guardianId && isOpen
+  });
+
+  // Fetch word bank details for owned banks
+  const { data: availableBanks = [] } = useQuery({
+    queryKey: ['available-banks'],
+    queryFn: async () => {
+      const response = await wordBankAPI.getAll({});
+      return response.data;
+    },
+    enabled: isOpen
   });
 
   useEffect(() => {
@@ -29,14 +50,16 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId }) => {
         full_name: student.full_name || '',
         age: student.age?.toString() || '',
         grade_level: student.grade_level || '',
-        interests: student.interests?.join(', ') || ''
+        interests: student.interests?.join(', ') || '',
+        assigned_banks: student.assigned_banks || []
       });
     } else {
       setFormData({
         full_name: '',
         age: '',
         grade_level: '',
-        interests: ''
+        interests: '',
+        assigned_banks: []
       });
     }
   }, [student, isOpen]);
@@ -95,7 +118,43 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId }) => {
     }
   };
 
-  const isLoading = createMutation.isPending || updateMutation.isPending;
+  // Assign banks mutation (separate from create/update)
+  const assignBanksMutation = useMutation({
+    mutationFn: ({ studentId, bankIds }) => wordBankAPI.assignToStudent(studentId, bankIds),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['students']);
+      toast.success('Word banks assigned successfully!');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to assign word banks');
+    }
+  });
+
+  const handleBankToggle = (bankId) => {
+    setFormData(prev => {
+      const current = prev.assigned_banks || [];
+      const newBanks = current.includes(bankId)
+        ? current.filter(id => id !== bankId)
+        : [...current, bankId];
+      return { ...prev, assigned_banks: newBanks };
+    });
+  };
+
+  const handleSaveBanks = () => {
+    if (student) {
+      assignBanksMutation.mutate({
+        studentId: student.id,
+        bankIds: formData.assigned_banks
+      });
+    }
+  };
+
+  const ownedBankIds = subscription?.bank_access || [];
+  const ownedBanks = availableBanks.filter(bank => 
+    ownedBankIds.includes(bank.id) || bank.visibility === 'global'
+  );
+
+  const isLoading = createMutation.isPending || updateMutation.isPending || assignBanksMutation.isPending;
 
   if (!isOpen) return null;
 
@@ -175,6 +234,61 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId }) => {
               <p className="font-bold text-sm uppercase mb-1">Current PIN</p>
               <p className="text-2xl font-black font-mono tracking-wider">{student.access_pin}</p>
               <p className="text-sm font-medium mt-2">PIN cannot be changed</p>
+            </BrutalCard>
+          )}
+
+          {/* Word Bank Assignment */}
+          {student && ownedBanks.length > 0 && (
+            <div>
+              <label className="block mb-3 font-bold uppercase text-sm">
+                Assign Word Banks ({formData.assigned_banks.length} selected)
+              </label>
+              <div className="space-y-2 max-h-48 overflow-y-auto border-4 border-black p-4 bg-gray-50">
+                {ownedBanks.map((bank) => {
+                  const isSelected = formData.assigned_banks.includes(bank.id);
+                  return (
+                    <label
+                      key={bank.id}
+                      className={`flex items-center gap-3 p-3 border-4 border-black cursor-pointer transition-colors ${
+                        isSelected ? 'bg-indigo-100' : 'bg-white hover:bg-gray-100'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleBankToggle(bank.id)}
+                        className="w-6 h-6 border-4 border-black"
+                      />
+                      <div className="flex-1">
+                        <p className="font-black text-sm">{bank.name}</p>
+                        <p className="text-xs font-medium text-gray-600">
+                          {bank.total_tokens} words • {bank.specialty || bank.category}
+                        </p>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+              {student && (
+                <BrutalButton
+                  type="button"
+                  variant="indigo"
+                  size="sm"
+                  onClick={handleSaveBanks}
+                  disabled={assignBanksMutation.isPending}
+                  className="mt-2"
+                >
+                  {assignBanksMutation.isPending ? 'Saving...' : 'Save Bank Assignments'}
+                </BrutalButton>
+              )}
+            </div>
+          )}
+
+          {ownedBanks.length === 0 && student && (
+            <BrutalCard className="bg-amber-50 border-amber-500">
+              <p className="font-medium text-sm">
+                💡 No word banks available. Visit the Marketplace tab to add word banks to your library!
+              </p>
             </BrutalCard>
           )}
 

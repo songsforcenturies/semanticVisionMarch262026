@@ -330,6 +330,89 @@ async def get_word_bank(bank_id: str):
     return word_bank
 
 
+class PurchaseRequest(BaseModel):
+    guardian_id: str
+    bank_id: str
+
+
+@api_router.post("/word-banks/purchase")
+async def purchase_word_bank(
+    request: PurchaseRequest,
+    current_user: dict = Depends(get_current_guardian)
+):
+    """Purchase a word bank (add to subscription)"""
+    # Verify bank exists
+    word_bank = await db.word_banks.find_one({"id": request.bank_id})
+    if not word_bank:
+        raise HTTPException(status_code=404, detail="Word bank not found")
+    
+    # Get subscription
+    subscription = await db.subscriptions.find_one({"guardian_id": request.guardian_id})
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    
+    # Check if already purchased
+    if request.bank_id in subscription.get("bank_access", []):
+        raise HTTPException(status_code=400, detail="Word bank already purchased")
+    
+    # Add to subscription (for now, free - can add payment later)
+    await db.subscriptions.update_one(
+        {"guardian_id": request.guardian_id},
+        {"$push": {"bank_access": request.bank_id}}
+    )
+    
+    # Increment purchase count
+    await db.word_banks.update_one(
+        {"id": request.bank_id},
+        {"$inc": {"purchase_count": 1}}
+    )
+    
+    return {"message": "Word bank purchased successfully", "bank_id": request.bank_id}
+
+
+class AssignBanksRequest(BaseModel):
+    student_id: str
+    bank_ids: List[str]
+
+
+@api_router.post("/students/assign-banks")
+async def assign_word_banks(
+    request: AssignBanksRequest,
+    current_user: dict = Depends(get_current_guardian)
+):
+    """Assign word banks to a student"""
+    # Verify student exists
+    student = await db.students.find_one({"id": request.student_id})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    
+    # Get guardian's subscription to verify access
+    subscription = await db.subscriptions.find_one({"guardian_id": student["guardian_id"]})
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    
+    # Verify guardian has access to all requested banks
+    available_banks = subscription.get("bank_access", [])
+    for bank_id in request.bank_ids:
+        if bank_id not in available_banks:
+            bank = await db.word_banks.find_one({"id": bank_id})
+            # Allow global/free banks
+            if not bank or bank.get("visibility") not in ["global", "marketplace"]:
+                raise HTTPException(
+                    status_code=403, 
+                    detail=f"Guardian does not have access to bank {bank_id}"
+                )
+    
+    # Update student's assigned banks
+    await db.students.update_one(
+        {"id": request.student_id},
+        {"$set": {"assigned_banks": request.bank_ids}}
+    )
+    
+    updated_student = await db.students.find_one({"id": request.student_id}, {"_id": 0})
+    return updated_student
+
+
 # ==================== HEALTH CHECK ====================
 
 @api_router.get("/")
