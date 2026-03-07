@@ -38,6 +38,12 @@ Build "LexiMaster," a high-quality educational platform for students, guardians,
 - [x] Billing/ROI configuration
 - [x] Brand sponsorship management
 - [x] User role management
+- [x] Full user CRUD: create (with temp password), edit, reset password, deactivate/reactivate, delete
+- [x] Delegated admin privileges
+
+### UI Naming (Updated - Mar 2026)
+- [x] "Guardian" renamed to "Parent / School" across all UI, translations (20 languages)
+- [x] Role-based login routing: admin→/admin, teacher→/teacher-portal, brand→/brand-portal, parent→/portal
 
 ### Brand Partner Portal (Enhanced - Mar 2026)
 - [x] Self-service registration & auto-brand creation
