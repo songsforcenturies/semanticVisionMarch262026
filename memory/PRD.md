@@ -39,8 +39,14 @@ Build "LexiMaster," a high-quality educational platform for students, guardians,
 - [x] Brand sponsorship management
 - [x] User role management
 
-### Brand Partner Portal (Complete - Feb 2026)
-- [x] Self-service registration & approval workflow
+### Brand Partner Portal (Enhanced - Mar 2026)
+- [x] Self-service registration & auto-brand creation
+- [x] 3-step onboarding wizard: Brand Info → Logo & Media → Targeting
+- [x] Problem statement definition (woven into AI-generated stories)
+- [x] Logo upload (max 10MB, PNG/JPG/WebP/SVG)
+- [x] Product CRUD management (add/edit/delete products)
+- [x] Geo-targeting with regions (country, state, city, zip)
+- [x] Target language selection (20 languages)
 - [x] Campaign management & analytics dashboard
 - [x] Budget management with Stripe integration
 - [x] Impression tracking & reporting
@@ -51,11 +57,9 @@ Build "LexiMaster," a high-quality educational platform for students, guardians,
 - [x] Admin coupon/plan management
 
 ### Multi-lingual UI Support (Complete - Mar 2026)
-- [x] 20 languages: English, Spanish, French, Chinese, Hindi, Arabic, Bengali, Portuguese, Russian, Japanese, German, Korean, Turkish, Vietnamese, Italian, Thai, Polish, Dutch, Swahili, Malay
-- [x] Language switcher component on all public & portal pages
-- [x] localStorage persistence (leximaster_lang)
+- [x] 20 languages with language switcher
+- [x] localStorage persistence
 - [x] RTL support for Arabic
-- [x] Translation coverage: Landing, Auth (all login/register pages), Guardian Portal, Teacher Portal, Brand Portal, Donate Page
 
 ### Other Features (Complete)
 - [x] Referral system with wallet rewards
@@ -65,10 +69,10 @@ Build "LexiMaster," a high-quality educational platform for students, guardians,
 ## Prioritized Backlog
 
 ### P0 - High Priority
-- [ ] Accessibility features (deaf/HoH users)
-- [ ] Refactor `backend/server.py` into modular FastAPI routers
+- [ ] Refactor `backend/server.py` into modular FastAPI routers (3500+ lines monolith)
 
 ### P1 - Medium Priority
+- [ ] Accessibility features (deaf/HoH users)
 - [ ] Expand payment integrations (PayPal, Google/Apple Pay, CashApp/Venmo)
 - [ ] Granular admin analytics
 
