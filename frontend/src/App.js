@@ -30,7 +30,9 @@ const ProtectedRoute = ({ children, requireAuth = true }) => {
     );
   }
 
-  if (requireAuth && !isAuthenticated) {
+  // Check both context state and localStorage (handles race condition after login)
+  const hasToken = !!localStorage.getItem('token') && !!localStorage.getItem('user');
+  if (requireAuth && !isAuthenticated && !hasToken) {
     return <Navigate to="/login" replace />;
   }
 
