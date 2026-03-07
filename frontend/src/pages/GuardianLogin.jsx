@@ -20,7 +20,10 @@ const GuardianLogin = () => {
 
     if (result.success) {
       toast.success('Welcome back!');
-      navigate('/portal');
+      const role = result.user?.role;
+      if (role === 'admin') navigate('/admin');
+      else if (role === 'brand_partner') navigate('/brand-portal');
+      else navigate('/portal');
     } else {
       toast.error(result.error || 'Login failed');
     }

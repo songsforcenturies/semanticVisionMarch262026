@@ -10,6 +10,8 @@ const GuardianRegister = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { register } = useAuth();
+  const roleParam = searchParams.get('role');
+  const isBrandPartner = roleParam === 'brand_partner';
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -36,14 +38,20 @@ const GuardianRegister = () => {
 
     const result = await register(
       formData.fullName, formData.email, formData.password,
-      formData.referralCode || undefined
+      formData.referralCode || undefined,
+      isBrandPartner ? 'brand_partner' : 'guardian'
     );
 
     if (result.success) {
-      toast.success(formData.referralCode
-        ? 'Account created! Referral bonus applied!'
-        : 'Account created successfully!');
-      navigate('/portal');
+      if (isBrandPartner) {
+        toast.success('Brand partner account created! Pending admin approval.');
+        navigate('/brand-portal');
+      } else {
+        toast.success(formData.referralCode
+          ? 'Account created! Referral bonus applied!'
+          : 'Account created successfully!');
+        navigate('/portal');
+      }
     } else {
       toast.error(result.error || 'Registration failed');
     }
@@ -62,9 +70,11 @@ const GuardianRegister = () => {
             <BookOpen size={48} className="text-indigo-600" />
             <h1 className="text-4xl font-black uppercase">LexiMaster</h1>
           </div>
-          <h2 className="text-2xl font-black uppercase">Create Account</h2>
+          <h2 className="text-2xl font-black uppercase">
+            {isBrandPartner ? 'Brand Partner Registration' : 'Create Account'}
+          </h2>
           <p className="mt-2 font-medium text-gray-600">
-            Start your vocabulary journey
+            {isBrandPartner ? 'Partner with LexiMaster to reach young learners' : 'Start your vocabulary journey'}
           </p>
         </div>
 

@@ -24,7 +24,7 @@ from models import (
     WalletTransaction, WalletTransactionType, PaymentTransaction,
     Coupon, CouponType, CouponRedemption, AdminSubscriptionPlan,
     Referral, Donation, generate_referral_code,
-    Brand, BrandProduct, BrandImpression, ClassroomSponsorship,
+    Brand, BrandProduct, BrandImpression, ClassroomSponsorship, BrandCampaign,
 )
 from auth import (
     get_password_hash, verify_password, create_access_token,
@@ -187,6 +187,8 @@ async def login(credentials: UserLogin):
             "wallet_balance": user.get("wallet_balance", 0.0),
             "is_delegated_admin": user.get("is_delegated_admin", False),
             "referral_code": user.get("referral_code", ""),
+            "linked_brand_id": user.get("linked_brand_id"),
+            "brand_approved": user.get("brand_approved", False),
         }
     }
 
@@ -3029,6 +3031,286 @@ async def get_active_brands_for_student(student_id: str, current_user: dict = De
         })
 
     return {"brands": eligible}
+
+
+# ==================== BRAND PARTNER PORTAL ====================
+
+def get_current_brand_partner(current_user: dict = Depends(get_current_user)):
+    """Verify user is an approved brand partner"""
+    if current_user.get("role") != "brand_partner":
+        raise HTTPException(status_code=403, detail="Brand partner access required")
+    return current_user
+
+
+@api_router.get("/brand-portal/profile")
+async def get_brand_partner_profile(current_user: dict = Depends(get_current_brand_partner)):
+    """Get brand partner profile with linked brand info"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0, "password_hash": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    brand = None
+    if user.get("linked_brand_id"):
+        brand = await db.brands.find_one({"id": user["linked_brand_id"]}, {"_id": 0})
+
+    return {
+        "user": {
+            "id": user["id"], "email": user["email"], "full_name": user["full_name"],
+            "wallet_balance": user.get("wallet_balance", 0.0),
+            "brand_approved": user.get("brand_approved", False),
+        },
+        "brand": brand,
+    }
+
+
+@api_router.get("/brand-portal/dashboard")
+async def get_brand_dashboard(current_user: dict = Depends(get_current_brand_partner)):
+    """Get brand partner dashboard data"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    brand_id = user.get("linked_brand_id")
+    if not brand_id:
+        return {"brand": None, "campaigns": [], "impressions": [], "stats": {}}
+
+    brand = await db.brands.find_one({"id": brand_id}, {"_id": 0})
+
+    # Get campaigns
+    campaigns = await db.brand_campaigns.find({"brand_id": brand_id}, {"_id": 0}).sort("created_date", -1).to_list(50)
+
+    # Get impression stats
+    pipeline = [
+        {"$match": {"brand_id": brand_id}},
+        {"$group": {"_id": None, "total": {"$sum": 1}, "cost": {"$sum": "$cost"}}}
+    ]
+    imp_agg = await db.brand_impressions.aggregate(pipeline).to_list(1)
+    total_impressions = imp_agg[0]["total"] if imp_agg else 0
+    total_spent = imp_agg[0]["cost"] if imp_agg else 0
+
+    # Recent impressions
+    recent_impressions = await db.brand_impressions.find(
+        {"brand_id": brand_id}, {"_id": 0}
+    ).sort("created_date", -1).to_list(20)
+
+    # Sponsorships
+    sponsorships = await db.classroom_sponsorships.find(
+        {"brand_id": brand_id}, {"_id": 0}
+    ).to_list(20)
+
+    return {
+        "brand": brand,
+        "campaigns": campaigns,
+        "sponsorships": sponsorships,
+        "stats": {
+            "total_impressions": total_impressions,
+            "total_spent": round(total_spent, 2),
+            "budget_total": brand.get("budget_total", 0) if brand else 0,
+            "budget_remaining": round((brand.get("budget_total", 0) - total_spent), 2) if brand else 0,
+            "active_campaigns": sum(1 for c in campaigns if c.get("status") == "active"),
+            "active_sponsorships": sum(1 for s in sponsorships if s.get("is_active")),
+        },
+        "recent_impressions": recent_impressions,
+    }
+
+
+# ==================== BRAND PARTNER CAMPAIGN MANAGEMENT ====================
+
+class CampaignCreate(BaseModel):
+    name: str
+    description: str = ""
+    products: list = []
+    target_ages: list = []
+    target_categories: list = []
+    budget: float = 0.0
+    cost_per_impression: float = 0.05
+
+
+@api_router.post("/brand-portal/campaigns")
+async def create_campaign(data: CampaignCreate, current_user: dict = Depends(get_current_brand_partner)):
+    """Create a brand campaign"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    if not user.get("brand_approved"):
+        raise HTTPException(status_code=403, detail="Your brand account is pending approval")
+    brand_id = user.get("linked_brand_id")
+    if not brand_id:
+        raise HTTPException(status_code=400, detail="No brand linked to your account")
+
+    campaign = BrandCampaign(
+        brand_id=brand_id, name=data.name, description=data.description,
+        products=[BrandProduct(**p) if isinstance(p, dict) else p for p in data.products],
+        target_ages=data.target_ages, target_categories=data.target_categories,
+        budget=data.budget, cost_per_impression=data.cost_per_impression,
+        status="active", created_by=current_user["id"],
+    )
+    await db.brand_campaigns.insert_one(campaign.model_dump())
+    return campaign.model_dump()
+
+
+@api_router.get("/brand-portal/campaigns")
+async def list_my_campaigns(current_user: dict = Depends(get_current_brand_partner)):
+    """List brand partner's campaigns"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    brand_id = user.get("linked_brand_id")
+    if not brand_id:
+        return []
+    campaigns = await db.brand_campaigns.find({"brand_id": brand_id}, {"_id": 0}).sort("created_date", -1).to_list(50)
+    return campaigns
+
+
+class CampaignUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    products: Optional[list] = None
+    target_ages: Optional[list] = None
+    target_categories: Optional[list] = None
+    budget: Optional[float] = None
+    cost_per_impression: Optional[float] = None
+    status: Optional[str] = None
+
+
+@api_router.put("/brand-portal/campaigns/{campaign_id}")
+async def update_campaign(campaign_id: str, data: CampaignUpdate, current_user: dict = Depends(get_current_brand_partner)):
+    """Update a campaign"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    brand_id = user.get("linked_brand_id")
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    result = await db.brand_campaigns.update_one(
+        {"id": campaign_id, "brand_id": brand_id}, {"$set": update_data}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    return {"message": "Campaign updated"}
+
+
+@api_router.delete("/brand-portal/campaigns/{campaign_id}")
+async def delete_campaign(campaign_id: str, current_user: dict = Depends(get_current_brand_partner)):
+    """Delete a campaign"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    brand_id = user.get("linked_brand_id")
+    result = await db.brand_campaigns.delete_one({"id": campaign_id, "brand_id": brand_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    return {"message": "Campaign deleted"}
+
+
+# ==================== BRAND PARTNER BUDGET TOP-UP ====================
+
+class BrandTopupRequest(BaseModel):
+    amount: float
+    origin_url: str
+
+
+@api_router.post("/brand-portal/topup")
+async def brand_topup(data: BrandTopupRequest, request: Request, current_user: dict = Depends(get_current_brand_partner)):
+    """Top up brand campaign budget via Stripe"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    brand_id = user.get("linked_brand_id")
+    if not brand_id:
+        raise HTTPException(status_code=400, detail="No brand linked")
+    if data.amount < 5:
+        raise HTTPException(status_code=400, detail="Minimum top-up is $5")
+
+    stripe_key = os.environ.get("STRIPE_API_KEY")
+    if not stripe_key:
+        raise HTTPException(status_code=500, detail="Payment not configured")
+
+    from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
+    origin = data.origin_url.rstrip("/")
+    host_url = str(request.base_url).rstrip("/")
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=stripe_key, webhook_url=webhook_url)
+
+    metadata = {"user_id": current_user["id"], "brand_id": brand_id, "type": "brand_topup"}
+
+    checkout_req = CheckoutSessionRequest(
+        amount=data.amount, currency="usd",
+        success_url=f"{origin}/brand-portal?payment=success&session_id={{CHECKOUT_SESSION_ID}}",
+        cancel_url=f"{origin}/brand-portal?payment=cancelled",
+        metadata=metadata, payment_methods=["card"],
+    )
+    session = await stripe_checkout.create_checkout_session(checkout_req)
+
+    txn = PaymentTransaction(
+        user_id=current_user["id"], session_id=session.session_id,
+        amount=data.amount, currency="usd", metadata=metadata,
+    )
+    await db.payment_transactions.insert_one(txn.model_dump())
+
+    return {"url": session.url, "session_id": session.session_id}
+
+
+@api_router.get("/brand-portal/topup-status/{session_id}")
+async def brand_topup_status(session_id: str, request: Request, current_user: dict = Depends(get_current_brand_partner)):
+    """Check brand top-up payment status and credit brand budget"""
+    txn = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
+    if not txn:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    if txn.get("payment_status") == "paid":
+        return {"status": "paid", "amount": txn["amount"]}
+
+    stripe_key = os.environ.get("STRIPE_API_KEY")
+    from emergentintegrations.payments.stripe.checkout import StripeCheckout
+    host_url = str(request.base_url).rstrip("/")
+    stripe_checkout = StripeCheckout(api_key=stripe_key, webhook_url=f"{host_url}/api/webhook/stripe")
+    checkout_status = await stripe_checkout.get_checkout_status(session_id)
+
+    if checkout_status.payment_status == "paid" and txn.get("payment_status") != "paid":
+        already = await db.payment_transactions.find_one({"session_id": session_id, "payment_status": "paid"})
+        if not already:
+            amount = txn["amount"]
+            brand_id = txn.get("metadata", {}).get("brand_id")
+            now_iso = datetime.now(timezone.utc).isoformat()
+
+            await db.payment_transactions.update_one(
+                {"session_id": session_id},
+                {"$set": {"payment_status": "paid", "status": "completed", "updated_date": now_iso}}
+            )
+            if brand_id:
+                await db.brands.update_one({"id": brand_id}, {"$inc": {"budget_total": amount}})
+
+        return {"status": "paid", "amount": txn["amount"]}
+
+    return {"status": txn.get("status", "initiated"), "amount": txn["amount"]}
+
+
+# ==================== ADMIN: APPROVE/REJECT BRAND PARTNERS ====================
+
+@api_router.post("/admin/approve-brand-partner/{user_id}")
+async def approve_brand_partner(user_id: str, current_user: dict = Depends(get_current_user)):
+    """Approve a brand partner application"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    target = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not target or target.get("role") != "brand_partner":
+        raise HTTPException(status_code=404, detail="Brand partner not found")
+
+    await db.users.update_one({"id": user_id}, {"$set": {"brand_approved": True}})
+    return {"message": f"Brand partner {target['email']} approved"}
+
+
+@api_router.post("/admin/reject-brand-partner/{user_id}")
+async def reject_brand_partner(user_id: str, current_user: dict = Depends(get_current_user)):
+    """Reject/suspend a brand partner"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    await db.users.update_one({"id": user_id}, {"$set": {"brand_approved": False}})
+    return {"message": "Brand partner suspended"}
+
+
+@api_router.post("/admin/link-brand/{user_id}/{brand_id}")
+async def link_brand_to_partner(user_id: str, brand_id: str, current_user: dict = Depends(get_current_user)):
+    """Link a brand to a partner account"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    brand = await db.brands.find_one({"id": brand_id})
+    if not brand:
+        raise HTTPException(status_code=404, detail="Brand not found")
+
+    await db.users.update_one({"id": user_id}, {"$set": {"linked_brand_id": brand_id}})
+    return {"message": f"Brand '{brand['name']}' linked to user"}
 
 
 # ==================== HEALTH CHECK ====================

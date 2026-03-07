@@ -42,6 +42,7 @@ class UserRole(str, Enum):
     ADMIN = "admin"
     GUARDIAN = "guardian"
     TEACHER = "teacher"
+    BRAND_PARTNER = "brand_partner"
 
 
 class GradeLevel(str, Enum):
@@ -150,6 +151,8 @@ class User(MongoBaseModel):
     is_delegated_admin: bool = False
     referral_code: str = Field(default_factory=generate_referral_code)
     referred_by: Optional[str] = None  # referral code of referrer
+    linked_brand_id: Optional[str] = None  # for brand_partner role
+    brand_approved: bool = False  # admin must approve
     created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -594,8 +597,26 @@ class BrandImpression(MongoBaseModel):
     narrative_id: str
     student_id: str
     guardian_id: str
+    campaign_id: Optional[str] = None
     products_featured: List[str] = Field(default_factory=list)
     cost: float = 0.0
+    created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class BrandCampaign(MongoBaseModel):
+    id: str = Field(default_factory=generate_uuid)
+    brand_id: str
+    name: str
+    description: str = ""
+    products: List[BrandProduct] = Field(default_factory=list)
+    target_ages: List[int] = Field(default_factory=list)
+    target_categories: List[str] = Field(default_factory=list)
+    budget: float = 0.0
+    budget_spent: float = 0.0
+    cost_per_impression: float = 0.05
+    status: str = "active"  # active, paused, completed, pending_approval
+    total_impressions: int = 0
+    created_by: str = ""
     created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 

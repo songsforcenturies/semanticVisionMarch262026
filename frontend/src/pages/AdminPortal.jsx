@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { adminAPI } from '@/lib/api';
+import apiClient from '@/lib/api';
 import { BrutalCard, BrutalButton, BrutalBadge, BrutalInput } from '@/components/brutal';
 import {
   Home, LogOut, DollarSign, Cpu, Users, BarChart3, Settings, Shield,
@@ -67,7 +68,7 @@ const AdminPortal = () => {
   const { data: brands = [] } = useQuery({
     queryKey: ['admin-brands'],
     queryFn: async () => (await adminAPI.getBrands()).data,
-    enabled: activeTab === 'brands',
+    enabled: activeTab === 'brands' || activeTab === 'users',
   });
   const { data: brandAnalytics } = useQuery({
     queryKey: ['admin-brand-analytics'],
@@ -135,6 +136,20 @@ const AdminPortal = () => {
   const delegateMutation = useMutation({
     mutationFn: (data) => adminAPI.delegateAdmin(data),
     onSuccess: (res) => { queryClient.invalidateQueries(['admin-users']); toast.success(res.data.message); setDelegateEmail(''); },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed'),
+  });
+  const approveBrandMut = useMutation({
+    mutationFn: (userId) => apiClient.post(`/admin/approve-brand-partner/${userId}`),
+    onSuccess: () => { queryClient.invalidateQueries(['admin-users']); toast.success('Brand partner approved!'); },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed'),
+  });
+  const rejectBrandMut = useMutation({
+    mutationFn: (userId) => apiClient.post(`/admin/reject-brand-partner/${userId}`),
+    onSuccess: () => { queryClient.invalidateQueries(['admin-users']); toast.success('Brand partner suspended'); },
+  });
+  const linkBrandMut = useMutation({
+    mutationFn: ({ userId, brandId }) => apiClient.post(`/admin/link-brand/${userId}/${brandId}`),
+    onSuccess: () => { queryClient.invalidateQueries(['admin-users']); toast.success('Brand linked!'); },
     onError: (err) => toast.error(err.response?.data?.detail || 'Failed'),
   });
   const createPlanMutation = useMutation({
@@ -500,16 +515,34 @@ const AdminPortal = () => {
               <div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="border-b-4 border-black">
                 <th className="py-3 px-3 font-black text-xs uppercase">Name</th><th className="py-3 px-3 font-black text-xs uppercase">Email</th>
                 <th className="py-3 px-3 font-black text-xs uppercase">Role</th><th className="py-3 px-3 font-black text-xs uppercase">Balance</th>
-                <th className="py-3 px-3 font-black text-xs uppercase">Delegated</th><th className="py-3 px-3 font-black text-xs uppercase">Joined</th>
+                <th className="py-3 px-3 font-black text-xs uppercase">Status</th><th className="py-3 px-3 font-black text-xs uppercase">Actions</th>
               </tr></thead><tbody>
                 {allUsers.map((u) => (
                   <tr key={u.id} className="border-b-2 border-gray-200" data-testid={`user-row-${u.id}`}>
                     <td className="py-2 px-3 font-bold text-sm">{u.full_name}</td>
                     <td className="py-2 px-3 text-sm">{u.email}</td>
-                    <td className="py-2 px-3"><BrutalBadge variant={u.role === 'admin' ? 'rose' : u.role === 'teacher' ? 'indigo' : 'emerald'} size="sm">{u.role}</BrutalBadge></td>
+                    <td className="py-2 px-3"><BrutalBadge variant={u.role === 'admin' ? 'rose' : u.role === 'brand_partner' ? 'amber' : u.role === 'teacher' ? 'indigo' : 'emerald'} size="sm">{u.role}</BrutalBadge></td>
                     <td className="py-2 px-3 text-sm font-bold">${(u.wallet_balance || 0).toFixed(2)}</td>
-                    <td className="py-2 px-3">{u.is_delegated_admin ? <BrutalBadge variant="amber" size="sm">YES</BrutalBadge> : '—'}</td>
-                    <td className="py-2 px-3 text-sm">{new Date(u.created_date).toLocaleDateString()}</td>
+                    <td className="py-2 px-3">
+                      {u.is_delegated_admin && <BrutalBadge variant="amber" size="sm">DELEGATE</BrutalBadge>}
+                      {u.role === 'brand_partner' && (u.brand_approved ? <BrutalBadge variant="emerald" size="sm">APPROVED</BrutalBadge> : <BrutalBadge variant="rose" size="sm">PENDING</BrutalBadge>)}
+                    </td>
+                    <td className="py-2 px-3">
+                      {u.role === 'brand_partner' && !u.brand_approved && (
+                        <BrutalButton variant="emerald" size="sm" onClick={() => approveBrandMut.mutate(u.id)} data-testid={`approve-${u.id}`}>Approve</BrutalButton>
+                      )}
+                      {u.role === 'brand_partner' && u.brand_approved && (
+                        <BrutalButton variant="rose" size="sm" onClick={() => rejectBrandMut.mutate(u.id)}>Suspend</BrutalButton>
+                      )}
+                      {u.role === 'brand_partner' && !u.linked_brand_id && brands.length > 0 && (
+                        <select onChange={(e) => { if (e.target.value) linkBrandMut.mutate({ userId: u.id, brandId: e.target.value }); }}
+                          className="ml-1 border-2 border-black px-2 py-1 text-xs font-bold" defaultValue="">
+                          <option value="">Link brand...</option>
+                          {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        </select>
+                      )}
+                      {u.role === 'brand_partner' && u.linked_brand_id && <span className="text-xs text-gray-500 ml-1">Linked</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody></table></div>

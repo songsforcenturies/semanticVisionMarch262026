@@ -197,4 +197,17 @@ export const adPreferencesAPI = {
   update: (studentId, data) => apiClient.post(`/students/${studentId}/ad-preferences`, data),
 };
 
+// ==================== BRAND PORTAL API ====================
+
+export const brandPortalAPI = {
+  getProfile: () => apiClient.get('/brand-portal/profile'),
+  getDashboard: () => apiClient.get('/brand-portal/dashboard'),
+  getCampaigns: () => apiClient.get('/brand-portal/campaigns'),
+  createCampaign: (data) => apiClient.post('/brand-portal/campaigns', data),
+  updateCampaign: (id, data) => apiClient.put(`/brand-portal/campaigns/${id}`, data),
+  deleteCampaign: (id) => apiClient.delete(`/brand-portal/campaigns/${id}`),
+  topup: (data) => apiClient.post('/brand-portal/topup', data),
+  getTopupStatus: (sessionId) => apiClient.get(`/brand-portal/topup-status/${sessionId}`),
+};
+
 export default apiClient;

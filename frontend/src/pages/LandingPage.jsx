@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BrutalButton, BrutalCard } from '@/components/brutal';
-import { BookOpen, Users, TrendingUp, Sparkles, GraduationCap, Heart } from 'lucide-react';
+import { BookOpen, Users, TrendingUp, Sparkles, GraduationCap, Heart, Megaphone } from 'lucide-react';
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -64,6 +64,16 @@ const LandingPage = () => {
             >
               <Heart size={20} />
               Sponsor a Reader
+            </BrutalButton>
+            <BrutalButton
+              variant="amber"
+              size="xl"
+              onClick={() => navigate('/register?role=brand_partner')}
+              data-testid="brand-partner-link"
+              className="flex items-center gap-2"
+            >
+              <Megaphone size={20} />
+              Brand Partners
             </BrutalButton>
           </div>
         </div>

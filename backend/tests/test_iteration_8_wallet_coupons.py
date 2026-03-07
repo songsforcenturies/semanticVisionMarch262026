@@ -8,7 +8,7 @@ import requests
 import os
 import time
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://vocab-builder-145.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://vocab-hub-13.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 ADMIN_EMAIL = "testadmin@test.com"
@@ -105,7 +105,7 @@ class TestWalletAPIs:
             headers=self.headers,
             json={
                 "package_id": "small",  # $5
-                "origin_url": "https://vocab-builder-145.preview.emergentagent.com"
+                "origin_url": "https://vocab-hub-13.preview.emergentagent.com"
             }
         )
         # Should return 200 or appropriate error if Stripe not fully configured
