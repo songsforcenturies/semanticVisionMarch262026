@@ -961,6 +961,193 @@ async def get_read_logs(student_id: Optional[str] = None):
     return logs
 
 
+class WrittenAnswerEval(BaseModel):
+    student_id: str
+    chapter_number: int
+    question: str
+    student_answer: str
+    chapter_summary: str = ""
+    spelling_mode: str = "phonetic"  # "exact" or "phonetic"
+
+
+@api_router.post("/assessments/evaluate-written")
+async def evaluate_written_answer(data: WrittenAnswerEval):
+    """Evaluate a written comprehension answer using AI"""
+    from story_service import story_service
+    story_service.set_db(db)
+    llm_config = await story_service._get_llm_config()
+    provider = llm_config.get("provider", "emergent")
+    model = llm_config.get("model", "gpt-5.2")
+
+    prompt = f"""Evaluate this student's written answer to a reading comprehension question.
+
+Question: {data.question}
+Student's Answer: {data.student_answer}
+Chapter Context (first 500 chars): {data.chapter_summary}
+Spelling Mode: {data.spelling_mode}
+
+Evaluate:
+1. Does the answer demonstrate understanding of the chapter content?
+2. Is the answer relevant to the question?
+3. {"Check for exact spelling. List any misspelled words." if data.spelling_mode == "exact" else "Accept phonetic/close spellings. Only note severely misspelled words."}
+
+Return ONLY valid JSON:
+{{
+  "passed": true/false,
+  "feedback": "brief encouraging feedback",
+  "spelling_errors": [{{"written": "misspeled", "correct": "misspelled"}}],
+  "comprehension_score": 0-100
+}}"""
+
+    try:
+        if provider == "openrouter":
+            from openai import AsyncOpenAI
+            api_key = llm_config.get("openrouter_key") or os.environ.get("OPENROUTER_API_KEY")
+            client = AsyncOpenAI(
+                base_url="https://openrouter.ai/api/v1", api_key=api_key,
+                default_headers={"HTTP-Referer": "https://leximaster.app"},
+                max_retries=1, timeout=30.0,
+            )
+            response = await client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3, max_tokens=500,
+            )
+            text = response.choices[0].message.content or ""
+        else:
+            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            from emergentintegrations.llm.chat import LlmChat, UserMessage
+            chat = LlmChat(api_key=api_key, session_id=f"eval_{data.student_id}_{data.chapter_number}")
+            chat.with_model("openai", model if provider == "emergent" else "gpt-5.2")
+            text = await chat.send_message(UserMessage(text=prompt))
+
+        text = text.strip()
+        if text.startswith("```"):
+            text = text.split("\n", 1)[1] if "\n" in text else text[3:]
+            if text.endswith("```"): text = text[:-3]
+            text = text.strip()
+
+        result = json_lib.loads(text)
+
+        # Log spelling errors for the student
+        if result.get("spelling_errors"):
+            await db.spelling_logs.insert_one({
+                "student_id": data.student_id,
+                "chapter_number": data.chapter_number,
+                "errors": result["spelling_errors"],
+                "answer_text": data.student_answer,
+                "created_date": datetime.now(timezone.utc).isoformat(),
+            })
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Written answer evaluation failed: {str(e)}")
+        # Lenient fallback — pass if answer has enough words
+        word_count = len(data.student_answer.split())
+        return {
+            "passed": word_count >= 5,
+            "feedback": "Your answer was recorded. Keep reading!" if word_count >= 5 else "Please write a more complete answer.",
+            "spelling_errors": [],
+            "comprehension_score": 60 if word_count >= 5 else 30,
+        }
+
+
+# ==================== ADMIN SPELLING & LIMITS CONFIG ====================
+
+@api_router.get("/admin/settings")
+async def get_admin_settings(current_user: dict = Depends(get_current_user)):
+    """Get admin settings (spelling, free limits, etc.)"""
+    settings = await db.system_config.find_one({"key": "admin_settings"}, {"_id": 0})
+    defaults = {
+        "global_spellcheck_disabled": False,
+        "global_spelling_mode": "phonetic",
+        "free_account_story_limit": 5,
+        "free_account_assessment_limit": 10,
+    }
+    return settings.get("value", defaults) if settings else defaults
+
+
+class AdminSettingsUpdate(BaseModel):
+    global_spellcheck_disabled: Optional[bool] = None
+    global_spelling_mode: Optional[str] = None
+    free_account_story_limit: Optional[int] = None
+    free_account_assessment_limit: Optional[int] = None
+
+
+@api_router.post("/admin/settings")
+async def update_admin_settings(data: AdminSettingsUpdate, current_user: dict = Depends(get_current_user)):
+    """Update admin settings"""
+    current = await get_admin_settings(current_user)
+    updates = {k: v for k, v in data.model_dump().items() if v is not None}
+    current.update(updates)
+    await db.system_config.update_one(
+        {"key": "admin_settings"},
+        {"$set": {"key": "admin_settings", "value": current, "updated_date": datetime.now(timezone.utc).isoformat()}},
+        upsert=True,
+    )
+    return {"message": "Settings updated", "settings": current}
+
+
+@api_router.post("/students/{student_id}/spellcheck")
+async def update_student_spellcheck(
+    student_id: str,
+    current_user: dict = Depends(get_current_guardian)
+):
+    """Toggle spellcheck for a specific student"""
+    student = await db.students.find_one({"id": student_id})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    if student["guardian_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    current = student.get("spellcheck_disabled", False)
+    await db.students.update_one(
+        {"id": student_id},
+        {"$set": {"spellcheck_disabled": not current}}
+    )
+    return {"spellcheck_disabled": not current}
+
+
+@api_router.post("/students/{student_id}/spelling-mode")
+async def update_student_spelling_mode(
+    student_id: str,
+    current_user: dict = Depends(get_current_guardian)
+):
+    """Toggle spelling mode between exact and phonetic for a student"""
+    student = await db.students.find_one({"id": student_id})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    if student["guardian_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    current = student.get("spelling_mode", "phonetic")
+    new_mode = "exact" if current == "phonetic" else "phonetic"
+    await db.students.update_one(
+        {"id": student_id},
+        {"$set": {"spelling_mode": new_mode}}
+    )
+    return {"spelling_mode": new_mode}
+
+
+@api_router.get("/students/{student_id}/spelling-logs")
+async def get_spelling_logs(
+    student_id: str,
+    current_user: dict = Depends(get_current_guardian)
+):
+    """Get spelling error logs for a student"""
+    student = await db.students.find_one({"id": student_id})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    if student["guardian_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    logs = await db.spelling_logs.find(
+        {"student_id": student_id}, {"_id": 0}
+    ).sort("created_date", -1).to_list(100)
+    return logs
+
+
 # ==================== ASSESSMENT ROUTES ====================
 
 class AssessmentCreate(BaseModel):
@@ -1048,8 +1235,15 @@ async def evaluate_assessment(assessment_id: str, submission: AssessmentSubmissi
     
     # Prepare LLM evaluation
     try:
-        api_key = os.environ.get('EMERGENT_LLM_KEY')
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from story_service import story_service
+        story_service.set_db(db)
+        llm_config = await story_service._get_llm_config()
+        provider = llm_config.get("provider", "emergent")
+        model = llm_config.get("model", "gpt-5.2")
+
+        # Get student spelling settings
+        student_record = await db.students.find_one({"id": assessment["student_id"]})
+        spelling_mode = student_record.get("spelling_mode", "phonetic") if student_record else "phonetic"
         
         # Build evaluation prompt
         evaluation_requests = []
@@ -1068,10 +1262,12 @@ async def evaluate_assessment(assessment_id: str, submission: AssessmentSubmissi
 Evaluation Criteria:
 - Definition: Does it capture the core meaning? (Allow for different wording)
 - Sentence: Is the word used correctly in context?
+- Spelling Mode: {spelling_mode} ({'Require exact spelling' if spelling_mode == 'exact' else 'Accept phonetic/close spellings'})
 - Overall: If both are reasonable, mark as correct
+- Track any spelling errors found
 
 Words to evaluate:
-{json.dumps(evaluation_requests, indent=2)}
+{json_lib.dumps(evaluation_requests, indent=2)}
 
 Return ONLY valid JSON (no markdown):
 {{
@@ -1081,22 +1277,46 @@ Return ONLY valid JSON (no markdown):
       "definition_correct": true/false,
       "sentence_correct": true/false,
       "overall_correct": true/false,
-      "feedback": "brief encouraging feedback"
+      "feedback": "brief encouraging feedback",
+      "spelling_errors": [{{"written": "misspeled", "correct": "misspelled"}}]
     }}
   ]
 }}"""
 
-        chat = LlmChat(
-            api_key=api_key,
-            session_id=f"assess_{assessment_id}",
-            system_message="You are an educational assessment evaluator. Be encouraging but fair in evaluating student vocabulary understanding."
-        )
-        chat.with_model("openai", "gpt-5.2")
-        
-        message = UserMessage(text=prompt)
-        response = await chat.send_message(message)
-        
-        evaluation = json.loads(response)
+        if provider == "openrouter":
+            from openai import AsyncOpenAI
+            api_key = llm_config.get("openrouter_key") or os.environ.get("OPENROUTER_API_KEY")
+            client = AsyncOpenAI(
+                base_url="https://openrouter.ai/api/v1", api_key=api_key,
+                default_headers={"HTTP-Referer": "https://leximaster.app"},
+                max_retries=1, timeout=60.0,
+            )
+            response_obj = await client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3, max_tokens=4000,
+            )
+            response = response_obj.choices[0].message.content or ""
+        else:
+            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            from emergentintegrations.llm.chat import LlmChat, UserMessage
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=f"assess_{assessment_id}",
+                system_message="You are an educational assessment evaluator. Be encouraging but fair."
+            )
+            chat.with_model("openai", model if provider == "emergent" else "gpt-5.2")
+            message = UserMessage(text=prompt)
+            response = await chat.send_message(message)
+
+        # Parse response
+        text = response.strip()
+        if text.startswith("```"):
+            text = text.split("\n", 1)[1] if "\n" in text else text[3:]
+            if text.endswith("```"): text = text[:-3]
+            text = text.strip()
+
+        evaluation = json_lib.loads(text)
         
         # Update assessment with results
         correct_count = sum(1 for r in evaluation["results"] if r["overall_correct"])

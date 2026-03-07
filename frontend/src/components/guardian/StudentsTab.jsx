@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { studentAPI, subscriptionAPI } from '@/lib/api';
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalProgress } from '@/components/brutal';
-import { Plus, Edit, Trash2, Copy, Check, BookOpen, RefreshCw } from 'lucide-react';
+import { Plus, Edit, Trash2, Copy, Check, BookOpen, RefreshCw, Type, SpellCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import StudentFormDialog from './StudentFormDialog';
 import DeleteConfirmDialog from './DeleteConfirmDialog';
@@ -65,6 +65,24 @@ const StudentsTab = () => {
       toast.error(error.response?.data?.detail || 'Failed to reset PIN');
       setResettingPin(null);
     }
+  });
+
+  // Spellcheck toggle mutation
+  const spellcheckMutation = useMutation({
+    mutationFn: (studentId) => studentAPI.toggleSpellcheck(studentId),
+    onSuccess: (response) => {
+      queryClient.invalidateQueries(['students']);
+      toast.success(`Spellcheck ${response.data.spellcheck_disabled ? 'disabled' : 'enabled'}`);
+    },
+  });
+
+  // Spelling mode toggle mutation
+  const spellingModeMutation = useMutation({
+    mutationFn: (studentId) => studentAPI.toggleSpellingMode(studentId),
+    onSuccess: (response) => {
+      queryClient.invalidateQueries(['students']);
+      toast.success(`Spelling mode: ${response.data.spelling_mode}`);
+    },
   });
 
   const handleEdit = (student) => {
@@ -336,6 +354,32 @@ const StudentsTab = () => {
                   <RefreshCw size={16} className={resettingPin === student.id ? 'animate-spin' : ''} />
                   {resettingPin === student.id ? 'Resetting...' : 'Reset PIN'}
                 </BrutalButton>
+
+                {/* Spelling Controls */}
+                <div className="flex gap-2">
+                  <BrutalButton
+                    variant={student.spellcheck_disabled ? 'rose' : 'default'}
+                    size="sm"
+                    fullWidth
+                    onClick={() => spellcheckMutation.mutate(student.id)}
+                    className="flex items-center justify-center gap-1 text-xs"
+                    data-testid={`spellcheck-toggle-${student.id}`}
+                  >
+                    <SpellCheck size={14} />
+                    {student.spellcheck_disabled ? 'Spellcheck OFF' : 'Spellcheck ON'}
+                  </BrutalButton>
+                  <BrutalButton
+                    variant={student.spelling_mode === 'exact' ? 'indigo' : 'default'}
+                    size="sm"
+                    fullWidth
+                    onClick={() => spellingModeMutation.mutate(student.id)}
+                    className="flex items-center justify-center gap-1 text-xs"
+                    data-testid={`spelling-mode-${student.id}`}
+                  >
+                    <Type size={14} />
+                    {student.spelling_mode === 'exact' ? 'Exact Spelling' : 'Phonetic OK'}
+                  </BrutalButton>
+                </div>
               </div>
             </BrutalCard>
           ))}

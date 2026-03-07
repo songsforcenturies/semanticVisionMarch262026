@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { adminAPI } from '@/lib/api';
 import { BrutalCard, BrutalButton, BrutalBadge, BrutalInput } from '@/components/brutal';
-import { Home, LogOut, DollarSign, Cpu, Users, BarChart3, Settings } from 'lucide-react';
+import { Home, LogOut, DollarSign, Cpu, Users, BarChart3, Settings, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
@@ -28,10 +28,22 @@ const AdminPortal = () => {
     queryFn: async () => (await adminAPI.getModels()).data,
   });
 
+  const { data: adminSettings } = useQuery({
+    queryKey: ['admin-settings'],
+    queryFn: async () => (await adminAPI.getSettings()).data,
+  });
+
   const [llmForm, setLlmForm] = useState({
     provider: 'emergent',
     model: 'gpt-5.2',
     openrouter_key: '',
+  });
+
+  const [settingsForm, setSettingsForm] = useState({
+    global_spellcheck_disabled: false,
+    global_spelling_mode: 'phonetic',
+    free_account_story_limit: 5,
+    free_account_assessment_limit: 10,
   });
 
   const updateModelMutation = useMutation({
@@ -41,6 +53,15 @@ const AdminPortal = () => {
       toast.success('LLM configuration updated!');
     },
     onError: (err) => toast.error(err.response?.data?.detail || 'Failed to update config'),
+  });
+
+  const updateSettingsMutation = useMutation({
+    mutationFn: (data) => adminAPI.updateSettings(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['admin-settings']);
+      toast.success('Settings updated!');
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed to update settings'),
   });
 
   React.useEffect(() => {
@@ -53,11 +74,23 @@ const AdminPortal = () => {
     }
   }, [modelConfig]);
 
+  React.useEffect(() => {
+    if (adminSettings) {
+      setSettingsForm({
+        global_spellcheck_disabled: adminSettings.global_spellcheck_disabled ?? false,
+        global_spelling_mode: adminSettings.global_spelling_mode ?? 'phonetic',
+        free_account_story_limit: adminSettings.free_account_story_limit ?? 5,
+        free_account_assessment_limit: adminSettings.free_account_assessment_limit ?? 10,
+      });
+    }
+  }, [adminSettings]);
+
   const handleLogout = () => { logout(); navigate('/login'); };
 
   const tabs = [
     { id: 'costs', label: 'Cost Tracking', icon: DollarSign },
     { id: 'config', label: 'LLM Config', icon: Settings },
+    { id: 'settings', label: 'App Settings', icon: Shield },
   ];
 
   return (
@@ -287,6 +320,74 @@ const AdminPortal = () => {
 
                 <BrutalButton type="submit" variant="indigo" fullWidth size="lg" disabled={updateModelMutation.isPending} data-testid="save-config-btn">
                   {updateModelMutation.isPending ? 'Saving...' : 'Save Configuration'}
+                </BrutalButton>
+              </form>
+            </BrutalCard>
+          </div>
+        )}
+
+        {/* App Settings Tab */}
+        {activeTab === 'settings' && (
+          <div className="space-y-6" data-testid="settings-tab">
+            <BrutalCard shadow="xl" className="max-w-2xl">
+              <h3 className="text-2xl font-black uppercase mb-6">App Settings</h3>
+              <form onSubmit={(e) => { e.preventDefault(); updateSettingsMutation.mutate(settingsForm); }} className="space-y-6">
+                {/* Spelling Settings */}
+                <div className="border-4 border-black p-4">
+                  <h4 className="font-black uppercase text-lg mb-4">Spelling & Spellcheck</h4>
+                  <div className="space-y-4">
+                    <label className="flex items-center justify-between cursor-pointer p-3 border-2 border-black hover:bg-gray-50">
+                      <div>
+                        <span className="font-bold">Disable Browser Spellcheck (System-wide)</span>
+                        <p className="text-sm text-gray-600">Students won't see red underlines on misspelled words</p>
+                      </div>
+                      <input type="checkbox" checked={settingsForm.global_spellcheck_disabled}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, global_spellcheck_disabled: e.target.checked })}
+                        className="w-6 h-6" data-testid="global-spellcheck-toggle" />
+                    </label>
+                    <div>
+                      <p className="font-bold mb-2">Default Spelling Mode</p>
+                      <div className="flex gap-4">
+                        <label className={`flex-1 p-3 border-4 border-black cursor-pointer text-center ${settingsForm.global_spelling_mode === 'phonetic' ? 'bg-emerald-100' : 'bg-white'}`}>
+                          <input type="radio" name="spelling" value="phonetic"
+                            checked={settingsForm.global_spelling_mode === 'phonetic'}
+                            onChange={() => setSettingsForm({ ...settingsForm, global_spelling_mode: 'phonetic' })} className="mr-2" />
+                          <span className="font-bold">Phonetic OK</span>
+                          <p className="text-xs text-gray-600 mt-1">Close spellings accepted</p>
+                        </label>
+                        <label className={`flex-1 p-3 border-4 border-black cursor-pointer text-center ${settingsForm.global_spelling_mode === 'exact' ? 'bg-indigo-100' : 'bg-white'}`}>
+                          <input type="radio" name="spelling" value="exact"
+                            checked={settingsForm.global_spelling_mode === 'exact'}
+                            onChange={() => setSettingsForm({ ...settingsForm, global_spelling_mode: 'exact' })} className="mr-2" />
+                          <span className="font-bold">Exact Required</span>
+                          <p className="text-xs text-gray-600 mt-1">Words must be spelled correctly</p>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Free Account Limits */}
+                <div className="border-4 border-black p-4">
+                  <h4 className="font-black uppercase text-lg mb-4">Free Account Limits</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block font-bold text-sm uppercase mb-2">Max Stories (Free)</label>
+                      <input type="number" min={1} max={100} value={settingsForm.free_account_story_limit}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, free_account_story_limit: parseInt(e.target.value) || 5 })}
+                        className="w-full border-4 border-black px-4 py-3 font-bold" data-testid="free-story-limit" />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-sm uppercase mb-2">Max Assessments (Free)</label>
+                      <input type="number" min={1} max={100} value={settingsForm.free_account_assessment_limit}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, free_account_assessment_limit: parseInt(e.target.value) || 10 })}
+                        className="w-full border-4 border-black px-4 py-3 font-bold" data-testid="free-assessment-limit" />
+                    </div>
+                  </div>
+                </div>
+
+                <BrutalButton type="submit" variant="indigo" fullWidth size="lg" disabled={updateSettingsMutation.isPending} data-testid="save-settings-btn">
+                  {updateSettingsMutation.isPending ? 'Saving...' : 'Save Settings'}
                 </BrutalButton>
               </form>
             </BrutalCard>

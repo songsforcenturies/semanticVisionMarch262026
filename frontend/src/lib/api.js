@@ -54,6 +54,9 @@ export const studentAPI = {
   resetPin: (id) => apiClient.post(`/students/${id}/reset-pin`),
   getProgress: (id) => apiClient.get(`/students/${id}/progress`),
   getExportUrl: (id, format) => `${API}/students/${id}/export?format=${format}`,
+  toggleSpellcheck: (id) => apiClient.post(`/students/${id}/spellcheck`),
+  toggleSpellingMode: (id) => apiClient.post(`/students/${id}/spelling-mode`),
+  getSpellingLogs: (id) => apiClient.get(`/students/${id}/spelling-logs`),
 };
 
 // ==================== SUBSCRIPTION API ====================
@@ -95,6 +98,7 @@ export const assessmentAPI = {
   getAll: (params) => apiClient.get('/assessments', { params }),
   getById: (id) => apiClient.get(`/assessments/${id}`),
   evaluate: (id, answers) => apiClient.post(`/assessments/${id}/evaluate`, answers),
+  evaluateWritten: (data) => apiClient.post('/assessments/evaluate-written', data),
 };
 
 // ==================== GIFT API ====================
@@ -122,6 +126,8 @@ export const adminAPI = {
   getCosts: () => apiClient.get('/admin/costs'),
   getModels: () => apiClient.get('/admin/models'),
   updateModels: (data) => apiClient.post('/admin/models', data),
+  getSettings: () => apiClient.get('/admin/settings'),
+  updateSettings: (data) => apiClient.post('/admin/settings', data),
 };
 
 export default apiClient;
