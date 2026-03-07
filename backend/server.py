@@ -818,17 +818,27 @@ async def create_narrative(narrative_data: NarrativeCreate):
         # Create narrative object
         from models import Chapter, EmbeddedToken, VisionCheck
         
+        valid_tiers = {"baseline", "target", "stretch"}
         chapters = []
         for ch_data in story_data.get("chapters", []):
+            # Filter embedded tokens to only valid tiers
+            tokens = []
+            for token in ch_data.get("embedded_tokens", []):
+                if isinstance(token, dict) and token.get("tier") in valid_tiers:
+                    tokens.append(EmbeddedToken(**token))
+            
+            # Handle vision_check with defaults
+            vc_data = ch_data.get("vision_check", {})
+            if not vc_data or not vc_data.get("question"):
+                vc_data = {"question": "What happened in this chapter?", "options": ["A", "B", "C", "D"], "correct_index": 0}
+            
             chapter = Chapter(
-                number=ch_data["number"],
-                title=ch_data["title"],
-                content=ch_data["content"],
-                word_count=ch_data["word_count"],
-                embedded_tokens=[
-                    EmbeddedToken(**token) for token in ch_data.get("embedded_tokens", [])
-                ],
-                vision_check=VisionCheck(**ch_data["vision_check"])
+                number=ch_data.get("number", len(chapters) + 1),
+                title=ch_data.get("title", f"Chapter {len(chapters) + 1}"),
+                content=ch_data.get("content", ""),
+                word_count=ch_data.get("word_count", len(ch_data.get("content", "").split())),
+                embedded_tokens=tokens,
+                vision_check=VisionCheck(**vc_data)
             )
             chapters.append(chapter)
         

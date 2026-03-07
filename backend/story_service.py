@@ -52,8 +52,10 @@ class StoryGenerationService:
             "gpt-5.2": (0.01, 0.03),
             "gpt-4o": (0.0025, 0.01),
             "gpt-4o-mini": (0.00015, 0.0006),
-            "meta-llama/llama-3.1-8b-instruct:free": (0, 0),
-            "google/gemma-2-9b-it:free": (0, 0),
+            "meta-llama/llama-3.3-70b-instruct:free": (0, 0),
+            "google/gemma-3-27b-it:free": (0, 0),
+            "deepseek/deepseek-r1-0528:free": (0, 0),
+            "nvidia/llama-3.1-nemotron-ultra-253b:free": (0, 0),
             "openrouter/auto": (0.001, 0.003),
         }
         if model in cost_map:
@@ -175,18 +177,48 @@ Return ONLY valid JSON (no markdown):
                 client = AsyncOpenAI(
                     base_url="https://openrouter.ai/api/v1",
                     api_key=api_key,
-                    default_headers={"HTTP-Referer": "https://leximaster.app"}
+                    default_headers={"HTTP-Referer": "https://leximaster.app"},
+                    max_retries=1,
+                    timeout=60.0,
                 )
-                response = await client.chat.completions.create(
-                    model=model,
-                    messages=[
-                        {"role": "system", "content": system_message},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    temperature=0.8,
-                )
-                response_text = response.choices[0].message.content
-                completion_tokens_est = len(response_text.split())
+                # Some free models don't support system messages, merge into user message
+                merged_prompt = f"{system_message}\n\n---\n\n{user_prompt}"
+                
+                # Try with retries and fallback models
+                fallback_models = [
+                    model,
+                    "qwen/qwen3-next-80b-a3b-instruct:free",
+                    "openai/gpt-oss-120b:free",
+                    "nvidia/nemotron-nano-9b-v2:free",
+                ]
+                last_error = None
+                for attempt_model in fallback_models:
+                    try:
+                        response = await client.chat.completions.create(
+                            model=attempt_model,
+                            messages=[
+                                {"role": "user", "content": merged_prompt}
+                            ],
+                            temperature=0.8,
+                            max_tokens=8000,
+                        )
+                        choice = response.choices[0]
+                        response_text = choice.message.content or ""
+                        # Some models use reasoning field instead of content
+                        if not response_text and hasattr(choice.message, 'reasoning'):
+                            response_text = choice.message.reasoning or ""
+                        if not response_text:
+                            raise ValueError("Empty response from model")
+                        model = attempt_model  # Record actual model used
+                        completion_tokens_est = len(response_text.split())
+                        last_error = None
+                        break
+                    except Exception as e:
+                        last_error = e
+                        continue
+                
+                if last_error:
+                    raise last_error
             else:
                 # Use Emergent LLM integration
                 chat = LlmChat(

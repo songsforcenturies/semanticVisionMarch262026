@@ -57,6 +57,8 @@ Build "LexiMaster," a high-quality educational platform for students, guardians,
 - **2026-03-07:** Fixed student login (missing student_code + PIN length)
 - **2026-03-07:** Fixed story generation (missing virtues parameter)
 - **2026-03-07:** Fixed story dialog (scrollable + sticky buttons)
+- **2026-03-07:** Fixed Motor DB truth testing (`if self.db:` → `if self.db is not None:`)
+- **2026-03-07:** Fixed OpenRouter integration (updated free model list, added fallback routing, lenient JSON parsing for AI responses, timeout/retry limits)
 
 ## Feature Additions
 - **2026-03-07:** Reset PIN, Progress Dashboard, Export, Teacher Portal, Session Join, Admin Dashboard, WebSocket, OpenRouter support

@@ -257,9 +257,10 @@ const AdminPortal = () => {
                       <select value={llmForm.model} onChange={(e) => setLlmForm({ ...llmForm, model: e.target.value })}
                         className="w-full border-4 border-black px-4 py-3 font-bold mb-2" data-testid="model-select">
                         <option value="openrouter/auto">Auto (Smart routing)</option>
-                        <option value="meta-llama/llama-3.1-8b-instruct:free">Llama 3.1 8B (FREE)</option>
-                        <option value="google/gemma-2-9b-it:free">Gemma 2 9B (FREE)</option>
-                        <option value="mistralai/mistral-7b-instruct:free">Mistral 7B (FREE)</option>
+                        <option value="qwen/qwen3-next-80b-a3b-instruct:free">Qwen3 80B (FREE)</option>
+                        <option value="openai/gpt-oss-120b:free">GPT-OSS 120B (FREE)</option>
+                        <option value="nvidia/nemotron-nano-9b-v2:free">Nemotron Nano 9B (FREE)</option>
+                        <option value="stepfun/step-3.5-flash:free">Step 3.5 Flash (FREE)</option>
                         <option value="openai/gpt-4o-mini">GPT-4o Mini ($)</option>
                         <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet ($$)</option>
                       </select>
