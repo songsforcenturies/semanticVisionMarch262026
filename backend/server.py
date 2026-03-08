@@ -3046,12 +3046,115 @@ async def get_my_referrals(current_user: dict = Depends(get_current_user)):
         {"referrer_id": current_user["id"]}, {"_id": 0}
     ).sort("created_date", -1).to_list(100)
     
+    total_earned = 0.0
     for ref in referrals:
         referred_user = await db.users.find_one({"id": ref["referred_id"]}, {"_id": 0, "full_name": 1, "email": 1})
         if referred_user:
             ref["referred_name"] = referred_user.get("full_name", "Unknown")
+        total_earned += ref.get("reward_amount", 0)
     
-    return referrals
+    return {"referrals": referrals, "total_earned": total_earned, "total_count": len(referrals)}
+
+
+@api_router.get("/referrals/reward-amount")
+async def get_referral_reward_amount():
+    """Get current referral reward amount (public for display)"""
+    config = await db.system_config.find_one({"key": "billing_config"}, {"_id": 0})
+    reward = config.get("value", {}).get("referral_reward_amount", 5.0) if config else 5.0
+    return {"referral_reward_amount": reward}
+
+
+# ==================== CURRENCY / EXCHANGE RATES ====================
+
+import httpx
+
+# Cache for exchange rates (refresh every 6 hours)
+_exchange_rate_cache = {"rates": {}, "last_fetched": None}
+
+COUNTRY_TO_CURRENCY = {
+    "US": "USD", "GB": "GBP", "CA": "CAD", "AU": "AUD", "EU": "EUR",
+    "NG": "NGN", "GH": "GHS", "KE": "KES", "ZA": "ZAR", "IN": "INR",
+    "JP": "JPY", "CN": "CNY", "BR": "BRL", "MX": "MXN", "KR": "KRW",
+    "DE": "EUR", "FR": "EUR", "IT": "EUR", "ES": "EUR", "NL": "EUR",
+    "PT": "EUR", "BE": "EUR", "AT": "EUR", "IE": "EUR", "FI": "EUR",
+    "GR": "EUR", "PH": "PHP", "TH": "THB", "MY": "MYR", "SG": "SGD",
+    "HK": "HKD", "TW": "TWD", "AE": "AED", "SA": "SAR", "EG": "EGP",
+    "PK": "PKR", "BD": "BDT", "LK": "LKR", "NP": "NPR", "ID": "IDR",
+    "VN": "VND", "CO": "COP", "AR": "ARS", "CL": "CLP", "PE": "PEN",
+    "SE": "SEK", "NO": "NOK", "DK": "DKK", "PL": "PLN", "CZ": "CZK",
+    "HU": "HUF", "RO": "RON", "UA": "UAH", "RU": "RUB", "TR": "TRY",
+    "IL": "ILS", "NZ": "NZD", "JM": "JMD", "TT": "TTD", "GY": "GYD",
+}
+
+CURRENCY_SYMBOLS = {
+    "USD": "$", "GBP": "£", "EUR": "€", "NGN": "₦", "GHS": "₵",
+    "KES": "KSh", "ZAR": "R", "INR": "₹", "JPY": "¥", "CNY": "¥",
+    "BRL": "R$", "MXN": "$", "KRW": "₩", "PHP": "₱", "THB": "฿",
+    "MYR": "RM", "SGD": "S$", "HKD": "HK$", "TWD": "NT$", "AED": "د.إ",
+    "SAR": "﷼", "EGP": "£", "PKR": "₨", "BDT": "৳", "IDR": "Rp",
+    "VND": "₫", "COP": "$", "ARS": "$", "CLP": "$", "PEN": "S/.",
+    "SEK": "kr", "NOK": "kr", "DKK": "kr", "PLN": "zł", "CZK": "Kč",
+    "HUF": "Ft", "RON": "lei", "UAH": "₴", "RUB": "₽", "TRY": "₺",
+    "ILS": "₪", "NZD": "NZ$", "CAD": "C$", "AUD": "A$", "JMD": "J$",
+    "TTD": "TT$", "GYD": "G$", "LKR": "Rs", "NPR": "₨",
+}
+
+
+async def _fetch_exchange_rates():
+    """Fetch and cache exchange rates from free API"""
+    now = datetime.now(timezone.utc)
+    if _exchange_rate_cache["last_fetched"] and (now - _exchange_rate_cache["last_fetched"]).total_seconds() < 21600:
+        return _exchange_rate_cache["rates"]
+    
+    try:
+        async with httpx.AsyncClient(timeout=10) as client_http:
+            resp = await client_http.get("https://open.er-api.com/v6/latest/USD")
+            data = resp.json()
+            if data.get("result") == "success":
+                _exchange_rate_cache["rates"] = data.get("rates", {})
+                _exchange_rate_cache["last_fetched"] = now
+                return _exchange_rate_cache["rates"]
+    except Exception as e:
+        logging.warning(f"Exchange rate fetch failed: {e}")
+    
+    return _exchange_rate_cache["rates"] or {"USD": 1}
+
+
+@api_router.get("/currency/detect")
+async def detect_currency(request: Request):
+    """Detect user's currency based on IP geolocation"""
+    # Get client IP
+    forwarded = request.headers.get("x-forwarded-for", "")
+    client_ip = forwarded.split(",")[0].strip() if forwarded else request.client.host
+    
+    country_code = "US"
+    try:
+        async with httpx.AsyncClient(timeout=5) as client_http:
+            resp = await client_http.get(f"http://ip-api.com/json/{client_ip}?fields=countryCode")
+            data = resp.json()
+            if data.get("countryCode"):
+                country_code = data["countryCode"]
+    except Exception:
+        pass
+    
+    currency_code = COUNTRY_TO_CURRENCY.get(country_code, "USD")
+    rates = await _fetch_exchange_rates()
+    rate = rates.get(currency_code, 1.0)
+    symbol = CURRENCY_SYMBOLS.get(currency_code, currency_code)
+    
+    return {
+        "country_code": country_code,
+        "currency_code": currency_code,
+        "currency_symbol": symbol,
+        "rate_to_usd": rate,
+    }
+
+
+@api_router.get("/currency/rates")
+async def get_exchange_rates():
+    """Get all exchange rates (base USD)"""
+    rates = await _fetch_exchange_rates()
+    return {"base": "USD", "rates": rates}
 
 
 # ==================== DONATION / SPONSOR A READER ====================

@@ -1004,7 +1004,7 @@ const AdminPortal = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div><label className="block font-bold text-sm uppercase mb-2">Free Tier Stories</label>
                     <input type="number" value={billingForm.free_tier_stories} onChange={(e) => setBillingForm({ ...billingForm, free_tier_stories: parseInt(e.target.value) || 0 })} className="w-full border-4 border-black px-4 py-3 font-bold" /></div>
-                  <div><label className="block font-bold text-sm uppercase mb-2">Referral Reward ($)</label>
+                  <div><label className="block font-bold text-sm uppercase mb-2">Referral Reward (USD - wallet credit)</label>
                     <input type="number" step="0.01" value={billingForm.referral_reward_amount} onChange={(e) => setBillingForm({ ...billingForm, referral_reward_amount: parseFloat(e.target.value) || 0 })} className="w-full border-4 border-black px-4 py-3 font-bold" data-testid="referral-reward" /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">

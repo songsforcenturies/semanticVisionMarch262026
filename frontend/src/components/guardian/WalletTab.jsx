@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { walletAPI, couponAPI } from '@/lib/api';
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput } from '@/components/brutal';
 import { Wallet, Plus, ArrowUpRight, ArrowDownLeft, Gift, Clock, DollarSign, CreditCard } from 'lucide-react';
@@ -16,6 +17,7 @@ const PACKAGE_LABELS = {
 
 const WalletTab = () => {
   const { user } = useAuth();
+  const { formatAmount } = useCurrency();
   const queryClient = useQueryClient();
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [couponCode, setCouponCode] = useState('');
@@ -44,7 +46,7 @@ const WalletTab = () => {
     try {
       const res = await walletAPI.getPaymentStatus(sessionId);
       if (res.data.payment_status === 'paid') {
-        toast.success(`$${res.data.amount.toFixed(2)} added to your wallet!`);
+        toast.success(`${formatAmount(res.data.amount)} added to your wallet!`);
         queryClient.invalidateQueries(['wallet-balance']);
         queryClient.invalidateQueries(['wallet-transactions']);
         return;
@@ -108,7 +110,7 @@ const WalletTab = () => {
               <Wallet size={16} /> Account Balance
             </p>
             <p className="text-5xl font-black mt-2" data-testid="wallet-balance">
-              ${balance.toFixed(2)}
+              {formatAmount(balance)}
             </p>
           </div>
           <div className="w-20 h-20 border-4 border-black bg-indigo-200 flex items-center justify-center">
@@ -134,7 +136,7 @@ const WalletTab = () => {
               }`}
               data-testid={`package-${pkg.id}`}
             >
-              ${pkg.amount.toFixed(0)}
+              {formatAmount(pkg.amount)}
             </button>
           ))}
         </div>
@@ -217,9 +219,9 @@ const WalletTab = () => {
                 </div>
                 <div className="text-right">
                   <p className={`font-black text-lg ${txn.type === 'debit' ? 'text-rose-600' : 'text-emerald-600'}`}>
-                    {txn.type === 'debit' ? '-' : '+'}${txn.amount.toFixed(2)}
+                    {txn.type === 'debit' ? '-' : '+'}{formatAmount(txn.amount)}
                   </p>
-                  <p className="text-xs text-gray-500">Bal: ${txn.balance_after.toFixed(2)}</p>
+                  <p className="text-xs text-gray-500">Bal: {formatAmount(txn.balance_after)}</p>
                 </div>
               </div>
             ))}

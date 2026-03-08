@@ -1,0 +1,108 @@
+{
+  "summary": "Iteration 20: Currency Localization, Referral Earnings Display, Admin Referral Reward Config - ALL TESTS PASSED. Backend: 9/9 tests passed. Frontend: All Invite & Earn, Wallet, Marketplace, Admin Billing features verified.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Console", "issues": ["Minor 404 errors for static resources - non-critical"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration_20_currency_referrals.py",
+    "/app/test_reports/pytest/iteration_20_currency_referrals.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Currency detection endpoint correctly returns country_code, currency_code, currency_symbol, rate_to_usd",
+    "Exchange rates endpoint returns USD-base rates from open.er-api.com",
+    "Referral reward amount endpoint returns configured amount (default $5.00)",
+    "Guardian my-referrals endpoint returns referrals array, total_earned, total_count",
+    "Admin Billing/ROI tab has Referral Reward field with 'USD - wallet credit' label",
+    "CurrencyProvider wraps app and provides formatAmount function",
+    "Toggle buttons (Spellcheck, Phonetic, Brand Stories) work correctly with green=ON, red=OFF colors"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration_20_currency_referrals.py"
+  ],
+  "success_rate": {
+    "backend": "100% (9/9 passed)",
+    "frontend": "100% (all UI flows verified)"
+  },
+  "test_credentials": {
+    "admin": {"email": "allen@songsforcenturies.com", "password": "LexiAdmin2026!"},
+    "guardian": {"email": "allen@ourfamily.contact", "password": "LexiAdmin2026!"}
+  },
+  "seed_data_creation": "No new seed data created",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All 3 new features verified: (1) Currency Detection - Returns USD for US-based server, formatAmount() available via CurrencyProvider. (2) Referral Earnings - Invite & Earn tab shows referral code (REF-EC8CYH), copy buttons, total earned ($0.00), referral count (0), referral history. (3) Admin Referral Reward - Billing/ROI tab has 'REFERRAL REWARD (USD - WALLET CREDIT)' field set to $5.00. Toggle buttons (Spellcheck ON/OFF, Phonetic ON/OFF, Brand Stories ON/OFF) work correctly in parent portal Students tab with proper color coding (emerald=ON, rose=OFF).",
+  "tests_executed": {
+    "backend_api_tests": [
+      "TestHealthCheck::test_backend_health - PASSED",
+      "TestCurrencyDetection::test_currency_detect_returns_expected_fields - PASSED",
+      "TestCurrencyDetection::test_currency_rates_returns_expected_structure - PASSED",
+      "TestReferralRewardAmount::test_get_referral_reward_amount - PASSED",
+      "TestGuardianReferrals::test_get_my_referral_code - PASSED",
+      "TestGuardianReferrals::test_get_my_referrals_returns_expected_fields - PASSED",
+      "TestAdminBillingConfig::test_get_billing_config_includes_referral_reward - PASSED",
+      "TestAdminBillingConfig::test_update_referral_reward_amount - PASSED",
+      "TestStudentToggleEndpoints::test_get_students_has_toggle_fields - PASSED"
+    ],
+    "frontend_ui_tests": [
+      "Guardian login -> Parent Portal - PASSED",
+      "Invite & Earn tab - referral code displayed (REF-EC8CYH) - PASSED",
+      "Invite & Earn tab - copy buttons present - PASSED",
+      "Invite & Earn tab - total earned ($0.00) displayed - PASSED",
+      "Invite & Earn tab - referral count (0) displayed - PASSED",
+      "Wallet tab - balance with currency formatting ($0.00) - PASSED",
+      "Marketplace tab - balance with currency formatting ($0.00) - PASSED",
+      "Admin login -> Admin Dashboard - PASSED",
+      "Admin Billing/ROI tab - referral reward field (USD - wallet credit) - PASSED",
+      "Admin Billing/ROI tab - save config works - PASSED",
+      "Admin -> Parent Portal - Student toggle buttons visible - PASSED",
+      "Spellcheck toggle - ON (green), OFF (red) color change - PASSED",
+      "Phonetic toggle - present and functional - PASSED",
+      "Brand Stories toggle - present and functional - PASSED"
+    ]
+  },
+  "feature_verification": {
+    "currency_detection": {
+      "endpoint": "/api/currency/detect",
+      "returns": {"country_code": "US", "currency_code": "USD", "currency_symbol": "$", "rate_to_usd": 1},
+      "status": "WORKING"
+    },
+    "exchange_rates": {
+      "endpoint": "/api/currency/rates",
+      "returns": "USD-base exchange rates for 150+ currencies",
+      "api_source": "open.er-api.com (free, cached 6 hours)",
+      "status": "WORKING"
+    },
+    "referral_earnings": {
+      "endpoint": "/api/referrals/my-referrals",
+      "returns": {"referrals": "array", "total_earned": 0, "total_count": 0},
+      "frontend_tab": "Invite & Earn with code, copy buttons, stats, history",
+      "status": "WORKING"
+    },
+    "referral_reward_config": {
+      "admin_endpoint": "/api/admin/billing-config (POST to update)",
+      "public_endpoint": "/api/referrals/reward-amount",
+      "default_value": 5.0,
+      "frontend_label": "REFERRAL REWARD (USD - WALLET CREDIT)",
+      "status": "WORKING"
+    },
+    "student_toggle_buttons": {
+      "spellcheck_toggle": "Green (emerald) = ON, Red (rose) = OFF",
+      "phonetic_toggle": "Yellow (amber) = ON",
+      "brand_stories_toggle": "Green (emerald) = ON, Red (rose) = OFF",
+      "status": "WORKING"
+    }
+  },
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "note": "Using real free APIs: open.er-api.com for exchange rates, ip-api.com for geolocation"
+  }
+}

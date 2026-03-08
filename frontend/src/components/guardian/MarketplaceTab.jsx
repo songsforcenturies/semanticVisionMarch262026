@@ -5,6 +5,7 @@ import { wordBankAPI, subscriptionAPI, walletAPI } from '@/lib/api';
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput } from '@/components/brutal';
 import { Search, Eye, Check, ShoppingCart, Wallet, PlusCircle, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import WordBankPreviewDialog from './WordBankPreviewDialog';
 
 const CATEGORIES = [
@@ -52,6 +53,7 @@ const MarketplaceTab = () => {
     queryKey: ['wallet-balance'],
     queryFn: async () => (await walletAPI.getBalance()).data,
   });
+  const { formatAmount } = useCurrency();
 
   // Fetch subscription to know what's already purchased
   const { data: subscription } = useQuery({
@@ -105,10 +107,10 @@ const MarketplaceTab = () => {
       const priceDollars = (bank.price / 100).toFixed(2);
       const balance = walletData?.balance ?? 0;
       if (balance < bank.price / 100) {
-        toast.error(`Insufficient balance ($${balance.toFixed(2)}). Please add funds in the Wallet tab.`);
+        toast.error(`Insufficient balance (${formatAmount(balance)}). Please add funds in the Wallet tab.`);
         return;
       }
-      if (window.confirm(`Purchase ${bank.name} for $${priceDollars}? (Wallet: $${balance.toFixed(2)})`)) {
+      if (window.confirm(`Purchase ${bank.name} for ${formatAmount(priceDollars)}? (Wallet: ${formatAmount(balance)})`)) {
         purchaseMutation.mutate(bank.id);
       }
     }
@@ -116,7 +118,7 @@ const MarketplaceTab = () => {
 
   const formatPrice = (priceInCents) => {
     if (priceInCents === 0) return 'FREE';
-    return `$${(priceInCents / 100).toFixed(2)}`;
+    return formatAmount(priceInCents / 100);
   };
 
   const getCategoryColor = (category) => {
@@ -154,7 +156,7 @@ const MarketplaceTab = () => {
           <div className="flex items-center gap-2 px-4 py-2 border-4 border-black bg-amber-50 brutal-shadow-sm">
             <Wallet size={18} className="text-amber-700" />
             <span className="font-black text-lg" data-testid="marketplace-balance">
-              ${(walletData?.balance ?? 0).toFixed(2)}
+              {formatAmount(walletData?.balance ?? 0)}
             </span>
           </div>
         </div>
