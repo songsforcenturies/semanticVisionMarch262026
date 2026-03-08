@@ -71,7 +71,7 @@ const StudentsTab = () => {
   const spellcheckMutation = useMutation({
     mutationFn: (studentId) => studentAPI.toggleSpellcheck(studentId),
     onSuccess: (response) => {
-      queryClient.invalidateQueries(['students']);
+      queryClient.invalidateQueries({ queryKey: ['students'] });
       toast.success(`Spellcheck ${response.data.spellcheck_disabled ? 'disabled' : 'enabled'}`);
     },
   });
@@ -80,7 +80,7 @@ const StudentsTab = () => {
   const spellingModeMutation = useMutation({
     mutationFn: (studentId) => studentAPI.toggleSpellingMode(studentId),
     onSuccess: (response) => {
-      queryClient.invalidateQueries(['students']);
+      queryClient.invalidateQueries({ queryKey: ['students'] });
       toast.success(`Spelling mode: ${response.data.spelling_mode}`);
     },
   });
@@ -89,7 +89,7 @@ const StudentsTab = () => {
   const adPrefMutation = useMutation({
     mutationFn: ({ studentId, prefs }) => adPreferencesAPI.update(studentId, prefs),
     onSuccess: () => {
-      queryClient.invalidateQueries(['students']);
+      queryClient.invalidateQueries({ queryKey: ['students'] });
       toast.success('Brand story preferences updated');
     },
     onError: (err) => toast.error(err.response?.data?.detail || 'Failed'),

@@ -213,6 +213,8 @@ class Student(MongoBaseModel):
         "preferred_categories": [],
         "blocked_categories": [],
     })
+    spellcheck_disabled: bool = False
+    spelling_mode: str = "phonetic"  # "exact" or "phonetic"
     created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
