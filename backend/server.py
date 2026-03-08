@@ -4863,26 +4863,65 @@ async def get_brand_story_integrations(brand_id: Optional[str] = None, current_u
     for snippet in story_snippets:
         snippet["student_name"] = student_names.get(snippet["student_id"], "Student")
 
-    # 4. Get vision check questions from chapters + read_log pass/fail data
-    #    This captures the brand activation questions asked to students
+    # 4. Get vision check questions that specifically relate to the brand/product
+    #    Only include if the question or expected answer references the brand,
+    #    or the question asks about a tool/product and the answer is the brand product
     activation_questions = []
+    # Build broader search: brand name, products, and contextual terms from product descriptions
+    brand_answer_terms = set(search_terms)
+    for p in brand.get("products", []):
+        name = p.get("name", "").lower().strip()
+        if name:
+            # Add individual words from product name (e.g., "Smart Learning Tablet" -> "tablet")
+            for word in name.split():
+                if len(word) > 3:
+                    brand_answer_terms.add(word)
+
     for narrative in narratives_with_brand:
         for chapter in narrative.get("chapters", []):
             vision_check = chapter.get("vision_check", {})
             question = vision_check.get("question", "")
+            expected_answer = vision_check.get("answer", "")
             if not question:
                 continue
-            
+
             ch_num = chapter.get("number", 0)
             content = chapter.get("content", "")
             content_lower = content.lower()
             question_lower = question.lower()
-            
-            # Only include if brand/product appears in chapter content or question
+            answer_lower = expected_answer.lower() if expected_answer else ""
+
+            # Strategy: A question is brand-related if:
+            # 1. Brand/product name appears directly in the question or expected answer
+            brand_in_q = any(t in question_lower for t in search_terms if t)
+            brand_in_a = any(t in answer_lower for t in search_terms if t)
+
+            # 2. Question asks about a tool/device/product AND the chapter has brand content
+            import re
+            product_keywords = ["tool", "device", "tablet", "product", "technology", "gadget"]
+            asks_about_product = any(re.search(r'\b' + kw + r'\b', question_lower) for kw in product_keywords)
             has_brand_content = any(t in content_lower for t in search_terms if t)
-            has_brand_question = any(t in question_lower for t in search_terms if t)
-            
-            if has_brand_content or has_brand_question:
+
+            # 3. Expected answer (if present) contains brand-adjacent terms
+            answer_has_brand_term = any(t in answer_lower for t in brand_answer_terms if t)
+
+            # 4. If no expected_answer, check if nearby content around brand mention answers the question
+            contextual_match = False
+            if not expected_answer and has_brand_content:
+                # Find sentences with brand mention — if question word appears near brand mention
+                sentences = content.replace(".", ".|").replace("!", "!|").replace("?", "?|").split("|")
+                for sentence in sentences:
+                    s_lower = sentence.lower().strip()
+                    if any(t in s_lower for t in search_terms if t):
+                        # Check if this sentence could answer the question
+                        q_keywords = [w for w in question_lower.split() if len(w) > 3 and w not in {"what", "does", "that", "this", "have", "with", "from", "were", "when", "they", "their", "about"}]
+                        if any(kw in s_lower for kw in q_keywords):
+                            contextual_match = True
+                            break
+
+            is_brand_related = brand_in_q or brand_in_a or (asks_about_product and has_brand_content) or answer_has_brand_term
+
+            if is_brand_related:
                 activation_questions.append({
                     "narrative_id": narrative["id"],
                     "narrative_title": narrative.get("title", "Untitled"),
@@ -4891,8 +4930,8 @@ async def get_brand_story_integrations(brand_id: Optional[str] = None, current_u
                     "student_id": narrative["student_id"],
                     "student_name": student_names.get(narrative["student_id"], "Student"),
                     "question": question,
-                    "expected_answer": vision_check.get("answer", ""),
-                    "brand_in_question": has_brand_question,
+                    "expected_answer": expected_answer,
+                    "brand_in_question": brand_in_q,
                 })
     
     # Get read_log pass/fail data for these activation questions
@@ -4954,6 +4993,43 @@ async def get_brand_story_integrations(brand_id: Optional[str] = None, current_u
         "activation_questions": activation_questions[:50],
         "student_responses": student_responses[:50],
         "summary": summary,
+    }
+
+
+
+@api_router.get("/brand-portal/story/{narrative_id}")
+async def get_brand_story_detail(narrative_id: str, current_user: dict = Depends(get_current_user)):
+    """Get full story for brand to read with brand mentions highlighted"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    if user.get("role") not in ("brand_partner", "admin"):
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    narrative = await db.narratives.find_one({"id": narrative_id}, {"_id": 0})
+    if not narrative:
+        raise HTTPException(status_code=404, detail="Story not found")
+
+    student = await db.students.find_one({"id": narrative["student_id"]}, {"_id": 0, "id": 1, "full_name": 1})
+
+    chapters = []
+    for ch in narrative.get("chapters", []):
+        chapters.append({
+            "number": ch.get("number", 0),
+            "title": ch.get("title", ""),
+            "content": ch.get("content", ""),
+            "word_count": ch.get("word_count", 0),
+            "vision_check": ch.get("vision_check", {}),
+            "embedded_tokens": ch.get("embedded_tokens", []),
+        })
+
+    return {
+        "id": narrative["id"],
+        "title": narrative.get("title", ""),
+        "theme": narrative.get("theme", ""),
+        "student_name": student["full_name"] if student else "Student",
+        "total_word_count": narrative.get("total_word_count", 0),
+        "status": narrative.get("status", ""),
+        "chapters": chapters,
+        "created_date": narrative.get("created_date", ""),
     }
 
 
@@ -5170,6 +5246,16 @@ async def root():
 @api_router.get("/health")
 async def health_check():
     return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
+
+
+@api_router.get("/patent-document")
+async def get_patent_document():
+    """Serve the Provisional Patent Application document"""
+    from fastapi.responses import FileResponse
+    doc_path = Path(__file__).parent.parent / "PROVISIONAL_PATENT_APPLICATION.md"
+    if not doc_path.exists():
+        raise HTTPException(status_code=404, detail="Patent document not found")
+    return FileResponse(doc_path, media_type="text/markdown", filename="Semantic_Vision_Provisional_Patent_Application.md")
 
 
 # Include router in app

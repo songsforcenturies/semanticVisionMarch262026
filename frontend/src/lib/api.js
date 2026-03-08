@@ -244,6 +244,7 @@ export const brandPortalAPI = {
   getStoryPreview: () => apiClient.get('/brand-portal/story-preview'),
   generateStoryPreview: () => apiClient.post('/brand-portal/story-preview'),
   getStoryIntegrations: () => apiClient.get('/brand-portal/story-integrations'),
+  getStoryDetail: (narrativeId) => apiClient.get(`/brand-portal/story/${narrativeId}`),
   getAnalytics: () => apiClient.get('/brand-portal/analytics'),
   getCoupons: () => apiClient.get('/brand-portal/coupons'),
   createCoupon: (data) => apiClient.post('/brand-portal/coupons', data),

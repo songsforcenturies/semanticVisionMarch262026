@@ -1180,6 +1180,20 @@ const StoryPreviewCard = ({ brand }) => {
     return elements;
   };
 
+  const [selectedStoryId, setSelectedStoryId] = useState(null);
+  const [storyReaderOpen, setStoryReaderOpen] = useState(false);
+
+  const { data: storyDetail, isLoading: loadingStory } = useQuery({
+    queryKey: ['brand-story-detail', selectedStoryId],
+    queryFn: async () => (await brandPortalAPI.getStoryDetail(selectedStoryId)).data,
+    enabled: !!selectedStoryId,
+  });
+
+  const openStoryReader = (narrativeId) => {
+    setSelectedStoryId(narrativeId);
+    setStoryReaderOpen(true);
+  };
+
   const hasRealData = snippets.length > 0 || activationQuestions.length > 0 || responses.length > 0;
 
   return (
@@ -1226,9 +1240,17 @@ const StoryPreviewCard = ({ brand }) => {
                     <p className="text-sm font-bold" style={{ color: '#F8F5EE' }}>{snippet.narrative_title}</p>
                     <p className="text-xs" style={{ color: '#94A3B8' }}>Chapter {snippet.chapter_number}: {snippet.chapter_title} &middot; Reader: {snippet.student_name}</p>
                   </div>
-                  <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{ background: 'rgba(212,168,83,0.12)', color: '#D4A853' }}>
-                    {snippet.brand_terms_found?.length || 0} mentions
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{ background: 'rgba(212,168,83,0.12)', color: '#D4A853' }}>
+                      {snippet.brand_terms_found?.length || 0} mentions
+                    </span>
+                    <button onClick={() => openStoryReader(snippet.narrative_id)}
+                      className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all hover:scale-105"
+                      style={{ background: 'rgba(56,189,248,0.12)', color: '#38BDF8', border: '1px solid rgba(56,189,248,0.2)' }}
+                      data-testid={`read-story-btn-${idx}`}>
+                      <BookOpen size={12} /> Read Story
+                    </button>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   {snippet.excerpts.map((excerpt, eIdx) => (
@@ -1369,6 +1391,72 @@ const StoryPreviewCard = ({ brand }) => {
           </div>
         )}
       </div>
+
+      {/* Story Reader Modal */}
+      {storyReaderOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)' }}>
+          <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl" style={{ background: '#0A0F1E', border: '1px solid rgba(212,168,83,0.2)' }} data-testid="story-reader-modal">
+            {/* Modal Header */}
+            <div className="sticky top-0 z-10 p-4 flex items-center justify-between" style={{ background: '#111827', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+              <div className="flex items-center gap-3">
+                <Eye size={20} style={{ color: '#D4A853' }} />
+                <div>
+                  <h3 className="text-base font-bold" style={{ color: '#F8F5EE' }}>{storyDetail?.title || 'Loading...'}</h3>
+                  {storyDetail && (
+                    <p className="text-xs" style={{ color: '#94A3B8' }}>
+                      Reader: {storyDetail.student_name} &middot; {storyDetail.total_word_count} words &middot; {storyDetail.chapters?.length || 0} chapters
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button onClick={() => { setStoryReaderOpen(false); setSelectedStoryId(null); }}
+                className="p-2 rounded-lg transition-all hover:scale-110"
+                style={{ color: '#94A3B8', border: '1px solid rgba(255,255,255,0.1)' }}
+                data-testid="close-story-reader">
+                <X size={20} />
+              </button>
+            </div>
+            
+            {loadingStory ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 size={32} className="animate-spin" style={{ color: '#D4A853' }} />
+              </div>
+            ) : storyDetail ? (
+              <div className="p-6 space-y-8">
+                {storyDetail.chapters.map((ch, cidx) => (
+                  <div key={cidx} data-testid={`story-chapter-${cidx}`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ background: 'rgba(212,168,83,0.12)', color: '#D4A853' }}>
+                        Chapter {ch.number}
+                      </span>
+                      <h4 className="text-lg font-bold" style={{ fontFamily: "'Sora', sans-serif", color: '#F8F5EE' }}>{ch.title}</h4>
+                    </div>
+                    <div className="text-base leading-[1.9] font-medium" style={{ color: '#E8E0D0' }}>
+                      {highlightBrand(ch.content)}
+                    </div>
+                    {ch.vision_check?.question && (
+                      <div className="mt-4 p-4 rounded-xl" style={{ background: 'rgba(244,114,182,0.06)', border: '1px solid rgba(244,114,182,0.2)' }}>
+                        <p className="text-xs font-bold uppercase mb-1" style={{ color: '#F472B6' }}>Comprehension Question</p>
+                        <p className="text-sm font-semibold" style={{ color: '#F8F5EE' }}>{ch.vision_check.question}</p>
+                        {ch.vision_check.answer && (
+                          <p className="text-xs mt-1" style={{ color: '#94A3B8' }}>Expected: {ch.vision_check.answer}</p>
+                        )}
+                      </div>
+                    )}
+                    {cidx < storyDetail.chapters.length - 1 && (
+                      <div className="mt-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }} />
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-20">
+                <p className="text-sm" style={{ color: '#94A3B8' }}>Story not found</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
