@@ -884,40 +884,67 @@ async def create_word_bank(
             raise HTTPException(status_code=403, detail="Word bank creation is currently disabled for parents. Contact your admin.")
     else:
         raise HTTPException(status_code=403, detail="Admin access required")
+    
     total_tokens = len(bank_data.baseline_words) + len(bank_data.target_words) + len(bank_data.stretch_words)
     
+    bank_dict = bank_data.model_dump()
+    # Force parent-created word banks to be private
+    if role == "guardian":
+        bank_dict["visibility"] = "private"
+    
     word_bank = WordBank(
-        **bank_data.model_dump(),
+        **bank_dict,
         owner_id=current_user["id"],
+        created_by_role=role,
         total_tokens=total_tokens
     )
     
-    bank_dict = word_bank.model_dump()
-    await db.word_banks.insert_one(bank_dict)
+    wb_dict = word_bank.model_dump()
+    await db.word_banks.insert_one(wb_dict)
     
     return word_bank
 
 
-@api_router.get("/word-banks", response_model=List[WordBank])
+@api_router.get("/word-banks")
 async def get_word_banks(
     visibility: Optional[str] = None,
     category: Optional[str] = None,
-    search: Optional[str] = None
+    search: Optional[str] = None,
+    sort_by: Optional[str] = "name",
+    current_user: dict = Depends(get_current_user)
 ):
-    """Get word banks with optional filters"""
-    query = {}
+    """Get word banks with filtering. Parents see global banks + their own private banks only."""
+    role = current_user.get("role")
+    
+    if role == "admin":
+        # Admins see everything
+        query = {}
+    else:
+        # Parents/others: see global/marketplace banks + their own private banks
+        query = {"$or": [
+            {"visibility": {"$in": ["global", "marketplace"]}},
+            {"owner_id": current_user["id"], "visibility": "private"},
+        ]}
+    
     if visibility:
-        query["visibility"] = visibility
+        if role == "admin":
+            query["visibility"] = visibility
+        # For non-admins, visibility filter is already handled above
     if category:
         query["category"] = category
     if search:
-        query["$or"] = [
+        search_filter = {"$or": [
             {"name": {"$regex": search, "$options": "i"}},
             {"description": {"$regex": search, "$options": "i"}},
             {"specialty": {"$regex": search, "$options": "i"}}
-        ]
+        ]}
+        if query:
+            query = {"$and": [query, search_filter]}
+        else:
+            query = search_filter
     
-    word_banks = await db.word_banks.find(query).to_list(1000)
+    sort_field = sort_by if sort_by in ["name", "category", "price", "created_date", "purchase_count"] else "name"
+    word_banks = await db.word_banks.find(query, {"_id": 0}).sort(sort_field, 1).to_list(1000)
     return word_banks
 
 
@@ -937,6 +964,52 @@ async def delete_word_bank(bank_id: str, current_user: dict = Depends(get_curren
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Word bank not found")
     return {"message": "Word bank deleted"}
+
+
+class WordBankUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    specialty: Optional[str] = None
+    visibility: Optional[str] = None
+    price: Optional[int] = None
+    baseline_words: Optional[List[Dict[str, str]]] = None
+    target_words: Optional[List[Dict[str, str]]] = None
+    stretch_words: Optional[List[Dict[str, str]]] = None
+
+
+@api_router.put("/word-banks/{bank_id}")
+async def update_word_bank(bank_id: str, data: WordBankUpdate, current_user: dict = Depends(get_current_user)):
+    """Edit a word bank. Admins can edit any. Parents can only edit their own private banks."""
+    bank = await db.word_banks.find_one({"id": bank_id})
+    if not bank:
+        raise HTTPException(status_code=404, detail="Word bank not found")
+    
+    role = current_user.get("role")
+    if role != "admin":
+        if bank.get("owner_id") != current_user["id"]:
+            raise HTTPException(status_code=403, detail="Not authorized to edit this word bank")
+        if bank.get("created_by_role") != "guardian":
+            raise HTTPException(status_code=403, detail="Can only edit your own word banks")
+    
+    update_fields = {k: v for k, v in data.model_dump().items() if v is not None}
+    
+    # Parents cannot change visibility from private
+    if role == "guardian" and "visibility" in update_fields:
+        update_fields["visibility"] = "private"
+    
+    # Recalculate total_tokens if words changed
+    if any(k in update_fields for k in ["baseline_words", "target_words", "stretch_words"]):
+        bl = update_fields.get("baseline_words", bank.get("baseline_words", []))
+        tg = update_fields.get("target_words", bank.get("target_words", []))
+        st = update_fields.get("stretch_words", bank.get("stretch_words", []))
+        update_fields["total_tokens"] = len(bl) + len(tg) + len(st)
+    
+    if update_fields:
+        await db.word_banks.update_one({"id": bank_id}, {"$set": update_fields})
+    
+    updated = await db.word_banks.find_one({"id": bank_id}, {"_id": 0})
+    return updated
 
 
 class PurchaseRequest(BaseModel):

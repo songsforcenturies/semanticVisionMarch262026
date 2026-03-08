@@ -133,6 +133,12 @@ const AdminPortal = () => {
     name: '', description: '', category: 'general', specialty: '',
     baseline_words: '', target_words: '', stretch_words: '', price: '0',
   });
+  const [wbCategoryFilter, setWbCategoryFilter] = useState('all');
+  const [editingWb, setEditingWb] = useState(null);
+  const [editWbForm, setEditWbForm] = useState({
+    name: '', description: '', category: '', specialty: '',
+    baseline_words: '', target_words: '', stretch_words: '', price: '0',
+  });
   const [contestForm, setContestForm] = useState({
     title: '', description: '', prize_description: '', prize_value: '',
     start_date: '', end_date: '', runner_up_2nd: '', runner_up_3rd: '',
@@ -270,6 +276,15 @@ const AdminPortal = () => {
     mutationFn: (id) => wordBankAPI.delete(id),
     onSuccess: () => { queryClient.invalidateQueries(['admin-word-banks']); toast.success('Word bank deleted'); },
   });
+  const editWbMutation = useMutation({
+    mutationFn: ({ id, data }) => wordBankAPI.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['admin-word-banks']);
+      toast.success('Word bank updated!');
+      setEditingWb(null);
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed to update'),
+  });
   const createContestMutation = useMutation({
     mutationFn: (data) => apiClient.post('/admin/contests', data),
     onSuccess: () => {
@@ -308,6 +323,9 @@ const AdminPortal = () => {
   }, [featureFlags]);
 
   const handleLogout = () => { logout(); navigate('/login'); };
+
+  // Filter word banks by category
+  const filteredWbs = wbCategoryFilter === 'all' ? wordBanks : wordBanks.filter(wb => wb.category === wbCategoryFilter);
 
   const tabs = [
     { id: 'stats', label: 'Statistics', icon: BarChart3 },
@@ -472,14 +490,26 @@ const AdminPortal = () => {
             </BrutalCard>
 
             {/* Existing Word Banks */}
-            <h3 className="text-2xl font-black uppercase">Existing Word Banks ({wordBanks.length})</h3>
-            {wordBanks.length === 0 ? (
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <h3 className="text-2xl font-black uppercase">Word Banks ({filteredWbs.length})</h3>
+              <div className="flex items-center gap-2">
+                {['all', 'general', 'academic', 'professional', 'specialized'].map(cat => (
+                  <BrutalButton key={cat} size="sm"
+                    variant={wbCategoryFilter === cat ? 'indigo' : 'default'}
+                    onClick={() => setWbCategoryFilter(cat)}
+                    data-testid={`wb-filter-${cat}`}>
+                    {cat === 'all' ? 'All' : cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  </BrutalButton>
+                ))}
+              </div>
+            </div>
+            {filteredWbs.length === 0 ? (
               <BrutalCard shadow="md" className="text-center py-8">
-                <p className="text-lg font-bold text-gray-500">No word banks yet. Create one above!</p>
+                <p className="text-lg font-bold text-gray-500">No word banks found. {wbCategoryFilter !== 'all' ? 'Try a different filter.' : 'Create one above!'}</p>
               </BrutalCard>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {wordBanks.map((wb) => (
+                {filteredWbs.map((wb) => (
                   <BrutalCard key={wb.id} shadow="md" hover data-testid={`wb-card-${wb.id}`}>
                     <div className="flex items-start justify-between mb-2">
                       <h4 className="text-lg font-black uppercase">{wb.name}</h4>
@@ -488,24 +518,117 @@ const AdminPortal = () => {
                       </BrutalBadge>
                     </div>
                     <p className="text-sm text-gray-600 mb-2 line-clamp-2">{wb.description}</p>
-                    <div className="flex items-center gap-2 mb-3">
+                    <div className="flex items-center gap-2 mb-3 flex-wrap">
                       <BrutalBadge variant="indigo" size="sm">{wb.category}</BrutalBadge>
                       {wb.specialty && <BrutalBadge variant="default" size="sm">{wb.specialty}</BrutalBadge>}
+                      <BrutalBadge variant={wb.visibility === 'private' ? 'rose' : 'emerald'} size="sm">
+                        {wb.visibility === 'private' ? 'PRIVATE' : wb.visibility?.toUpperCase()}
+                      </BrutalBadge>
+                      {wb.created_by_role === 'guardian' && (
+                        <BrutalBadge variant="amber" size="sm">Parent-Created</BrutalBadge>
+                      )}
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-center border-t-4 border-black pt-2 mb-3">
                       <div><p className="text-xs font-bold text-gray-500">Baseline</p><p className="font-black">{wb.baseline_words?.length || 0}</p></div>
                       <div><p className="text-xs font-bold text-gray-500">Target</p><p className="font-black">{wb.target_words?.length || 0}</p></div>
                       <div><p className="text-xs font-bold text-gray-500">Stretch</p><p className="font-black">{wb.stretch_words?.length || 0}</p></div>
                     </div>
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center justify-between text-sm gap-2">
                       <span className="font-medium">{wb.purchase_count} users</span>
-                      <BrutalButton variant="rose" size="sm" onClick={() => { if (window.confirm(`Delete "${wb.name}"?`)) deleteWbMutation.mutate(wb.id); }}
-                        className="flex items-center gap-1" data-testid={`delete-wb-${wb.id}`}>
-                        <Trash2 size={14} /> Delete
-                      </BrutalButton>
+                      <div className="flex gap-1">
+                        <BrutalButton variant="indigo" size="sm" onClick={() => {
+                          setEditingWb(wb);
+                          setEditWbForm({
+                            name: wb.name, description: wb.description || '', category: wb.category,
+                            specialty: wb.specialty || '',
+                            baseline_words: (wb.baseline_words || []).map(w => w.word).join(', '),
+                            target_words: (wb.target_words || []).map(w => w.word).join(', '),
+                            stretch_words: (wb.stretch_words || []).map(w => w.word).join(', '),
+                            price: String(wb.price || 0),
+                          });
+                        }} className="flex items-center gap-1" data-testid={`edit-wb-${wb.id}`}>
+                          <Edit size={14} /> Edit
+                        </BrutalButton>
+                        <BrutalButton variant="rose" size="sm" onClick={() => { if (window.confirm(`Delete "${wb.name}"?`)) deleteWbMutation.mutate(wb.id); }}
+                          className="flex items-center gap-1" data-testid={`delete-wb-${wb.id}`}>
+                          <Trash2 size={14} /> Delete
+                        </BrutalButton>
+                      </div>
                     </div>
                   </BrutalCard>
                 ))}
+              </div>
+            )}
+
+            {/* Edit Word Bank Modal */}
+            {editingWb && (
+              <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" data-testid="edit-wb-modal">
+                <BrutalCard shadow="xl" className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                  <h3 className="text-2xl font-black uppercase mb-4">Edit: {editingWb.name}</h3>
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    const parseWords = (str) => str.split(',').map(w => w.trim()).filter(Boolean).map(w => ({ word: w, definition: '', part_of_speech: '', example_sentence: '' }));
+                    editWbMutation.mutate({
+                      id: editingWb.id,
+                      data: {
+                        name: editWbForm.name,
+                        description: editWbForm.description,
+                        category: editWbForm.category,
+                        specialty: editWbForm.specialty || null,
+                        baseline_words: parseWords(editWbForm.baseline_words),
+                        target_words: parseWords(editWbForm.target_words),
+                        stretch_words: parseWords(editWbForm.stretch_words),
+                        price: parseInt(editWbForm.price) || 0,
+                      }
+                    });
+                  }} className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <BrutalInput label="Name *" required value={editWbForm.name}
+                        onChange={(e) => setEditWbForm({ ...editWbForm, name: e.target.value })} data-testid="edit-wb-name" />
+                      <div>
+                        <label className="block font-bold text-sm uppercase mb-2">Category</label>
+                        <select value={editWbForm.category} onChange={(e) => setEditWbForm({ ...editWbForm, category: e.target.value })}
+                          className="w-full px-4 py-3 border-4 border-black font-bold bg-white" data-testid="edit-wb-category">
+                          <option value="general">General</option>
+                          <option value="academic">Academic</option>
+                          <option value="professional">Professional</option>
+                          <option value="specialized">Specialized</option>
+                        </select>
+                      </div>
+                    </div>
+                    <BrutalInput label="Description" value={editWbForm.description}
+                      onChange={(e) => setEditWbForm({ ...editWbForm, description: e.target.value })} data-testid="edit-wb-desc" />
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <BrutalInput label="Specialty" value={editWbForm.specialty}
+                        onChange={(e) => setEditWbForm({ ...editWbForm, specialty: e.target.value })} />
+                      <BrutalInput label="Price (cents)" type="number" value={editWbForm.price}
+                        onChange={(e) => setEditWbForm({ ...editWbForm, price: e.target.value })} data-testid="edit-wb-price" />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-sm uppercase mb-2">Baseline Words (comma-separated)</label>
+                      <textarea value={editWbForm.baseline_words} onChange={(e) => setEditWbForm({ ...editWbForm, baseline_words: e.target.value })}
+                        className="w-full px-3 py-2 border-4 border-black font-medium min-h-[70px]" data-testid="edit-wb-baseline" />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-sm uppercase mb-2">Target Words (comma-separated)</label>
+                      <textarea value={editWbForm.target_words} onChange={(e) => setEditWbForm({ ...editWbForm, target_words: e.target.value })}
+                        className="w-full px-3 py-2 border-4 border-black font-medium min-h-[70px]" data-testid="edit-wb-target" />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-sm uppercase mb-2">Stretch Words (comma-separated)</label>
+                      <textarea value={editWbForm.stretch_words} onChange={(e) => setEditWbForm({ ...editWbForm, stretch_words: e.target.value })}
+                        className="w-full px-3 py-2 border-4 border-black font-medium min-h-[70px]" data-testid="edit-wb-stretch" />
+                    </div>
+                    <div className="flex gap-3">
+                      <BrutalButton type="submit" variant="emerald" size="lg" fullWidth disabled={editWbMutation.isPending} data-testid="edit-wb-save">
+                        {editWbMutation.isPending ? 'Saving...' : 'Save Changes'}
+                      </BrutalButton>
+                      <BrutalButton variant="dark" size="lg" fullWidth onClick={() => setEditingWb(null)} data-testid="edit-wb-cancel">
+                        Cancel
+                      </BrutalButton>
+                    </div>
+                  </form>
+                </BrutalCard>
               </div>
             )}
           </div>

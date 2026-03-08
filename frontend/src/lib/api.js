@@ -78,6 +78,7 @@ export const wordBankAPI = {
   create: (data) => apiClient.post('/word-banks', data),
   getAll: (params) => apiClient.get('/word-banks', { params }),
   getById: (id) => apiClient.get(`/word-banks/${id}`),
+  update: (id, data) => apiClient.put(`/word-banks/${id}`, data),
   delete: (id) => apiClient.delete(`/word-banks/${id}`),
   purchase: (guardianId, bankId) => apiClient.post('/word-banks/purchase', { guardian_id: guardianId, bank_id: bankId }),
   assignToStudent: (studentId, bankIds) => apiClient.post('/students/assign-banks', { student_id: studentId, bank_ids: bankIds }),

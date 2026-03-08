@@ -285,6 +285,7 @@ class WordBank(MongoBaseModel):
     total_tokens: int = 0
     price: int = 0  # in cents, 0 = free
     owner_id: str
+    created_by_role: str = "admin"  # "admin" or "guardian"
     purchase_count: int = 0
     rating: float = 0.0
     created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
