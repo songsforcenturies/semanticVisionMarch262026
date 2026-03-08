@@ -379,7 +379,7 @@ const StudentsTab = () => {
                     {student.spellcheck_disabled ? 'Spellcheck OFF' : 'Spellcheck ON'}
                   </BrutalButton>
                   <BrutalButton
-                    variant={student.spelling_mode === 'exact' ? 'indigo' : 'emerald'}
+                    variant={student.spelling_mode === 'exact' ? 'rose' : 'emerald'}
                     size="sm"
                     fullWidth
                     onClick={() => spellingModeMutation.mutate(student.id)}
@@ -387,10 +387,10 @@ const StudentsTab = () => {
                     data-testid={`spelling-mode-${student.id}`}
                   >
                     <Type size={14} />
-                    {student.spelling_mode === 'exact' ? 'Exact Spelling' : 'Phonetic OK'}
+                    {student.spelling_mode === 'exact' ? 'Phonetic OFF' : 'Phonetic ON'}
                   </BrutalButton>
                   <BrutalButton
-                    variant={student.ad_preferences?.allow_brand_stories ? 'amber' : 'default'}
+                    variant={student.ad_preferences?.allow_brand_stories ? 'emerald' : 'rose'}
                     size="sm"
                     fullWidth
                     onClick={() => {
