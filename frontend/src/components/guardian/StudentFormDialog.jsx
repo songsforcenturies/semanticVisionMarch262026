@@ -41,6 +41,8 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
     grade_level: '',
     interests: '',
     virtues: '',
+    strengths: '',
+    weaknesses: '',
     assigned_banks: [],
     belief_system: '',
     cultural_context: '',
@@ -75,6 +77,8 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
         grade_level: student.grade_level || '',
         interests: student.interests?.join(', ') || '',
         virtues: student.virtues?.join(', ') || '',
+        strengths: student.strengths || '',
+        weaknesses: student.weaknesses || '',
         assigned_banks: student.assigned_banks || [],
         belief_system: student.belief_system || '',
         cultural_context: student.cultural_context || '',
@@ -87,6 +91,8 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
         grade_level: '',
         interests: '',
         virtues: '',
+        strengths: '',
+        weaknesses: '',
         assigned_banks: [],
         belief_system: '',
         cultural_context: '',
@@ -147,6 +153,8 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
       belief_system: formData.belief_system,
       cultural_context: formData.cultural_context,
       language: formData.language,
+      strengths: formData.strengths,
+      weaknesses: formData.weaknesses,
     };
 
     if (student) {
@@ -284,6 +292,44 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
             <p className="mt-1 text-sm font-medium text-emerald-700">
               Stories will teach these character traits and life lessons
             </p>
+          </div>
+
+          {/* Strengths & Weaknesses */}
+          <div className="border-4 border-blue-300 p-4 bg-blue-50">
+            <h4 className="font-black uppercase text-sm mb-4 text-blue-700">Your Child's Strengths & Growth Areas</h4>
+            <p className="text-sm text-gray-600 mb-4">
+              Every child is unique. Tell us what makes yours special and where they need support — the AI will celebrate their strengths and gently help them grow.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block mb-2 font-bold uppercase text-sm text-blue-800">
+                  Strengths — What your child excels at
+                </label>
+                <textarea
+                  value={formData.strengths}
+                  onChange={(e) => setFormData({ ...formData, strengths: e.target.value })}
+                  placeholder="e.g., Very creative and imaginative. Great at math. Natural leader among friends. Loves helping younger kids. Strong reader who devours chapter books."
+                  rows={3}
+                  className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-blue-500 resize-none"
+                  data-testid="student-strengths"
+                />
+                <p className="text-xs text-blue-600 mt-1">Story characters will use these as superpowers</p>
+              </div>
+              <div>
+                <label className="block mb-2 font-bold uppercase text-sm text-amber-800">
+                  Growth Areas — Where your child needs support
+                </label>
+                <textarea
+                  value={formData.weaknesses}
+                  onChange={(e) => setFormData({ ...formData, weaknesses: e.target.value })}
+                  placeholder="e.g., Struggles with patience and waiting turns. Has difficulty sharing with siblings. Gets frustrated easily with hard tasks. Needs to work on reading comprehension."
+                  rows={3}
+                  className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-amber-500 resize-none"
+                  data-testid="student-weaknesses"
+                />
+                <p className="text-xs text-amber-600 mt-1">Stories will model growth in these areas with empathy and encouragement</p>
+              </div>
+            </div>
           </div>
 
           {/* Belief System, Culture, Language */}

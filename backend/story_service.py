@@ -103,6 +103,8 @@ class StoryGenerationService:
         cultural_context: str = "",
         language: str = "English",
         brand_placements: List[Dict[str, Any]] = [],
+        strengths: str = "",
+        weaknesses: str = "",
     ) -> Dict[str, Any]:
         """Generate a 5-chapter educational story"""
         
@@ -167,6 +169,19 @@ Make brand mentions feel organic and educational, not like advertisements.
 {chr(10).join(brand_items)}
 Include 1-2 natural brand mentions across the story where they solve a problem or help the character learn."""
 
+        # Build strengths & weaknesses prompt section
+        strengths_section = ""
+        if strengths or weaknesses:
+            strengths_section = "\nSTRENGTHS & GROWTH AREAS:"
+            if strengths:
+                strengths_section += f"""
+CHILD'S STRENGTHS: {strengths}
+The protagonist should exhibit and celebrate these strengths. Show the character using these abilities as superpowers to help others, solve problems, and lead. Reinforce that these strengths are valuable and worth developing further."""
+            if weaknesses:
+                strengths_section += f"""
+CHILD'S GROWTH AREAS: {weaknesses}
+The protagonist should face challenges related to these areas. Show the character struggling with but GROWING through these challenges. Weave in practical strategies and small victories. The story should model how to improve in these areas through perseverance, support from others, and positive mindset — never shame or deficit framing. Show that growth is possible and celebrate progress over perfection."""
+
         # Create the story generation prompt
         system_message = f"""You are an expert educational story writer for Semantic Vision. 
 Generate engaging, age-appropriate stories that naturally embed vocabulary words for learning.
@@ -188,6 +203,7 @@ Vocabulary Distribution:
 {culture_section}
 {language_section}
 {brand_section}
+{strengths_section}
 
 Requirements:
 1. Create exactly 5 chapters, each 300-500 words

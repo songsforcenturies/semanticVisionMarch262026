@@ -1203,6 +1203,8 @@ async def create_narrative(narrative_data: NarrativeCreate):
             cultural_context=student.get("cultural_context", ""),
             language=student.get("language", "English"),
             brand_placements=brand_placements,
+            strengths=student.get("strengths", ""),
+            weaknesses=student.get("weaknesses", ""),
         )
         
         # Record brand impressions

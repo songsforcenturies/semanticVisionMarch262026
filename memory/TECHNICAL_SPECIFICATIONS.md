@@ -240,6 +240,8 @@ Teachers can initiate live reading sessions:
   "grade_level": "enum (pre-k, k, 1-12, college, adult)",
   "interests": ["string"],
   "virtues": ["string"],
+  "strengths": "string (free-text, parent-authored)",
+  "weaknesses": "string (free-text, parent-authored)",
   "belief_system": "string",
   "cultural_context": "string",
   "language": "string",
@@ -356,6 +358,14 @@ A system for delivering brand messaging within educational content that requires
 - Age-appropriateness filtering;
 - Budget-limited exposure;
 - Integration as narrative problem-solving elements rather than display advertisements.
+
+### Claim 5: Strengths-and-Weaknesses-Aware Personalized Narrative Generation
+A method for generating educational narratives that adapt to a child's individual strengths and growth areas, comprising:
+- Storing parent-authored, free-text descriptions of the child's strengths and weaknesses in the student profile;
+- Incorporating these descriptions into AI prompt instructions that direct the narrative to:
+  - Celebrate and reinforce the child's strengths as character superpowers and positive attributes;
+  - Model growth in the child's weak areas through empathetic character development, showing the protagonist struggling with and gradually overcoming similar challenges;
+- Combining strengths/weaknesses with belief system, cultural context, interests, virtues, vocabulary tiers, and brand integrations to produce a story that is uniquely tailored to the individual child across multiple dimensions simultaneously.
 
 ---
 

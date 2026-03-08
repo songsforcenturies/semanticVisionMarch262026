@@ -346,6 +346,61 @@ const LandingPage = () => {
         </div>
       </Section>
 
+      {/* ════════════ STRENGTHS & WEAKNESSES ════════════ */}
+      <Section className="py-24 sm:py-32" id="personalized">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <motion.p variants={fadeUp} className="text-xs font-semibold uppercase tracking-[0.2em] mb-4" style={{ color: C.gold }}>
+                Truly Personalized
+              </motion.p>
+              <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-bold leading-tight mb-6" style={{ fontFamily: "'Sora', sans-serif" }}>
+                Stories that know your child's{' '}
+                <span style={{ color: C.teal }}>superpowers</span> and help them{' '}
+                <span style={{ color: C.gold }}>grow</span>
+              </motion.h2>
+              <motion.p variants={fadeUp} className="text-base leading-relaxed mb-6" style={{ color: C.muted }}>
+                As a parent, you know your child better than anyone. You know they're brilliant at art but struggle with patience. You know they lead their friends but need help sharing. Semantic Vision lets you tell the AI exactly that.
+              </motion.p>
+              <motion.p variants={fadeUp} className="text-base leading-relaxed mb-8" style={{ color: C.muted }}>
+                The AI weaves your child's <strong style={{ color: C.cream }}>strengths</strong> into the story as the hero's superpowers — and gently models growth in their <strong style={{ color: C.cream }}>weak areas</strong> through the character's journey. Combined with their interests, beliefs, culture, vocabulary goals, and even real brand products — every story is as unique as your child.
+              </motion.p>
+              <motion.div variants={stagger} className="space-y-3">
+                {[
+                  { label: 'Strengths become the hero\'s superpowers', color: C.teal },
+                  { label: 'Growth areas are modeled with empathy, never shame', color: C.gold },
+                  { label: 'Combined with beliefs, culture, interests & vocabulary', color: C.teal },
+                  { label: 'Every story is one-of-a-kind — just like your child', color: C.gold },
+                ].map((item, i) => (
+                  <motion.div key={i} variants={fadeUp} className="flex items-center gap-3 text-sm" style={{ color: C.cream }}>
+                    <Check size={18} className="flex-shrink-0" style={{ color: item.color }} />
+                    {item.label}
+                  </motion.div>
+                ))}
+              </motion.div>
+            </div>
+
+            <motion.div variants={fadeIn} transition={{ duration: 0.8 }}>
+              <div className="p-8 rounded-2xl space-y-4" style={{ background: C.card, border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div className="text-sm font-semibold uppercase tracking-wide" style={{ color: C.muted }}>How the AI sees your child</div>
+                <div className="p-4 rounded-xl" style={{ background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(56,189,248,0.2)' }}>
+                  <div className="text-xs font-bold uppercase mb-2" style={{ color: C.teal }}>Strengths</div>
+                  <div className="text-sm" style={{ color: C.cream }}>"Creative and imaginative. Natural leader. Loves helping younger kids."</div>
+                </div>
+                <div className="p-4 rounded-xl" style={{ background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(212,168,83,0.2)' }}>
+                  <div className="text-xs font-bold uppercase mb-2" style={{ color: C.gold }}>Growth Areas</div>
+                  <div className="text-sm" style={{ color: C.cream }}>"Struggles with patience. Gets frustrated with hard tasks."</div>
+                </div>
+                <div className="p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div className="text-xs font-bold uppercase mb-2" style={{ color: C.muted }}>The AI Creates</div>
+                  <div className="text-sm italic" style={{ color: C.cream }}>"Maya used her incredible imagination to design a bridge across the river. When the first attempt collapsed, she felt frustrated — but remembered what Grandma always said: 'Every great creator fails forward.' She took a deep breath, studied the problem, and tried again..."</div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </Section>
+
       {/* ════════════ 60/30/10 SYSTEM ════════════ */}
       <Section className="py-24 sm:py-32" id="system">
         <div className="max-w-5xl mx-auto px-6 text-center">
