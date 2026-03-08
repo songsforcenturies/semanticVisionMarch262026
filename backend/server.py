@@ -5250,12 +5250,22 @@ async def health_check():
 
 @api_router.get("/patent-document")
 async def get_patent_document():
-    """Serve the Provisional Patent Application document"""
+    """Serve the Provisional Patent Application document as Markdown"""
     from fastapi.responses import FileResponse
     doc_path = Path(__file__).parent.parent / "PROVISIONAL_PATENT_APPLICATION.md"
     if not doc_path.exists():
         raise HTTPException(status_code=404, detail="Patent document not found")
     return FileResponse(doc_path, media_type="text/markdown", filename="Semantic_Vision_Provisional_Patent_Application.md")
+
+
+@api_router.get("/patent-document/pdf")
+async def get_patent_document_pdf():
+    """Serve the Provisional Patent Application as PDF with CONFIDENTIAL watermark"""
+    from fastapi.responses import FileResponse
+    pdf_path = Path(__file__).parent.parent / "Semantic_Vision_Provisional_Patent_Application.pdf"
+    if not pdf_path.exists():
+        raise HTTPException(status_code=404, detail="Patent PDF not found")
+    return FileResponse(pdf_path, media_type="application/pdf", filename="Semantic_Vision_Provisional_Patent_Application_CONFIDENTIAL.pdf")
 
 
 # Include router in app
