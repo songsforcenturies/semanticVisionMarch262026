@@ -13,38 +13,36 @@ Build "Semantic Vision," an educational platform — "Learning How to Read incre
 ## Implemented Features
 
 ### Core Platform
-- AI story generation with brand integration, belief-system awareness, strengths/weaknesses personalization, 60/30/10 vocabulary tiers
+- AI story generation with brand integration, belief-system awareness, strengths/weaknesses personalization
 - Student Profile: strengths/weaknesses, interests, virtues, belief system, cultural context
 - Subscription: Free plan auto-create, parent upgrade, coupons, admin plan management
 - Admin: Plan stats, user search, plan CRUD, wallet editing, contests, word banks, brands
-- Landing Page: Fully i18n-translated, premium dark theme, Brand CTA button
+- Landing Page: Fully i18n, premium dark theme, Brand CTA button
 - Progress Tracking: Vocabulary Mastered, Agentic Reach Score, reading stats — all working
 
 ### Global Dark Theme (March 8, 2026)
-- Consistent #0A0F1E dark theme across ALL pages
-- AppShell component with Semantic Vision logo (Eye icon) on every page
-- sv-dark CSS overrides for brutal components
-- NarrativeReader warm reading color (#E8E0D0) for eye comfort
-- Admin route protection (role-based allowedRoles)
+- Consistent dark theme across ALL pages via AppShell + sv-dark CSS
+- Semantic Vision logo (Eye icon) on every page
+- NarrativeReader eye-friendly warm reading color
+- Admin route protection (role-based)
 - Brand portal requires brand_partner or admin role
-- Child-friendly brand image (replaced cigarette-looking one)
 
 ### Brand Portal Story Integrations (March 8, 2026)
-- **Story Integrations tab**: Shows actual story excerpts where brand products appear, highlighted in context
-- **Student Activation Responses**: Shows student written answers to comprehension questions about brand stories
-- **Summary stats**: Stories Featuring Brand, Brand Mentions, Student Responses, Avg Comprehension
-- **Backend**: Narratives now store brand_placements, written answers saved to written_answers collection
-- **API**: /api/brand-portal/story-integrations works for both brand_partner and admin roles
+- **Story Integrations tab** with 3 sections:
+  1. **Brand In Stories**: Real story excerpts where brand/products appear in chapter text, highlighted brand terms, mention counts
+  2. **Brand Activation Questions**: Questions asked to students about brand content, with pass/fail data from read_logs (e.g., "What tool did SJ use to research how to make her car faster?" - 0 passed, 6 failed)
+  3. **Student Activation Responses**: Free-text responses from students (written_answers collection, populated going forward)
+- **Summary Stats**: Stories Featuring Brand (5), Brand Mentions (5), Activation Questions (5), Question Attempts (10), Pass Rate (0%)
+- **3-layer narrative search**: brand_placements field → brand_impressions → full-text content search
+- **Backend**: Narratives store brand_placements, written answers saved to written_answers collection, impressions use real narrative IDs
 
 ### Login/Register UX (March 8, 2026)
-- "Access Your Portal" section on login and register pages
-- Three clear pathways: Parents (gold), Brands (pink), Students (teal) with icons
-- Brand Partner registration via /register?role=brand_partner
+- "Access Your Portal" section: Parents (gold), Brands (pink), Students (teal) with icons
 
 ## Bug Fixes
-- **P0 FIXED**: Vocabulary Mastered/Agentic Reach Score showing ZERO → normalized mastered_tokens to plain strings
+- P0: Vocabulary Mastered/Agentic Reach Score ZERO → normalized mastered_tokens to plain strings
 - Fixed 6 stuck in_progress assessments
-- Fixed brand impression narrative_id (was "pending", now uses real narrative ID)
+- Fixed brand impression narrative_id (was "pending")
 
 ## Credentials
 - Admin: allen@songsforcenturies.com / LexiAdmin2026!
@@ -52,10 +50,11 @@ Build "Semantic Vision," an educational platform — "Learning How to Read incre
 
 ## Backlog
 - [ ] P1: Complete end-to-end flow (parent signup → student reads → brand activation → progress → brand portal)
-- [ ] P1: Finalize Coupon & Credit System end-to-end
+- [ ] P1: Finalize Coupon & Credit System
 - [ ] P1: Refactor server.py (~5000 lines) into modular APIRouter
 - [ ] P1: Payment integrations (Cash App, Zelle, Venmo, PayPal)
+- [ ] P2: Brand Engagement Score metric
 - [ ] P2: Translate remaining locales
-- [ ] P2: Student gamification, accessibility, COPPA/FERPA
+- [ ] P2: Student gamification, COPPA/FERPA
 - [ ] P2: User Demo Flow
 - [ ] P3: Extract AdminPortal.jsx into component modules
