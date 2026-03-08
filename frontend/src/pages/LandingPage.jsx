@@ -24,7 +24,7 @@ function Section({ children, className = '', id }) {
 }
 
 const HERO_IMG = 'https://static.prod-images.emergentagent.com/jobs/d53a056c-422b-4e0c-b8e4-a07558693bb6/images/03582229e0be380a6c098b8a96ab41371358a0238fa5c0c58dea3cb93237dfc0.png';
-const BRAND_IMG = 'https://static.prod-images.emergentagent.com/jobs/d53a056c-422b-4e0c-b8e4-a07558693bb6/images/d3738f3eb2b980bba13007153d4e26065736f898b6c7a7fccabfabd70d2d4c0f.png';
+const BRAND_IMG = 'https://static.prod-images.emergentagent.com/jobs/a7f4a6e3-cc2b-4b52-b065-85c816bf5f24/images/fab4bc5cad3f11db957dba9d1ea3837612ddd3a1a1acf696e4acabcb3be81e9e.png';
 const CULTURE_IMG = 'https://static.prod-images.emergentagent.com/jobs/d53a056c-422b-4e0c-b8e4-a07558693bb6/images/535aaa1914ba5e98959665413a19273c5d5d9cb4a349b3c5d6d04f77b0ce7fbb.png';
 
 const C = {
@@ -337,6 +337,9 @@ const LandingPage = () => {
               <div className="flex flex-wrap justify-center gap-4">
                 <button onClick={() => navigate('/register')} className="group flex items-center gap-2 px-8 py-4 rounded-full text-base font-bold text-black transition-all duration-300 hover:scale-105 hover:shadow-2xl" style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` }} data-testid="cta-get-started-btn">
                   {t('landing.getStarted')} <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
+                </button>
+                <button onClick={() => navigate('/register?role=brand_partner')} className="flex items-center gap-2 px-8 py-4 rounded-full text-base font-semibold transition-all duration-300 hover:scale-105" style={{ color: '#F472B6', border: '1.5px solid rgba(244,114,182,0.4)', background: 'rgba(244,114,182,0.06)' }} data-testid="cta-brand-btn">
+                  <Megaphone size={18} /> Brand Partners
                 </button>
                 <button onClick={() => navigate('/donate')} className="flex items-center gap-2 px-8 py-4 rounded-full text-base font-semibold transition-all duration-300 hover:scale-105" style={{ color: C.cream, border: '1.5px solid rgba(248,245,238,0.2)', background: 'rgba(255,255,255,0.04)' }} data-testid="cta-sponsor-btn">
                   <Heart size={18} /> {t('landing.sponsorReader')}

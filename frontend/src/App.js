@@ -21,8 +21,8 @@ import DonatePage from "@/pages/DonatePage";
 import BrandPortal from "@/pages/BrandPortal";
 
 // Protected route component
-const ProtectedRoute = ({ children, requireAuth = true }) => {
-  const { isAuthenticated, loading } = useAuth();
+const ProtectedRoute = ({ children, requireAuth = true, allowedRoles = null }) => {
+  const { isAuthenticated, loading, user } = useAuth();
 
   if (loading) {
     return (
@@ -36,6 +36,14 @@ const ProtectedRoute = ({ children, requireAuth = true }) => {
   const hasToken = !!localStorage.getItem('token') && !!localStorage.getItem('user');
   if (requireAuth && !isAuthenticated && !hasToken) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Role-based access control
+  if (allowedRoles) {
+    const savedUser = user || JSON.parse(localStorage.getItem('user') || '{}');
+    if (!allowedRoles.includes(savedUser?.role)) {
+      return <Navigate to="/portal" replace />;
+    }
   }
 
   return children;
@@ -66,7 +74,6 @@ function AppContent() {
           <Route path="/teacher-login" element={<TeacherLogin />} />
           <Route path="/teacher-register" element={<TeacherRegister />} />
           <Route path="/donate" element={<DonatePage />} />
-          <Route path="/brand-portal" element={<BrandPortal />} />
 
           {/* Guardian protected routes */}
           <Route
@@ -88,12 +95,22 @@ function AppContent() {
             }
           />
 
-          {/* Admin protected routes */}
+          {/* Admin protected routes - ADMIN ONLY */}
           <Route
             path="/admin/*"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['admin']}>
                 <AdminPortal />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Brand Portal protected routes */}
+          <Route
+            path="/brand-portal"
+            element={
+              <ProtectedRoute allowedRoles={['brand_partner', 'admin']}>
+                <BrandPortal />
               </ProtectedRoute>
             }
           />

@@ -2,10 +2,15 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
-import { BrutalButton, BrutalInput, BrutalCard } from '@/components/brutal';
 import { toast } from 'sonner';
-import { Zap } from 'lucide-react';
-import HomeHeader from '@/components/HomeHeader';
+import { Eye, GraduationCap } from 'lucide-react';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+
+const C = {
+  bg: '#0A0F1E', surface: '#111827', card: '#1A2236',
+  gold: '#D4A853', goldLight: '#F5D799', teal: '#38BDF8',
+  cream: '#F8F5EE', muted: '#94A3B8',
+};
 
 const StudentLogin = () => {
   const navigate = useNavigate();
@@ -26,52 +31,63 @@ const StudentLogin = () => {
     setLoading(false);
   };
 
+  const inputStyle = {
+    background: 'rgba(255,255,255,0.06)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    color: C.cream,
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50">
-      <HomeHeader showAuth={false} />
-      <div className="flex items-center justify-center p-4 py-12">
-        <BrutalCard shadow="xl" className="w-full max-w-md bg-amber-50">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-3 mb-4">
-              <Zap size={48} className="text-amber-600" />
-              <h1 className="text-4xl font-black uppercase">Semantic Vision</h1>
-            </div>
-            <h2 className="text-2xl font-black uppercase text-amber-600" data-testid="student-login-title">{t('auth.studentLogin')}</h2>
-            <p className="mt-2 font-medium text-gray-600">{t('auth.enterCodePin')}</p>
+    <div className="min-h-screen flex flex-col" style={{ background: C.bg, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <nav className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid rgba(212,168,83,0.12)' }}>
+        <button onClick={() => navigate('/')} className="flex items-center gap-3" data-testid="nav-logo">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.teal})` }}>
+            <Eye size={22} className="text-black" />
           </div>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <BrutalInput
-              label={t('auth.studentCode')}
-              type="text"
-              required
-              value={formData.studentCode}
-              onChange={(e) => setFormData({ ...formData, studentCode: e.target.value.toUpperCase() })}
-              placeholder="ABC-1234"
-              data-testid="student-code-input"
-            />
-            <div>
-              <BrutalInput
-                label={t('auth.pin')}
-                type="password"
-                required
-                value={formData.pin}
-                onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
-                placeholder="••••••"
-                data-testid="student-pin-input"
-              />
-              <p className="text-sm text-gray-500 mt-1 font-medium">{t('auth.pinHint')}</p>
+          <span className="text-xl font-bold tracking-tight" style={{ fontFamily: "'Sora', sans-serif", color: C.cream }}>{t('landing.title')}</span>
+        </button>
+        <LanguageSwitcher />
+      </nav>
+
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="w-full max-w-md p-8 rounded-2xl" style={{ background: C.card, border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4" style={{ background: `linear-gradient(135deg, ${C.teal}, ${C.gold})` }}>
+              <GraduationCap size={32} className="text-black" />
             </div>
-            <BrutalButton type="submit" variant="amber" fullWidth disabled={loading} data-testid="student-login-submit">
+            <h2 className="text-2xl font-bold" style={{ fontFamily: "'Sora', sans-serif", color: C.cream }} data-testid="student-login-title">{t('auth.studentLogin')}</h2>
+            <p className="mt-2 text-sm" style={{ color: C.muted }}>{t('auth.enterCodePin')}</p>
+          </div>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: C.muted }}>{t('auth.studentCode')}</label>
+              <input type="text" required value={formData.studentCode}
+                onChange={(e) => setFormData({ ...formData, studentCode: e.target.value.toUpperCase() })}
+                placeholder="STU-XXXXX"
+                className="w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all focus:ring-2 uppercase tracking-wider"
+                style={inputStyle} data-testid="student-code-input" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: C.muted }}>{t('auth.pin')}</label>
+              <input type="password" required value={formData.pin}
+                onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
+                placeholder="Enter your PIN"
+                className="w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all focus:ring-2 tracking-widest"
+                style={inputStyle} data-testid="student-pin-input" />
+              <p className="text-xs mt-2" style={{ color: C.muted }}>{t('auth.pinHint')}</p>
+            </div>
+            <button type="submit" disabled={loading}
+              className="w-full py-3.5 rounded-xl text-base font-bold text-black transition-all duration-300 hover:scale-[1.02] hover:shadow-lg disabled:opacity-50"
+              style={{ background: `linear-gradient(135deg, ${C.teal}, ${C.gold})` }}
+              data-testid="student-login-submit">
               {loading ? t('common.loggingIn') : t('auth.enterAcademy')}
-            </BrutalButton>
-            <div className="text-center space-y-2">
-              <p className="text-sm font-bold text-gray-500">{t('auth.askGuardian')}</p>
-              <p className="font-medium">
-                <Link to="/login" className="text-indigo-600 font-bold hover:underline">{t('auth.guardianLoginLink')}</Link>
-              </p>
+            </button>
+            <div className="text-center space-y-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <p className="text-xs" style={{ color: C.muted }}>{t('auth.askGuardian')}</p>
+              <Link to="/login" className="text-sm font-semibold hover:underline" style={{ color: C.gold }}>{t('auth.guardianLoginLink')}</Link>
             </div>
           </form>
-        </BrutalCard>
+        </div>
       </div>
     </div>
   );

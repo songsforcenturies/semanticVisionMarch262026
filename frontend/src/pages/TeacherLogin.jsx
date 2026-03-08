@@ -2,10 +2,15 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
-import { BrutalButton, BrutalInput, BrutalCard } from '@/components/brutal';
 import { toast } from 'sonner';
-import { GraduationCap } from 'lucide-react';
-import HomeHeader from '@/components/HomeHeader';
+import { Eye, BookOpen } from 'lucide-react';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+
+const C = {
+  bg: '#0A0F1E', card: '#1A2236',
+  gold: '#D4A853', goldLight: '#F5D799', teal: '#38BDF8',
+  cream: '#F8F5EE', muted: '#94A3B8',
+};
 
 const TeacherLogin = () => {
   const navigate = useNavigate();
@@ -32,52 +37,60 @@ const TeacherLogin = () => {
     setLoading(false);
   };
 
+  const inputStyle = { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: C.cream };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 to-cyan-50">
-      <HomeHeader showAuth={false} />
-      <div className="flex items-center justify-center p-4 py-12">
-        <BrutalCard shadow="xl" className="w-full max-w-md bg-teal-50">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-3 mb-4">
-              <GraduationCap size={48} className="text-teal-600" />
-              <h1 className="text-4xl font-black uppercase">Semantic Vision</h1>
-            </div>
-            <h2 className="text-2xl font-black uppercase text-teal-600" data-testid="teacher-login-title">{t('auth.teacherLogin')}</h2>
-            <p className="mt-2 font-medium text-gray-600">{t('auth.accessClassroom')}</p>
+    <div className="min-h-screen flex flex-col" style={{ background: C.bg, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <nav className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid rgba(212,168,83,0.12)' }}>
+        <button onClick={() => navigate('/')} className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.teal})` }}>
+            <Eye size={22} className="text-black" />
           </div>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <BrutalInput
-              label={t('common.email')}
-              type="email"
-              required
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="teacher@school.edu"
-              data-testid="teacher-email-input"
-            />
-            <BrutalInput
-              label={t('common.password')}
-              type="password"
-              required
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              placeholder="••••••••"
-              data-testid="teacher-password-input"
-            />
-            <BrutalButton type="submit" variant="emerald" fullWidth disabled={loading} data-testid="teacher-login-submit">
+          <span className="text-xl font-bold tracking-tight" style={{ fontFamily: "'Sora', sans-serif", color: C.cream }}>{t('landing.title')}</span>
+        </button>
+        <LanguageSwitcher />
+      </nav>
+
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="w-full max-w-md p-8 rounded-2xl" style={{ background: C.card, border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4" style={{ background: 'rgba(167,139,250,0.15)' }}>
+              <BookOpen size={32} style={{ color: '#A78BFA' }} />
+            </div>
+            <h2 className="text-2xl font-bold" style={{ fontFamily: "'Sora', sans-serif", color: C.cream }} data-testid="teacher-login-title">{t('auth.teacherLogin')}</h2>
+            <p className="mt-2 text-sm" style={{ color: C.muted }}>{t('auth.accessClassroom')}</p>
+          </div>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: C.muted }}>{t('common.email')}</label>
+              <input type="email" required value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="teacher@school.edu"
+                className="w-full px-4 py-3 rounded-xl text-sm font-medium outline-none focus:ring-2"
+                style={inputStyle} data-testid="teacher-email-input" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: C.muted }}>{t('common.password')}</label>
+              <input type="password" required value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                placeholder="Enter your password"
+                className="w-full px-4 py-3 rounded-xl text-sm font-medium outline-none focus:ring-2"
+                style={inputStyle} data-testid="teacher-password-input" />
+            </div>
+            <button type="submit" disabled={loading}
+              className="w-full py-3.5 rounded-xl text-base font-bold text-black transition-all hover:scale-[1.02] disabled:opacity-50"
+              style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` }} data-testid="teacher-login-submit">
               {loading ? t('common.loggingIn') : t('common.login')}
-            </BrutalButton>
-            <div className="text-center space-y-2">
-              <p className="font-medium">
+            </button>
+            <div className="text-center space-y-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <p className="text-sm" style={{ color: C.muted }}>
                 {t('auth.noTeacherAccount')}{' '}
-                <Link to="/teacher-register" className="text-teal-600 font-bold hover:underline">{t('common.registerHere')}</Link>
+                <Link to="/teacher-register" className="font-semibold hover:underline" style={{ color: '#A78BFA' }}>{t('common.registerHere')}</Link>
               </p>
-              <p className="font-medium">
-                <Link to="/login" className="text-indigo-600 font-bold hover:underline">{t('auth.guardianLoginLink')}</Link>
-              </p>
+              <Link to="/login" className="text-sm font-semibold hover:underline" style={{ color: C.gold }}>{t('auth.guardianLoginLink')}</Link>
             </div>
           </form>
-        </BrutalCard>
+        </div>
       </div>
     </div>
   );

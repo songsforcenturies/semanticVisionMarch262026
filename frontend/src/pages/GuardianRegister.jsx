@@ -2,10 +2,15 @@ import React, { useState } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
-import { BrutalButton, BrutalInput, BrutalCard } from '@/components/brutal';
 import { toast } from 'sonner';
-import { BookOpen, Gift } from 'lucide-react';
-import HomeHeader from '@/components/HomeHeader';
+import { Eye, Gift, Megaphone, GraduationCap } from 'lucide-react';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+
+const C = {
+  bg: '#0A0F1E', surface: '#111827', card: '#1A2236',
+  gold: '#D4A853', goldLight: '#F5D799', teal: '#38BDF8',
+  cream: '#F8F5EE', muted: '#94A3B8', white: '#FFFFFF',
+};
 
 const GuardianRegister = () => {
   const navigate = useNavigate();
@@ -53,53 +58,109 @@ const GuardianRegister = () => {
     setLoading(false);
   };
 
+  const inputStyle = {
+    background: 'rgba(255,255,255,0.06)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    color: C.cream,
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50">
-      <HomeHeader showAuth={false} />
-      <div className="flex items-center justify-center p-4 py-12">
-        <BrutalCard shadow="xl" className="w-full max-w-md">
+    <div className="min-h-screen flex flex-col" style={{ background: C.bg, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      {/* Nav */}
+      <nav className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid rgba(212,168,83,0.12)' }}>
+        <button onClick={() => navigate('/')} className="flex items-center gap-3 group" data-testid="nav-logo">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.teal})` }}>
+            <Eye size={22} className="text-black" />
+          </div>
+          <span className="text-xl font-bold tracking-tight" style={{ fontFamily: "'Sora', sans-serif", color: C.cream }}>
+            {t('landing.title')}
+          </span>
+        </button>
+        <LanguageSwitcher />
+      </nav>
+
+      {/* Form */}
+      <div className="flex-1 flex items-center justify-center p-4 py-8">
+        <div className="w-full max-w-md p-8 rounded-2xl" style={{ background: C.card, border: '1px solid rgba(255,255,255,0.08)' }}>
           <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-3 mb-4">
-              <BookOpen size={48} className="text-indigo-600" />
-              <h1 className="text-4xl font-black uppercase">Semantic Vision</h1>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4" style={{ background: isBrandPartner ? `linear-gradient(135deg, #F472B6, ${C.gold})` : `linear-gradient(135deg, ${C.gold}, ${C.teal})` }}>
+              {isBrandPartner ? <Megaphone size={32} className="text-black" /> : <Eye size={32} className="text-black" />}
             </div>
-            <h2 className="text-2xl font-black uppercase" data-testid="register-title">
+            <h2 className="text-2xl font-bold" style={{ fontFamily: "'Sora', sans-serif", color: C.cream }} data-testid="register-title">
               {isBrandPartner ? t('auth.brandPartnerReg') : t('auth.createAccount')}
             </h2>
-            <p className="mt-2 font-medium text-gray-600">
+            <p className="mt-2 text-sm" style={{ color: C.muted }}>
               {isBrandPartner ? t('auth.brandPartnerDesc') : t('auth.startVocabJourney')}
             </p>
           </div>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <BrutalInput label={t('common.fullName')} type="text" required value={formData.fullName}
-              onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} placeholder="John Doe" data-testid="register-name" />
-            <BrutalInput label={t('common.email')} type="email" required value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="parent@example.com" data-testid="register-email" />
-            <BrutalInput label={t('common.password')} type="password" required value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="••••••••" data-testid="register-password" />
-            <BrutalInput label={t('common.confirmPassword')} type="password" required value={formData.confirmPassword}
-              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })} placeholder="••••••••" data-testid="register-confirm-password" />
-            <div className={formData.referralCode ? 'border-4 border-emerald-300 p-3 bg-emerald-50' : ''}>
-              <BrutalInput
-                label={<span className="flex items-center gap-1"><Gift size={14} /> {t('auth.referralCode')} ({t('common.optional')})</span>}
-                type="text" value={formData.referralCode}
-                onChange={(e) => setFormData({ ...formData, referralCode: e.target.value.toUpperCase() })}
-                placeholder="REF-XXXXXX" data-testid="referral-code-input" />
-              {formData.referralCode && (
-                <p className="text-sm font-bold text-emerald-600 mt-1">{t('auth.referralBonus')}</p>
-              )}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: C.muted }}>{t('common.fullName')}</label>
+              <input type="text" required value={formData.fullName}
+                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                placeholder={isBrandPartner ? "Company Name" : "John Doe"}
+                className="w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all focus:ring-2"
+                style={inputStyle} data-testid="register-name" />
             </div>
-            <BrutalButton type="submit" variant="indigo" fullWidth disabled={loading} data-testid="register-submit">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: C.muted }}>{t('common.email')}</label>
+              <input type="email" required value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="you@example.com"
+                className="w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all focus:ring-2"
+                style={inputStyle} data-testid="register-email" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: C.muted }}>{t('common.password')}</label>
+              <input type="password" required value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                placeholder="Min 6 characters"
+                className="w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all focus:ring-2"
+                style={inputStyle} data-testid="register-password" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: C.muted }}>{t('common.confirmPassword')}</label>
+              <input type="password" required value={formData.confirmPassword}
+                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                placeholder="Confirm password"
+                className="w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all focus:ring-2"
+                style={inputStyle} data-testid="register-confirm-password" />
+            </div>
+            {!isBrandPartner && (
+              <div className="p-4 rounded-xl" style={{ background: formData.referralCode ? 'rgba(16,185,129,0.08)' : 'transparent', border: formData.referralCode ? '1px solid rgba(16,185,129,0.3)' : 'none' }}>
+                <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: C.muted }}>
+                  <Gift size={14} style={{ color: C.teal }} /> {t('auth.referralCode')} ({t('common.optional')})
+                </label>
+                <input type="text" value={formData.referralCode}
+                  onChange={(e) => setFormData({ ...formData, referralCode: e.target.value.toUpperCase() })}
+                  placeholder="REF-XXXXXX"
+                  className="w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all focus:ring-2"
+                  style={inputStyle} data-testid="referral-code-input" />
+                {formData.referralCode && (
+                  <p className="text-xs font-semibold mt-2" style={{ color: '#10B981' }}>{t('auth.referralBonus')}</p>
+                )}
+              </div>
+            )}
+            <button type="submit" disabled={loading}
+              className="w-full py-3.5 rounded-xl text-base font-bold text-black transition-all duration-300 hover:scale-[1.02] hover:shadow-lg disabled:opacity-50 mt-2"
+              style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` }}
+              data-testid="register-submit">
               {loading ? t('common.creatingAccount') : t('common.register')}
-            </BrutalButton>
-            <div className="text-center">
-              <p className="font-medium">
+            </button>
+            <div className="text-center pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <p className="text-sm" style={{ color: C.muted }}>
                 {t('common.hasAccount')}{' '}
-                <Link to="/login" className="text-indigo-600 font-bold hover:underline">{t('common.loginHere')}</Link>
+                <Link to="/login" className="font-semibold hover:underline" style={{ color: C.gold }}>{t('common.loginHere')}</Link>
               </p>
             </div>
+            <div className="flex flex-wrap justify-center gap-4 text-sm pt-2" style={{ color: C.muted }}>
+              <button type="button" onClick={() => navigate('/student-login')} className="hover:underline flex items-center gap-1"><GraduationCap size={14} /> Student Login</button>
+              {!isBrandPartner && (
+                <button type="button" onClick={() => navigate('/register?role=brand_partner')} className="hover:underline flex items-center gap-1"><Megaphone size={14} /> Brand Partner</button>
+              )}
+            </div>
           </form>
-        </BrutalCard>
+        </div>
       </div>
     </div>
   );
