@@ -1421,7 +1421,7 @@ async def update_student_spellcheck(
     student = await db.students.find_one({"id": student_id})
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
-    if student["guardian_id"] != current_user["id"]:
+    if current_user.get("role") != "admin" and student["guardian_id"] != current_user["id"]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     current = student.get("spellcheck_disabled", False)
@@ -1441,7 +1441,7 @@ async def update_student_spelling_mode(
     student = await db.students.find_one({"id": student_id})
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
-    if student["guardian_id"] != current_user["id"]:
+    if current_user.get("role") != "admin" and student["guardian_id"] != current_user["id"]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     current = student.get("spelling_mode", "phonetic")
@@ -3474,9 +3474,10 @@ class AdPreferencesUpdate(BaseModel):
 @api_router.get("/students/{student_id}/ad-preferences")
 async def get_ad_preferences(student_id: str, current_user: dict = Depends(get_current_guardian)):
     """Get a student's ad preferences"""
-    student = await db.students.find_one(
-        {"id": student_id, "guardian_id": current_user["id"]}, {"_id": 0, "ad_preferences": 1}
-    )
+    query = {"id": student_id}
+    if current_user.get("role") != "admin":
+        query["guardian_id"] = current_user["id"]
+    student = await db.students.find_one(query, {"_id": 0, "ad_preferences": 1})
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
     return student.get("ad_preferences", {"allow_brand_stories": False, "preferred_categories": [], "blocked_categories": []})
@@ -3485,10 +3486,10 @@ async def get_ad_preferences(student_id: str, current_user: dict = Depends(get_c
 @api_router.post("/students/{student_id}/ad-preferences")
 async def update_ad_preferences(student_id: str, data: AdPreferencesUpdate, current_user: dict = Depends(get_current_guardian)):
     """Update a student's ad preferences"""
-    result = await db.students.update_one(
-        {"id": student_id, "guardian_id": current_user["id"]},
-        {"$set": {"ad_preferences": data.model_dump()}}
-    )
+    query = {"id": student_id}
+    if current_user.get("role") != "admin":
+        query["guardian_id"] = current_user["id"]
+    result = await db.students.update_one(query, {"$set": {"ad_preferences": data.model_dump()}})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Student not found")
     return {"message": "Ad preferences updated", **data.model_dump()}
