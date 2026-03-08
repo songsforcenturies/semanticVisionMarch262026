@@ -929,6 +929,15 @@ async def get_word_bank(bank_id: str):
     return word_bank
 
 
+@api_router.delete("/word-banks/{bank_id}")
+async def delete_word_bank(bank_id: str, current_user: dict = Depends(get_current_admin)):
+    """Delete a word bank (admin only)"""
+    result = await db.word_banks.delete_one({"id": bank_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Word bank not found")
+    return {"message": "Word bank deleted"}
+
+
 class PurchaseRequest(BaseModel):
     guardian_id: str
     bank_id: str

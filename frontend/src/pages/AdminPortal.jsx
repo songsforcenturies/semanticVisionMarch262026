@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { adminAPI } from '@/lib/api';
+import { adminAPI, wordBankAPI } from '@/lib/api';
 import apiClient from '@/lib/api';
 import { BrutalCard, BrutalButton, BrutalBadge, BrutalInput } from '@/components/brutal';
 import {
@@ -80,6 +80,11 @@ const AdminPortal = () => {
     queryFn: async () => (await adminAPI.getClassroomSponsorships()).data,
     enabled: activeTab === 'brands',
   });
+  const { data: wordBanks = [] } = useQuery({
+    queryKey: ['admin-word-banks'],
+    queryFn: async () => (await wordBankAPI.getAll({})).data,
+    enabled: activeTab === 'wordbanks',
+  });
 
   // === Form States ===
   const [llmForm, setLlmForm] = useState({ provider: 'emergent', model: 'gpt-5.2', openrouter_key: '' });
@@ -118,6 +123,10 @@ const AdminPortal = () => {
   });
   const [sponsorForm, setSponsorForm] = useState({
     brand_id: '', school_name: '', stories_limit: '-1', amount_paid: '',
+  });
+  const [wbForm, setWbForm] = useState({
+    name: '', description: '', category: 'general', specialty: '',
+    baseline_words: '', target_words: '', stretch_words: '', price: '0',
   });
 
   // === Mutations ===
@@ -243,6 +252,15 @@ const AdminPortal = () => {
     mutationFn: (id) => adminAPI.deleteClassroomSponsorship(id),
     onSuccess: () => { queryClient.invalidateQueries(['admin-sponsorships']); toast.success('Sponsorship removed'); },
   });
+  const createWbMutation = useMutation({
+    mutationFn: (data) => wordBankAPI.create(data),
+    onSuccess: () => { queryClient.invalidateQueries(['admin-word-banks']); toast.success('Word bank created!'); setWbForm({ name: '', description: '', category: 'general', specialty: '', baseline_words: '', target_words: '', stretch_words: '', price: '0' }); },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed'),
+  });
+  const deleteWbMutation = useMutation({
+    mutationFn: (id) => wordBankAPI.delete(id),
+    onSuccess: () => { queryClient.invalidateQueries(['admin-word-banks']); toast.success('Word bank deleted'); },
+  });
 
   // === Sync forms with data ===
   React.useEffect(() => {
@@ -267,6 +285,7 @@ const AdminPortal = () => {
 
   const tabs = [
     { id: 'stats', label: 'Statistics', icon: BarChart3 },
+    { id: 'wordbanks', label: 'Word Banks', icon: BookOpen },
     { id: 'costs', label: 'AI Costs', icon: DollarSign },
     { id: 'brands', label: 'Brands', icon: Megaphone },
     { id: 'users', label: 'Users', icon: Users },
@@ -339,6 +358,124 @@ const AdminPortal = () => {
               <StatCard icon={Users} label="Classrooms" value={stats.classrooms.total_sessions} sub={`${stats.classrooms.active_sessions} active`} color="indigo" />
               <StatCard icon={BookOpen} label="Words Read" value={stats.reading.total_words_read.toLocaleString()} color="emerald" />
             </div>
+          </div>
+        )}
+
+        {/* =================== WORD BANKS TAB =================== */}
+        {activeTab === 'wordbanks' && (
+          <div className="space-y-6" data-testid="wordbanks-tab">
+            {/* Create Word Bank Form */}
+            <BrutalCard shadow="xl">
+              <h3 className="text-2xl font-black uppercase mb-4">Create Word Bank</h3>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const parseWords = (str) => str.split(',').map(w => w.trim()).filter(Boolean).map(w => ({
+                  word: w, definition: '', part_of_speech: '', example_sentence: ''
+                }));
+                const payload = {
+                  name: wbForm.name,
+                  description: wbForm.description || wbForm.name,
+                  category: wbForm.category,
+                  specialty: wbForm.specialty || undefined,
+                  baseline_words: parseWords(wbForm.baseline_words),
+                  target_words: parseWords(wbForm.target_words),
+                  stretch_words: parseWords(wbForm.stretch_words),
+                  visibility: 'global',
+                  price: parseInt(wbForm.price) || 0,
+                };
+                if (!payload.name || payload.target_words.length === 0) {
+                  toast.error('Name and at least one target word are required.');
+                  return;
+                }
+                createWbMutation.mutate(payload);
+              }} className="space-y-4">
+                <div className="grid md:grid-cols-3 gap-4">
+                  <BrutalInput label="Bank Name *" required value={wbForm.name}
+                    onChange={(e) => setWbForm({ ...wbForm, name: e.target.value })}
+                    placeholder="e.g. Space Exploration" data-testid="admin-wb-name" />
+                  <div>
+                    <label className="block font-bold text-sm uppercase mb-2">Category</label>
+                    <select value={wbForm.category} onChange={(e) => setWbForm({ ...wbForm, category: e.target.value })}
+                      className="w-full px-4 py-3 border-4 border-black font-bold bg-white" data-testid="admin-wb-category">
+                      <option value="general">General</option>
+                      <option value="academic">Academic</option>
+                      <option value="professional">Professional</option>
+                      <option value="specialized">Specialized</option>
+                    </select>
+                  </div>
+                  <BrutalInput label="Price (cents, 0=free)" value={wbForm.price}
+                    onChange={(e) => setWbForm({ ...wbForm, price: e.target.value })}
+                    placeholder="0" type="number" data-testid="admin-wb-price" />
+                </div>
+                <BrutalInput label="Description" value={wbForm.description}
+                  onChange={(e) => setWbForm({ ...wbForm, description: e.target.value })}
+                  placeholder="Brief description" data-testid="admin-wb-desc" />
+                <BrutalInput label="Specialty (optional)" value={wbForm.specialty}
+                  onChange={(e) => setWbForm({ ...wbForm, specialty: e.target.value })}
+                  placeholder="e.g. Science, History" />
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block font-bold text-sm uppercase mb-2">Baseline Words (comma-separated)</label>
+                    <textarea value={wbForm.baseline_words} onChange={(e) => setWbForm({ ...wbForm, baseline_words: e.target.value })}
+                      placeholder="word1, word2, word3"
+                      className="w-full px-3 py-2 border-4 border-black font-medium min-h-[80px]" data-testid="admin-wb-baseline" />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-sm uppercase mb-2">Target Words * (comma-separated)</label>
+                    <textarea value={wbForm.target_words} onChange={(e) => setWbForm({ ...wbForm, target_words: e.target.value })}
+                      placeholder="word1, word2, word3"
+                      className="w-full px-3 py-2 border-4 border-black font-medium min-h-[80px]" data-testid="admin-wb-target" />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-sm uppercase mb-2">Stretch Words (comma-separated)</label>
+                    <textarea value={wbForm.stretch_words} onChange={(e) => setWbForm({ ...wbForm, stretch_words: e.target.value })}
+                      placeholder="word1, word2, word3"
+                      className="w-full px-3 py-2 border-4 border-black font-medium min-h-[80px]" data-testid="admin-wb-stretch" />
+                  </div>
+                </div>
+                <BrutalButton type="submit" variant="emerald" size="lg" fullWidth disabled={createWbMutation.isPending} data-testid="admin-wb-submit">
+                  {createWbMutation.isPending ? 'Creating...' : 'Create Word Bank'}
+                </BrutalButton>
+              </form>
+            </BrutalCard>
+
+            {/* Existing Word Banks */}
+            <h3 className="text-2xl font-black uppercase">Existing Word Banks ({wordBanks.length})</h3>
+            {wordBanks.length === 0 ? (
+              <BrutalCard shadow="md" className="text-center py-8">
+                <p className="text-lg font-bold text-gray-500">No word banks yet. Create one above!</p>
+              </BrutalCard>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {wordBanks.map((wb) => (
+                  <BrutalCard key={wb.id} shadow="md" hover data-testid={`wb-card-${wb.id}`}>
+                    <div className="flex items-start justify-between mb-2">
+                      <h4 className="text-lg font-black uppercase">{wb.name}</h4>
+                      <BrutalBadge variant={wb.price === 0 ? 'emerald' : 'amber'} size="sm">
+                        {wb.price === 0 ? 'FREE' : `$${(wb.price / 100).toFixed(2)}`}
+                      </BrutalBadge>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-2 line-clamp-2">{wb.description}</p>
+                    <div className="flex items-center gap-2 mb-3">
+                      <BrutalBadge variant="indigo" size="sm">{wb.category}</BrutalBadge>
+                      {wb.specialty && <BrutalBadge variant="default" size="sm">{wb.specialty}</BrutalBadge>}
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-center border-t-4 border-black pt-2 mb-3">
+                      <div><p className="text-xs font-bold text-gray-500">Baseline</p><p className="font-black">{wb.baseline_words?.length || 0}</p></div>
+                      <div><p className="text-xs font-bold text-gray-500">Target</p><p className="font-black">{wb.target_words?.length || 0}</p></div>
+                      <div><p className="text-xs font-bold text-gray-500">Stretch</p><p className="font-black">{wb.stretch_words?.length || 0}</p></div>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium">{wb.purchase_count} users</span>
+                      <BrutalButton variant="rose" size="sm" onClick={() => { if (window.confirm(`Delete "${wb.name}"?`)) deleteWbMutation.mutate(wb.id); }}
+                        className="flex items-center gap-1" data-testid={`delete-wb-${wb.id}`}>
+                        <Trash2 size={14} /> Delete
+                      </BrutalButton>
+                    </div>
+                  </BrutalCard>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
