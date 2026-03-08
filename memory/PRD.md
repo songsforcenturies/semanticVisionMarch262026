@@ -1,71 +1,60 @@
 # LexiMaster - Product Requirements Document
 
 ## Original Problem Statement
-Build "LexiMaster," a high-quality educational platform for students, guardians, and teachers, focusing on vocabulary building and character education through AI-generated stories. Multi-role system (Guardian/Parent/School, Teacher, Student, Admin, Brand Partner), wallet/payment system, brand sponsorship model, and self-service brand partner portal.
+Build "LexiMaster," a high-quality educational platform for students, guardians, and teachers, focusing on vocabulary building and character education through AI-generated stories.
 
 ## Architecture
 - **Backend:** FastAPI + MongoDB (Motor async), JWT Auth, WebSockets
-- **Frontend:** React 18, TypeScript, Tailwind CSS, Shadcn/UI, React Router, React Query
+- **Frontend:** React 18, Tailwind CSS, Shadcn/UI, React Router, React Query
 - **AI:** OpenAI GPT-5.2 (Emergent LLM Key), OpenRouter
 - **Payments:** Stripe
-- **Email:** Resend (transactional emails)
-- **i18n:** react-i18next with 20 languages
-- **Currency:** Open Exchange Rates API (open.er-api.com), ip-api.com geolocation
+- **Email:** Resend
+- **Currency:** Open Exchange Rates API, ip-api.com geolocation
+- **i18n:** react-i18next (20 languages)
 
-## What's Been Implemented
+## Implemented Features
 
-### Core Platform (Complete)
-- [x] Multi-role auth: Parent/School, Teacher, Student, Admin, Brand Partner
-- [x] AI-powered story generation with brand integration (GPT-5.2)
-- [x] AI-evaluated written assessments
-- [x] Story reader with click-to-define words
-- [x] 60/30/10 vocabulary learning system
+### Admin Portal
+- [x] Statistics, AI Costs, Brands, Users, Coupons, Plans, Billing/ROI, Features, LLM Config, App Settings
+- [x] **Word Banks tab** — Create, Edit, Delete word banks with category filter (All/General/Academic/Professional/Specialized), visibility badges (PRIVATE/GLOBAL), Parent-Created tags
+- [x] **Contests tab** — Create/manage referral contests with prizes (1st/2nd/3rd), date ranges, pause/activate/delete
+- [x] Configurable referral reward amount (USD)
+- [x] Parent Portal quick-nav link
 
-### Parent / School Portal (Complete)
-- [x] Full CRUD student management
-- [x] Spelling controls & ad preferences toggle buttons (green=ON, red=OFF)
-- [x] Word Bank Marketplace with currency-localized prices
-- [x] Parent word bank creation (admin-controlled toggle)
+### Parent / School Portal
+- [x] Student management with toggle buttons (green=ON, red=OFF)
+- [x] Word Bank Marketplace with currency-localized prices, category filter
+- [x] **Parent word bank creation** (admin toggle) — **forced PRIVATE**, only visible to creator + their children
 - [x] Wallet system with Stripe + currency-localized display
-- [x] Referral program with total earnings, referral history
-- [x] Referral contest leaderboard with countdown timer and ranked users
-- [x] Currency auto-detection based on user's IP/country
+- [x] Referral system with total earnings, history, contest leaderboard with countdown
+- [x] Currency auto-detection via IP (50+ countries)
 
-### Admin Portal (Complete)
-- [x] Statistics, Word Banks, AI Costs, Brands, Users, Coupons tabs
-- [x] **Contests tab** — Create/manage referral contests with configurable prizes (1st, 2nd, 3rd place), date ranges, pause/activate/delete
-- [x] Plans, Billing/ROI (configurable referral reward USD amount), Features, LLM Config, App Settings
-- [x] Parent Portal link in header for quick navigation
+### Word Bank Privacy & Compliance (Mar 8, 2026)
+- [x] Parent-created banks forced to `visibility: private` server-side
+- [x] Parents can only see: global/marketplace banks + their own private banks
+- [x] Other parents CANNOT see another parent's private banks
+- [x] Parents can only edit their own banks, cannot change visibility from private
+- [x] Admin can see/edit ALL banks including private ones for oversight
+- [x] `created_by_role` field tracks whether admin or guardian created the bank
 
-### Referral Contest System (New - Mar 8, 2026)
-- [x] Admin creates contests: title, description, grand prize, prize value, start/end dates
-- [x] Runner-up prizes (2nd, 3rd place) configurable
-- [x] LIVE/PAUSED/ENDED status badges
-- [x] Pause/Activate/Delete contest controls
-- [x] Purple gradient contest banner on Parent Portal with countdown timer
-- [x] Live leaderboard ranking users by referral count
-- [x] Privacy-masked display names (e.g. "Allen A.")
-- [x] "Your Rank" indicator when user appears on leaderboard
-- [x] Leaderboard filtered by contest date range
-
-### Currency Localization (Mar 8, 2026)
-- [x] Auto-detect country via IP geolocation
-- [x] 50+ countries mapped to currencies with symbols
-- [x] Live exchange rates (6-hour cache)
-- [x] All wallet, marketplace, referral amounts in local currency
-- [x] All money internally pegged to USD
+### Referral Contest System (Mar 8, 2026)
+- [x] Admin creates contests with prizes, dates, runner-up prizes
+- [x] Live leaderboard ranked by referral count
+- [x] Contest banner with countdown timer on Parent Portal
+- [x] Privacy-masked display names
 
 ### Brand Partner Portal (Complete)
 - [x] Self-service registration, onboarding, products, geo-targeting
-- [x] AI Story Preview, Analytics Dashboard, Campaign management
-- [x] Coupon creation, Budget management with Stripe
+- [x] AI Story Preview, Analytics, Campaign management, Coupons
+- [x] Brand integration proven in story generation
 
-### Authentication & Email (Complete)
-- [x] JWT auth, Forgot Password with Resend, Email verification
+### Auth & Email
+- [x] JWT auth, Forgot Password (Resend), Email verification
 
 ## Bug Fixes (This Session)
-- [x] P0: Backend crash - get_current_brand_partner NameError
-- [x] Toggle buttons not changing color (model fields + admin auth bypass)
+- [x] P0: Backend crash (get_current_brand_partner NameError)
+- [x] Toggle buttons not changing color
+- [x] Admin blocked from toggle endpoints (guardian_id ownership check)
 
 ## Prioritized Backlog
 
@@ -74,14 +63,14 @@ Build "LexiMaster," a high-quality educational platform for students, guardians,
 
 ### P1
 - [ ] Payment integrations (Cash App, Zelle, Venmo, PayPal)
-- [ ] Accessibility features (deaf/HoH users)
+- [ ] Word content moderation (AI-powered inappropriate word detection)
+- [ ] Accessibility features
 
 ### P2
 - [ ] Component extraction (AdminPortal.jsx, BrandPortal.jsx)
-- [ ] Student gamification (XP, badges)
-- [ ] Manual currency picker
-- [ ] COPPA/FERPA compliance
+- [ ] Student gamification, manual currency picker, COPPA/FERPA compliance
 
 ## Credentials
 - Admin: allen@songsforcenturies.com / LexiAdmin2026!
 - Guardian: allen@ourfamily.contact / LexiAdmin2026!
+- Other Guardian: other@test.com / Test1234!
