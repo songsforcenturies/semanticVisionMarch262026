@@ -4798,6 +4798,22 @@ async def get_brand_story_integrations(brand_id: Optional[str] = None, current_u
         ).to_list(50)
         narratives_with_brand.extend(extra_narratives)
 
+    # Also search ALL narratives by content (catches older narratives without brand_placements field)
+    found_ids = {n["id"] for n in narratives_with_brand}
+    search_terms_lower = [brand_name.lower()] + [p.lower() for p in product_names if p]
+    
+    all_narratives = await db.narratives.find(
+        {"id": {"$nin": list(found_ids)}},
+        {"_id": 0, "id": 1, "title": 1, "student_id": 1, "chapters": 1, "created_date": 1}
+    ).to_list(100)
+    
+    for narr in all_narratives:
+        for ch in narr.get("chapters", []):
+            content_lower = ch.get("content", "").lower()
+            if any(t in content_lower for t in search_terms_lower if t):
+                narratives_with_brand.append(narr)
+                break
+
     # 2. Extract story snippets where brand/products are mentioned
     story_snippets = []
     all_student_ids = set()
@@ -4847,7 +4863,57 @@ async def get_brand_story_integrations(brand_id: Optional[str] = None, current_u
     for snippet in story_snippets:
         snippet["student_name"] = student_names.get(snippet["student_id"], "Student")
 
-    # 4. Get written answers from students who read these narratives
+    # 4. Get vision check questions from chapters + read_log pass/fail data
+    #    This captures the brand activation questions asked to students
+    activation_questions = []
+    for narrative in narratives_with_brand:
+        for chapter in narrative.get("chapters", []):
+            vision_check = chapter.get("vision_check", {})
+            question = vision_check.get("question", "")
+            if not question:
+                continue
+            
+            ch_num = chapter.get("number", 0)
+            content = chapter.get("content", "")
+            content_lower = content.lower()
+            question_lower = question.lower()
+            
+            # Only include if brand/product appears in chapter content or question
+            has_brand_content = any(t in content_lower for t in search_terms if t)
+            has_brand_question = any(t in question_lower for t in search_terms if t)
+            
+            if has_brand_content or has_brand_question:
+                activation_questions.append({
+                    "narrative_id": narrative["id"],
+                    "narrative_title": narrative.get("title", "Untitled"),
+                    "chapter_number": ch_num,
+                    "chapter_title": chapter.get("title", ""),
+                    "student_id": narrative["student_id"],
+                    "student_name": student_names.get(narrative["student_id"], "Student"),
+                    "question": question,
+                    "expected_answer": vision_check.get("answer", ""),
+                    "brand_in_question": has_brand_question,
+                })
+    
+    # Get read_log pass/fail data for these activation questions
+    if activation_questions:
+        narrative_ids_for_logs = list(set(q["narrative_id"] for q in activation_questions))
+        read_logs = await db.read_logs.find(
+            {"narrative_id": {"$in": narrative_ids_for_logs}},
+            {"_id": 0, "narrative_id": 1, "chapter_number": 1, "vision_check_passed": 1, "student_id": 1, "created_date": 1}
+        ).to_list(500)
+        
+        for aq in activation_questions:
+            matching_logs = [
+                rl for rl in read_logs 
+                if rl.get("narrative_id") == aq["narrative_id"] 
+                and rl.get("chapter_number") == aq["chapter_number"]
+            ]
+            aq["total_attempts"] = len(matching_logs)
+            aq["passed_count"] = sum(1 for rl in matching_logs if rl.get("vision_check_passed") == True)
+            aq["failed_count"] = sum(1 for rl in matching_logs if rl.get("vision_check_passed") == False)
+    
+    # 5. Get written answers from students who read these narratives (free-text responses)
     student_responses = []
     if all_student_ids:
         answers = await db.written_answers.find(
@@ -4866,10 +4932,16 @@ async def get_brand_story_integrations(brand_id: Optional[str] = None, current_u
                 "created_date": ans.get("created_date", ""),
             })
 
-    # 5. Summary stats
+    # 6. Summary stats
+    total_attempts = sum(q["total_attempts"] for q in activation_questions) if activation_questions else 0
+    total_passes = sum(q["passed_count"] for q in activation_questions) if activation_questions else 0
     summary = {
         "total_stories_with_brand": len(narratives_with_brand),
         "total_snippets": len(story_snippets),
+        "total_activation_questions": len(activation_questions),
+        "total_question_attempts": total_attempts,
+        "total_question_passes": total_passes,
+        "pass_rate": round(total_passes / total_attempts * 100, 1) if total_attempts > 0 else 0,
         "total_student_responses": len(student_responses),
         "unique_students_reached": len(all_student_ids),
         "avg_comprehension_score": round(
@@ -4878,8 +4950,9 @@ async def get_brand_story_integrations(brand_id: Optional[str] = None, current_u
     }
 
     return {
-        "story_snippets": story_snippets[:30],  # Limit to 30 most recent
-        "student_responses": student_responses[:50],  # Limit to 50
+        "story_snippets": story_snippets[:30],
+        "activation_questions": activation_questions[:50],
+        "student_responses": student_responses[:50],
         "summary": summary,
     }
 

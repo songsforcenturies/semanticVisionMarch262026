@@ -1135,6 +1135,7 @@ const StoryPreviewCard = ({ brand }) => {
   const snippets = integrationsData?.story_snippets || [];
   const responses = integrationsData?.student_responses || [];
   const summary = integrationsData?.summary || {};
+  const activationQuestions = integrationsData?.activation_questions || [];
 
   const handleGenerate = async () => {
     await generateMut.mutateAsync();
@@ -1179,18 +1180,19 @@ const StoryPreviewCard = ({ brand }) => {
     return elements;
   };
 
-  const hasRealData = snippets.length > 0 || responses.length > 0;
+  const hasRealData = snippets.length > 0 || activationQuestions.length > 0 || responses.length > 0;
 
   return (
     <div className="space-y-6" data-testid="story-integrations-section">
       {/* Summary Stats */}
       {hasRealData && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {[
             { label: 'Stories Featuring Brand', value: summary.total_stories_with_brand || 0, color: '#818CF8' },
             { label: 'Brand Mentions', value: summary.total_snippets || 0, color: '#D4A853' },
-            { label: 'Student Responses', value: summary.total_student_responses || 0, color: '#34D399' },
-            { label: 'Avg Comprehension', value: `${summary.avg_comprehension_score || 0}%`, color: '#38BDF8' },
+            { label: 'Activation Questions', value: summary.total_activation_questions || 0, color: '#F472B6' },
+            { label: 'Question Attempts', value: summary.total_question_attempts || 0, color: '#34D399' },
+            { label: 'Pass Rate', value: `${summary.pass_rate || 0}%`, color: '#38BDF8' },
           ].map((s, i) => (
             <div key={i} className="p-4 rounded-xl" style={{ background: '#1A2236', border: '1px solid rgba(255,255,255,0.08)' }}>
               <p className="text-xs font-semibold uppercase" style={{ color: '#94A3B8' }}>{s.label}</p>
@@ -1262,6 +1264,62 @@ const StoryPreviewCard = ({ brand }) => {
           <div className="flex items-center justify-center py-10 gap-3" data-testid="preview-loading">
             <Loader2 size={28} className="animate-spin" style={{ color: '#D4A853' }} />
             <p className="font-bold" style={{ color: '#94A3B8' }}>AI is crafting your story preview...</p>
+          </div>
+        )}
+      </div>
+
+      {/* Brand Activation Questions */}
+      <div className="p-6 rounded-2xl" style={{ background: '#1A2236', border: '1px solid rgba(255,255,255,0.08)' }} data-testid="activation-questions-card">
+        <h3 className="text-lg font-bold flex items-center gap-2 mb-1" style={{ color: '#F8F5EE', fontFamily: "'Sora', sans-serif" }}>
+          <Eye size={20} style={{ color: '#F472B6' }} /> Brand Activation Questions
+        </h3>
+        <p className="text-xs mb-4" style={{ color: '#64748B' }}>
+          Questions asked to students about your brand within their personalized stories. Pass/fail data shows how well students engaged with your brand content.
+        </p>
+
+        {activationQuestions.length > 0 ? (
+          <div className="space-y-3">
+            {activationQuestions.map((aq, idx) => (
+              <div key={idx} className="p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }} data-testid={`activation-question-${idx}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: 'rgba(56,189,248,0.12)', color: '#38BDF8' }}>
+                      {aq.student_name}
+                    </span>
+                    <span className="text-xs" style={{ color: '#64748B' }}>{aq.narrative_title} &middot; Ch {aq.chapter_number}</span>
+                    {aq.brand_in_question && (
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(212,168,83,0.12)', color: '#D4A853' }}>
+                        Brand in Question
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {aq.total_attempts > 0 && (
+                      <>
+                        <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: 'rgba(52,211,153,0.12)', color: '#34D399' }}>
+                          {aq.passed_count} passed
+                        </span>
+                        <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: 'rgba(244,63,94,0.12)', color: '#FB7185' }}>
+                          {aq.failed_count} failed
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <p className="text-sm font-semibold mb-1" style={{ color: '#F8F5EE' }}>Q: {aq.question}</p>
+                {aq.expected_answer && (
+                  <p className="text-xs pl-3 mt-1" style={{ color: '#94A3B8', borderLeft: '2px solid rgba(212,168,83,0.3)' }}>
+                    Expected: {aq.expected_answer}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Eye size={36} className="mx-auto mb-3" style={{ color: '#475569' }} />
+            <p className="font-bold text-sm" style={{ color: '#94A3B8' }}>No activation questions yet</p>
+            <p className="text-xs mt-1" style={{ color: '#64748B' }}>When students read stories featuring your brand, comprehension questions will appear here.</p>
           </div>
         )}
       </div>
