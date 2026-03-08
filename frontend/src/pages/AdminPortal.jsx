@@ -8,7 +8,7 @@ import { BrutalCard, BrutalButton, BrutalBadge, BrutalInput } from '@/components
 import {
   Home, LogOut, DollarSign, Cpu, Users, BarChart3, Settings, Shield,
   Ticket, Crown, PlusCircle, Trash2, UserCheck, BookOpen, Clock, Zap, Sliders, ToggleLeft,
-  Megaphone, Building2, Edit,
+  Megaphone, Building2, Edit, Trophy,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -85,6 +85,11 @@ const AdminPortal = () => {
     queryFn: async () => (await wordBankAPI.getAll({})).data,
     enabled: activeTab === 'wordbanks',
   });
+  const { data: contests = [] } = useQuery({
+    queryKey: ['admin-contests'],
+    queryFn: async () => (await apiClient.get('/admin/contests', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })).data,
+    enabled: activeTab === 'contests',
+  });
 
   // === Form States ===
   const [llmForm, setLlmForm] = useState({ provider: 'emergent', model: 'gpt-5.2', openrouter_key: '' });
@@ -127,6 +132,10 @@ const AdminPortal = () => {
   const [wbForm, setWbForm] = useState({
     name: '', description: '', category: 'general', specialty: '',
     baseline_words: '', target_words: '', stretch_words: '', price: '0',
+  });
+  const [contestForm, setContestForm] = useState({
+    title: '', description: '', prize_description: '', prize_value: '',
+    start_date: '', end_date: '', runner_up_2nd: '', runner_up_3rd: '',
   });
 
   // === Mutations ===
@@ -261,6 +270,23 @@ const AdminPortal = () => {
     mutationFn: (id) => wordBankAPI.delete(id),
     onSuccess: () => { queryClient.invalidateQueries(['admin-word-banks']); toast.success('Word bank deleted'); },
   });
+  const createContestMutation = useMutation({
+    mutationFn: (data) => apiClient.post('/admin/contests', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['admin-contests']);
+      toast.success('Contest created!');
+      setContestForm({ title: '', description: '', prize_description: '', prize_value: '', start_date: '', end_date: '', runner_up_2nd: '', runner_up_3rd: '' });
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed'),
+  });
+  const deleteContestMutation = useMutation({
+    mutationFn: (id) => apiClient.delete(`/admin/contests/${id}`),
+    onSuccess: () => { queryClient.invalidateQueries(['admin-contests']); toast.success('Contest deleted'); },
+  });
+  const toggleContestMutation = useMutation({
+    mutationFn: ({ id, is_active }) => apiClient.put(`/admin/contests/${id}`, { is_active }),
+    onSuccess: () => { queryClient.invalidateQueries(['admin-contests']); toast.success('Contest updated'); },
+  });
 
   // === Sync forms with data ===
   React.useEffect(() => {
@@ -290,6 +316,7 @@ const AdminPortal = () => {
     { id: 'brands', label: 'Brands', icon: Megaphone },
     { id: 'users', label: 'Users', icon: Users },
     { id: 'coupons', label: 'Coupons', icon: Ticket },
+    { id: 'contests', label: 'Contests', icon: Trophy },
     { id: 'plans', label: 'Plans', icon: Crown },
     { id: 'billing', label: 'Billing/ROI', icon: Sliders },
     { id: 'features', label: 'Features', icon: ToggleLeft },
@@ -920,6 +947,133 @@ const AdminPortal = () => {
                 </div>
               )}
             </BrutalCard>
+          </div>
+        )}
+
+        {/* =================== CONTESTS TAB =================== */}
+        {activeTab === 'contests' && (
+          <div className="space-y-6" data-testid="contests-tab">
+            {/* Create Contest Form */}
+            <BrutalCard shadow="xl">
+              <h3 className="text-2xl font-black uppercase mb-4 flex items-center gap-2">
+                <Trophy size={24} className="text-yellow-500" /> Create Referral Contest
+              </h3>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const runner_up_prizes = [];
+                if (contestForm.runner_up_2nd) runner_up_prizes.push({ place: 2, prize: contestForm.runner_up_2nd });
+                if (contestForm.runner_up_3rd) runner_up_prizes.push({ place: 3, prize: contestForm.runner_up_3rd });
+                createContestMutation.mutate({
+                  title: contestForm.title,
+                  description: contestForm.description,
+                  prize_description: contestForm.prize_description,
+                  prize_value: parseFloat(contestForm.prize_value) || null,
+                  start_date: new Date(contestForm.start_date).toISOString(),
+                  end_date: new Date(contestForm.end_date).toISOString(),
+                  is_active: true,
+                  runner_up_prizes,
+                });
+              }} className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <BrutalInput label="Contest Title *" required value={contestForm.title}
+                    onChange={(e) => setContestForm({ ...contestForm, title: e.target.value })}
+                    placeholder="e.g. March Madness Referral Challenge" data-testid="contest-title" />
+                  <BrutalInput label="Grand Prize *" required value={contestForm.prize_description}
+                    onChange={(e) => setContestForm({ ...contestForm, prize_description: e.target.value })}
+                    placeholder="e.g. $100 Gift Card + 1 Year Premium" data-testid="contest-prize" />
+                </div>
+                <BrutalInput label="Description" value={contestForm.description}
+                  onChange={(e) => setContestForm({ ...contestForm, description: e.target.value })}
+                  placeholder="Tell participants what this contest is about..." data-testid="contest-desc" />
+                <div className="grid md:grid-cols-3 gap-4">
+                  <BrutalInput label="Prize Value (USD, optional)" type="number" step="0.01" value={contestForm.prize_value}
+                    onChange={(e) => setContestForm({ ...contestForm, prize_value: e.target.value })}
+                    placeholder="100" data-testid="contest-value" />
+                  <BrutalInput label="Start Date *" type="datetime-local" required value={contestForm.start_date}
+                    onChange={(e) => setContestForm({ ...contestForm, start_date: e.target.value })}
+                    data-testid="contest-start" />
+                  <BrutalInput label="End Date *" type="datetime-local" required value={contestForm.end_date}
+                    onChange={(e) => setContestForm({ ...contestForm, end_date: e.target.value })}
+                    data-testid="contest-end" />
+                </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <BrutalInput label="2nd Place Prize (optional)" value={contestForm.runner_up_2nd}
+                    onChange={(e) => setContestForm({ ...contestForm, runner_up_2nd: e.target.value })}
+                    placeholder="e.g. $50 Gift Card" data-testid="contest-2nd" />
+                  <BrutalInput label="3rd Place Prize (optional)" value={contestForm.runner_up_3rd}
+                    onChange={(e) => setContestForm({ ...contestForm, runner_up_3rd: e.target.value })}
+                    placeholder="e.g. 6 Months Premium" data-testid="contest-3rd" />
+                </div>
+                <BrutalButton type="submit" variant="amber" size="lg" fullWidth
+                  disabled={createContestMutation.isPending} data-testid="contest-submit">
+                  {createContestMutation.isPending ? 'Creating...' : 'Launch Contest'}
+                </BrutalButton>
+              </form>
+            </BrutalCard>
+
+            {/* Existing Contests */}
+            <h3 className="text-2xl font-black uppercase">All Contests ({contests.length})</h3>
+            {contests.length === 0 ? (
+              <BrutalCard shadow="md" className="text-center py-8">
+                <Trophy size={48} className="mx-auto text-gray-300 mb-3" />
+                <p className="text-lg font-bold text-gray-500">No contests yet. Create one to boost referrals!</p>
+              </BrutalCard>
+            ) : (
+              <div className="space-y-4">
+                {contests.map((c) => {
+                  const isExpired = new Date(c.end_date) < new Date();
+                  return (
+                    <BrutalCard key={c.id} shadow="lg" hover data-testid={`contest-card-${c.id}`}>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="text-xl font-black uppercase">{c.title}</h4>
+                            {c.is_active && !isExpired ? (
+                              <BrutalBadge variant="emerald" size="sm">LIVE</BrutalBadge>
+                            ) : isExpired ? (
+                              <BrutalBadge variant="default" size="sm">ENDED</BrutalBadge>
+                            ) : (
+                              <BrutalBadge variant="rose" size="sm">PAUSED</BrutalBadge>
+                            )}
+                          </div>
+                          {c.description && <p className="text-gray-600 mb-2">{c.description}</p>}
+                          <div className="flex items-center gap-4 text-sm">
+                            <span className="font-bold text-amber-700">Prize: {c.prize_description}</span>
+                            {c.prize_value && <span className="text-gray-500">(${c.prize_value})</span>}
+                          </div>
+                          {c.runner_up_prizes?.length > 0 && (
+                            <div className="flex gap-3 mt-1 text-sm text-gray-500">
+                              {c.runner_up_prizes.map((p, i) => (
+                                <span key={i}>{p.place === 2 ? '2nd' : '3rd'}: {p.prize}</span>
+                              ))}
+                            </div>
+                          )}
+                          <p className="text-xs text-gray-500 mt-2">
+                            {new Date(c.start_date).toLocaleDateString()} - {new Date(c.end_date).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <BrutalButton
+                            variant={c.is_active ? 'rose' : 'emerald'}
+                            size="sm"
+                            onClick={() => toggleContestMutation.mutate({ id: c.id, is_active: !c.is_active })}
+                            data-testid={`toggle-contest-${c.id}`}
+                          >
+                            {c.is_active ? 'Pause' : 'Activate'}
+                          </BrutalButton>
+                          <BrutalButton variant="dark" size="sm"
+                            onClick={() => { if (window.confirm(`Delete "${c.title}"?`)) deleteContestMutation.mutate(c.id); }}
+                            className="flex items-center gap-1"
+                            data-testid={`delete-contest-${c.id}`}>
+                            <Trash2 size={14} /> Delete
+                          </BrutalButton>
+                        </div>
+                      </div>
+                    </BrutalCard>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

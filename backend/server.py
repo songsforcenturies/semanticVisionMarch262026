@@ -7,7 +7,8 @@ import os
 import logging
 import json as json_lib
 from pathlib import Path
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
+import uuid
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel
 
@@ -3062,6 +3063,138 @@ async def get_referral_reward_amount():
     config = await db.system_config.find_one({"key": "billing_config"}, {"_id": 0})
     reward = config.get("value", {}).get("referral_reward_amount", 5.0) if config else 5.0
     return {"referral_reward_amount": reward}
+
+
+# ==================== REFERRAL CONTESTS & LEADERBOARD ====================
+
+class ContestCreate(BaseModel):
+    title: str
+    description: str = ""
+    prize_description: str
+    prize_value: Optional[float] = None
+    start_date: str  # ISO date string
+    end_date: str    # ISO date string
+    is_active: bool = True
+    runner_up_prizes: Optional[List[Dict[str, Any]]] = None  # [{place: 2, prize: "..."}, ...]
+
+
+class ContestUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    prize_description: Optional[str] = None
+    prize_value: Optional[float] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    is_active: Optional[bool] = None
+    runner_up_prizes: Optional[List[Dict[str, Any]]] = None
+
+
+@api_router.post("/admin/contests")
+async def create_contest(data: ContestCreate, current_user: dict = Depends(get_current_admin)):
+    """Create a new referral contest"""
+    contest = {
+        "id": str(uuid.uuid4()),
+        "title": data.title,
+        "description": data.description,
+        "prize_description": data.prize_description,
+        "prize_value": data.prize_value,
+        "start_date": data.start_date,
+        "end_date": data.end_date,
+        "is_active": data.is_active,
+        "runner_up_prizes": data.runner_up_prizes or [],
+        "created_date": datetime.now(timezone.utc).isoformat(),
+        "created_by": current_user["id"],
+    }
+    await db.referral_contests.insert_one(contest)
+    contest.pop("_id", None)
+    return contest
+
+
+@api_router.get("/admin/contests")
+async def list_contests(current_user: dict = Depends(get_current_admin)):
+    """List all referral contests"""
+    contests = await db.referral_contests.find({}, {"_id": 0}).sort("created_date", -1).to_list(50)
+    return contests
+
+
+@api_router.put("/admin/contests/{contest_id}")
+async def update_contest(contest_id: str, data: ContestUpdate, current_user: dict = Depends(get_current_admin)):
+    """Update a referral contest"""
+    update_fields = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not update_fields:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    result = await db.referral_contests.update_one({"id": contest_id}, {"$set": update_fields})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Contest not found")
+    updated = await db.referral_contests.find_one({"id": contest_id}, {"_id": 0})
+    return updated
+
+
+@api_router.delete("/admin/contests/{contest_id}")
+async def delete_contest(contest_id: str, current_user: dict = Depends(get_current_admin)):
+    """Delete a referral contest"""
+    result = await db.referral_contests.delete_one({"id": contest_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Contest not found")
+    return {"message": "Contest deleted"}
+
+
+@api_router.get("/contests/active")
+async def get_active_contest():
+    """Get the currently active referral contest (public)"""
+    now = datetime.now(timezone.utc).isoformat()
+    contest = await db.referral_contests.find_one(
+        {"is_active": True, "end_date": {"$gte": now}},
+        {"_id": 0}
+    )
+    return contest or {}
+
+
+@api_router.get("/contests/leaderboard")
+async def get_referral_leaderboard(contest_id: Optional[str] = None):
+    """Get the referral leaderboard, optionally filtered by contest date range"""
+    match_stage = {}
+    
+    if contest_id:
+        contest = await db.referral_contests.find_one({"id": contest_id}, {"_id": 0})
+        if contest:
+            match_stage = {
+                "created_date": {
+                    "$gte": contest["start_date"],
+                    "$lte": contest["end_date"],
+                }
+            }
+    
+    pipeline = [
+        {"$match": match_stage} if match_stage else {"$match": {}},
+        {"$group": {
+            "_id": "$referrer_id",
+            "referral_count": {"$sum": 1},
+            "total_earned": {"$sum": {"$ifNull": ["$reward_amount", 0]}},
+        }},
+        {"$sort": {"referral_count": -1}},
+        {"$limit": 25},
+    ]
+    
+    results = await db.referrals.aggregate(pipeline).to_list(25)
+    
+    leaderboard = []
+    for i, entry in enumerate(results):
+        user = await db.users.find_one({"id": entry["_id"]}, {"_id": 0, "full_name": 1, "email": 1})
+        name = user.get("full_name", "Unknown") if user else "Unknown"
+        # Mask name for privacy: "Allen A." 
+        parts = name.split()
+        display_name = f"{parts[0]} {parts[1][0]}." if len(parts) > 1 else parts[0] if parts else "User"
+        
+        leaderboard.append({
+            "rank": i + 1,
+            "user_id": entry["_id"],
+            "display_name": display_name,
+            "referral_count": entry["referral_count"],
+            "total_earned": entry["total_earned"],
+        })
+    
+    return {"leaderboard": leaderboard}
 
 
 # ==================== CURRENCY / EXCHANGE RATES ====================

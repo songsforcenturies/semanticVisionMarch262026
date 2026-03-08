@@ -190,6 +190,9 @@ export const couponAPI = {
 export const referralAPI = {
   getMyCode: () => apiClient.get('/referrals/my-code'),
   getMyReferrals: () => apiClient.get('/referrals/my-referrals'),
+  getRewardAmount: () => apiClient.get('/referrals/reward-amount'),
+  getActiveContest: () => apiClient.get('/contests/active'),
+  getLeaderboard: (contestId) => apiClient.get('/contests/leaderboard', { params: contestId ? { contest_id: contestId } : {} }),
 };
 
 // ==================== WORD DEFINITION API ====================
