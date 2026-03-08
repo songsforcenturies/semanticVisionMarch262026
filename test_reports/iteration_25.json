@@ -1,0 +1,116 @@
+{
+  "summary": "Iteration 25: Subscription System Testing - ALL FEATURES WORKING. Tested subscription management: GET /api/subscription-plans/available, PUT /api/admin/plans/{id}, POST /api/admin/users/{user_id}/assign-subscription, POST /api/subscriptions/upgrade. Also verified Guardian Portal Subscription tab, Admin Portal plan edit modal, and Admin Users assign subscription. Fixed missing SubscriptionFeatures import in server.py.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration_25_subscription.py",
+    "/app/test_reports/pytest/iteration_25_subscription.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Fixed: SubscriptionFeatures was not imported from models in server.py - caused 500 error on assign subscription",
+    "All subscription API endpoints working correctly",
+    "Guardian Portal Subscription tab displays current plan, available plans, upgrade buttons, and coupon redemption",
+    "Admin Portal Plans tab shows edit button for each plan with full edit modal",
+    "Admin Portal Users tab shows 'PLAN' button next to each user for assigning subscriptions",
+    "Language dropdown text color is rgb(17,24,39) (dark gray) on white background - NOT invisible",
+    "Landing page prominently displays '20+ languages' badge in hero section and stats bar"
+  ],
+  "updated_files": [
+    "/app/backend/server.py (added SubscriptionFeatures to imports)"
+  ],
+  "success_rate": {
+    "backend": "100% (15/15 tests passed, 1 skipped)",
+    "frontend": "100% (all features verified)"
+  },
+  "test_credentials": {
+    "admin": {"email": "allen@songsforcenturies.com", "password": "LexiAdmin2026!"},
+    "guardian": {"email": "allen@ourfamily.contact", "password": "LexiAdmin2026!"}
+  },
+  "seed_data_creation": "None required - existing plans used for testing",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Subscription system fully functional. Admin can edit plans (name, price, seats, is_active), assign subscriptions to users. Parents can view subscription tab with current plan and available plans. Language dropdown has visible dark text. Landing page shows 20+ languages badge prominently.",
+  "tests_executed": {
+    "backend_api_tests": {
+      "subscription_plans_available": [
+        "GET /api/subscription-plans/available returns 200 - PASSED",
+        "GET /api/subscription-plans/available returns list - PASSED",
+        "Available plans have required fields (id, name, price_monthly, student_seats) - PASSED"
+      ],
+      "admin_plan_edit": [
+        "Admin can list plans - PASSED",
+        "Admin can edit plan description - PASSED",
+        "Admin can edit plan price and seats - PASSED",
+        "Admin can toggle plan active status - PASSED",
+        "Non-admin cannot edit plans (returns 403) - PASSED"
+      ],
+      "admin_assign_subscription": [
+        "Admin can assign subscription to user - PASSED (after fix)",
+        "Non-admin cannot assign subscription (returns 403) - PASSED",
+        "Invalid plan returns 404 - PASSED"
+      ],
+      "subscription_upgrade": [
+        "Guardian can view own subscription - PASSED",
+        "Upgrade requires sufficient balance - PASSED",
+        "Invalid plan returns 404 - PASSED"
+      ],
+      "coupon_redemption": [
+        "Invalid coupon fails with 400/404 - PASSED"
+      ]
+    },
+    "frontend_tests": {
+      "landing_page": [
+        "20+ languages badge visible in hero section - PASSED",
+        "20+ Languages visible in stats bar - PASSED"
+      ],
+      "language_switcher": [
+        "Language dropdown opens correctly - PASSED",
+        "Dropdown text color is rgb(17,24,39) (dark/visible) - PASSED"
+      ],
+      "guardian_portal_subscription_tab": [
+        "Subscription tab visible and clickable - PASSED",
+        "Current plan displayed (ACADEMY, ACTIVE, 2/25 students) - PASSED",
+        "Coupon redemption input visible - PASSED",
+        "Redeem button visible - PASSED",
+        "Available plans section showing 4 plans - PASSED",
+        "Upgrade buttons visible for non-current plans - PASSED"
+      ],
+      "admin_portal_plans_tab": [
+        "Plans tab visible - PASSED",
+        "4 edit plan buttons found - PASSED",
+        "Edit modal opens with all fields - PASSED",
+        "Plan Name field visible - PASSED",
+        "Monthly Price field visible - PASSED",
+        "Student Seats field visible - PASSED",
+        "Active checkbox visible - PASSED",
+        "Save Changes and Cancel buttons visible - PASSED"
+      ],
+      "admin_portal_users_tab": [
+        "Users tab visible - PASSED",
+        "ALL USERS (76) table displayed - PASSED",
+        "PLAN buttons visible next to each user (57 found) - PASSED",
+        "Assign Subscription form opens on click - PASSED",
+        "Plan select dropdown visible - PASSED",
+        "Assign Plan and Cancel buttons visible - PASSED"
+      ]
+    }
+  },
+  "bug_fix_applied": {
+    "issue": "POST /api/admin/users/{user_id}/assign-subscription returned 500 Internal Server Error",
+    "root_cause": "SubscriptionFeatures class was used in server.py but not imported from models.py",
+    "fix": "Added SubscriptionFeatures to the import statement in server.py line 16-30",
+    "verification": "Backend test now passes - admin can assign subscriptions to users"
+  },
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "note": "All APIs are real implementations, no mocking"
+  }
+}

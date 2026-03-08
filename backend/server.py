@@ -16,7 +16,7 @@ from pydantic import BaseModel
 from models import (
     User, UserCreate, UserLogin, UserResponse, UserRole,
     Student, StudentCreate, StudentUpdate,
-    Subscription, SubscriptionPlan, SubscriptionStatus,
+    Subscription, SubscriptionPlan, SubscriptionStatus, SubscriptionFeatures,
     WordBank, WordBankCreate,
     Narrative, NarrativeCreate, NarrativeStatus,
     Assessment, ReadLog, WordBankGift, GiftCreate,
@@ -2924,6 +2924,163 @@ async def delete_plan(plan_id: str, current_user: dict = Depends(get_current_use
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Plan not found")
     return {"message": "Plan deleted"}
+
+
+class PlanUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    price_monthly: Optional[float] = None
+    student_seats: Optional[int] = None
+    story_limit: Optional[int] = None
+    features: Optional[dict] = None
+    is_active: Optional[bool] = None
+
+
+@api_router.put("/admin/plans/{plan_id}")
+async def update_plan(plan_id: str, data: PlanUpdate, current_user: dict = Depends(get_current_user)):
+    """Edit a subscription plan (admin only)"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    update_fields = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not update_fields:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    result = await db.subscription_plans.update_one({"id": plan_id}, {"$set": update_fields})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    updated = await db.subscription_plans.find_one({"id": plan_id}, {"_id": 0})
+    return updated
+
+
+# ==================== SUBSCRIPTION PLANS (PUBLIC) ====================
+
+@api_router.get("/subscription-plans/available")
+async def get_available_plans():
+    """Get all active subscription plans (for parents to choose from)"""
+    plans = await db.subscription_plans.find({"is_active": True}, {"_id": 0}).sort("price_monthly", 1).to_list(50)
+    return plans
+
+
+# ==================== SUBSCRIPTION UPGRADE (PARENT) ====================
+
+class SubscriptionUpgradeRequest(BaseModel):
+    plan_id: str
+    use_wallet: bool = True
+
+
+@api_router.post("/subscriptions/upgrade")
+async def upgrade_subscription(data: SubscriptionUpgradeRequest, current_user: dict = Depends(get_current_user)):
+    """Parent upgrades their subscription to a chosen plan"""
+    # Fetch the plan
+    plan = await db.subscription_plans.find_one({"id": data.plan_id, "is_active": True}, {"_id": 0})
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found or inactive")
+
+    # Fetch current subscription
+    subscription = await db.subscriptions.find_one({"guardian_id": current_user["id"]})
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+
+    price = plan.get("price_monthly", 0.0)
+
+    # If plan costs money and user wants to pay with wallet
+    if price > 0 and data.use_wallet:
+        user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0, "wallet_balance": 1})
+        balance = user.get("wallet_balance", 0.0) if user else 0.0
+
+        # Check for active discount
+        discount_info = (await db.users.find_one({"id": current_user["id"]}, {"_id": 0, "active_discount": 1})) or {}
+        discount = discount_info.get("active_discount", {})
+        discount_pct = discount.get("percentage", 0)
+        if discount_pct > 0:
+            price = round(price * (1 - discount_pct / 100), 2)
+            # Clear the discount after use
+            await db.users.update_one({"id": current_user["id"]}, {"$unset": {"active_discount": ""}})
+
+        if balance < price:
+            raise HTTPException(status_code=400, detail=f"Insufficient wallet balance. Need ${price:.2f}, have ${balance:.2f}")
+
+        new_balance = round(balance - price, 2)
+        await db.users.update_one({"id": current_user["id"]}, {"$set": {"wallet_balance": new_balance}})
+
+        txn = WalletTransaction(
+            user_id=current_user["id"],
+            type=WalletTransactionType.DEBIT,
+            amount=price,
+            description=f"Subscription upgrade: {plan['name']}",
+            reference_id=plan["id"],
+            balance_after=new_balance,
+        )
+        await db.wallet_transactions.insert_one(txn.model_dump())
+
+    # Update subscription
+    update = {
+        "plan": plan.get("name", "starter").lower().replace(" ", "_"),
+        "student_seats": plan.get("student_seats", 10),
+        "status": "active",
+        "price_monthly": int(price * 100),
+        "features": SubscriptionFeatures(
+            voice_mentor=plan.get("features", {}).get("voice_mentor", False),
+            contracts=plan.get("features", {}).get("contracts", False),
+            advanced_analytics=plan.get("features", {}).get("advanced_analytics", False),
+            custom_narratives=plan.get("features", {}).get("custom_narratives", False),
+        ).model_dump(),
+    }
+    await db.subscriptions.update_one({"guardian_id": current_user["id"]}, {"$set": update})
+
+    return {
+        "message": f"Upgraded to {plan['name']}!",
+        "plan_name": plan["name"],
+        "student_seats": plan.get("student_seats", 10),
+        "price_paid": price,
+    }
+
+
+# ==================== ADMIN ASSIGN SUBSCRIPTION ====================
+
+class AdminAssignSubscription(BaseModel):
+    plan_id: str
+
+
+@api_router.post("/admin/users/{user_id}/assign-subscription")
+async def admin_assign_subscription(user_id: str, data: AdminAssignSubscription, current_user: dict = Depends(get_current_user)):
+    """Admin assigns a subscription plan to a user"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    plan = await db.subscription_plans.find_one({"id": data.plan_id}, {"_id": 0})
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    # Check if subscription exists
+    subscription = await db.subscriptions.find_one({"guardian_id": user_id})
+
+    update = {
+        "plan": plan.get("name", "starter").lower().replace(" ", "_"),
+        "student_seats": plan.get("student_seats", 10),
+        "status": "active",
+        "price_monthly": int(plan.get("price_monthly", 0) * 100),
+        "features": SubscriptionFeatures(
+            voice_mentor=plan.get("features", {}).get("voice_mentor", False),
+            contracts=plan.get("features", {}).get("contracts", False),
+            advanced_analytics=plan.get("features", {}).get("advanced_analytics", False),
+            custom_narratives=plan.get("features", {}).get("custom_narratives", False),
+        ).model_dump(),
+    }
+
+    if subscription:
+        await db.subscriptions.update_one({"guardian_id": user_id}, {"$set": update})
+    else:
+        new_sub = Subscription(guardian_id=user_id, **update, active_students=0)
+        await db.subscriptions.insert_one(new_sub.model_dump())
+
+    return {"message": f"Assigned {plan['name']} plan to {user['full_name']}"}
 
 
 # ==================== COMPREHENSIVE ADMIN STATISTICS ====================

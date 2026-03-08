@@ -108,6 +108,12 @@ const AdminPortal = () => {
   const [resetResult, setResetResult] = useState(null); // {email, temp_password}
   const [creditUser, setCreditUser] = useState(null); // user to add credits to
   const [creditAmount, setCreditAmount] = useState('');
+  const [editingPlan, setEditingPlan] = useState(null);
+  const [editPlanForm, setEditPlanForm] = useState({
+    name: '', description: '', price_monthly: '', student_seats: '', story_limit: '', is_active: true,
+  });
+  const [assignSubUser, setAssignSubUser] = useState(null);
+  const [assignPlanId, setAssignPlanId] = useState('');
   const [planForm, setPlanForm] = useState({
     name: '', description: '', price_monthly: '', student_seats: '10', story_limit: '-1',
   });
@@ -239,6 +245,24 @@ const AdminPortal = () => {
   const deletePlanMutation = useMutation({
     mutationFn: (id) => adminAPI.deletePlan(id),
     onSuccess: () => { queryClient.invalidateQueries(['admin-plans']); toast.success('Plan deleted'); },
+  });
+  const updatePlanMutation = useMutation({
+    mutationFn: ({ id, data }) => adminAPI.updatePlan(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['admin-plans']);
+      toast.success('Plan updated!');
+      setEditingPlan(null);
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Update failed'),
+  });
+  const assignSubscriptionMutation = useMutation({
+    mutationFn: ({ userId, planId }) => adminAPI.assignSubscription(userId, { plan_id: planId }),
+    onSuccess: (res) => {
+      toast.success(res.data.message);
+      setAssignSubUser(null);
+      setAssignPlanId('');
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Assignment failed'),
   });
   const updateBillingMutation = useMutation({
     mutationFn: (data) => adminAPI.updateBillingConfig(data),
@@ -930,6 +954,29 @@ const AdminPortal = () => {
               </BrutalCard>
             )}
 
+            {/* Assign Subscription Dialog */}
+            {assignSubUser && (
+              <BrutalCard shadow="lg" className="bg-amber-50 border-amber-400">
+                <h4 className="font-black text-lg mb-3 flex items-center gap-2"><Crown size={18} /> Assign Subscription: {assignSubUser.full_name}</h4>
+                <div className="flex gap-3 items-end" data-testid="assign-subscription-form">
+                  <div className="flex-1">
+                    <label className="block font-bold text-sm uppercase mb-2">Select Plan</label>
+                    <select value={assignPlanId} onChange={(e) => setAssignPlanId(e.target.value)}
+                      className="w-full border-4 border-black px-4 py-3 font-bold text-base bg-white" data-testid="assign-plan-select">
+                      <option value="">Choose a plan...</option>
+                      {plans.map(p => <option key={p.id} value={p.id}>{p.name} — ${p.price_monthly}/mo — {p.student_seats} seats</option>)}
+                    </select>
+                  </div>
+                  <BrutalButton variant="indigo" onClick={() => assignSubscriptionMutation.mutate({ userId: assignSubUser.id, planId: assignPlanId })}
+                    disabled={!assignPlanId || assignSubscriptionMutation.isPending} data-testid="confirm-assign-btn">
+                    {assignSubscriptionMutation.isPending ? 'Assigning...' : 'Assign Plan'}
+                  </BrutalButton>
+                  <BrutalButton variant="default" onClick={() => { setAssignSubUser(null); setAssignPlanId(''); }}>Cancel</BrutalButton>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">This will immediately update the user's subscription plan and student seat limit.</p>
+              </BrutalCard>
+            )}
+
             {/* Edit User Dialog */}
             {editingUser && (
               <BrutalCard shadow="lg" className="bg-indigo-50 border-indigo-400">
@@ -999,6 +1046,11 @@ const AdminPortal = () => {
                               <BrutalButton variant="emerald" size="sm" onClick={() => setCreditUser(u)} data-testid={`credits-${u.id}`}>
                                 +$
                               </BrutalButton>
+                              {u.role === 'guardian' && (
+                                <BrutalButton variant="indigo" size="sm" onClick={() => setAssignSubUser(u)} data-testid={`assign-sub-${u.id}`}>
+                                  Plan
+                                </BrutalButton>
+                              )}
                               <BrutalButton variant="amber" size="sm" onClick={() => resetPasswordMut.mutate(u.id)} disabled={resetPasswordMut.isPending} data-testid={`reset-pwd-${u.id}`}>
                                 Reset Pwd
                               </BrutalButton>
@@ -1313,10 +1365,23 @@ const AdminPortal = () => {
               {plans.length === 0 ? <p className="text-center py-6 text-gray-500 font-bold">No plans yet</p> : (
                 <div className="grid md:grid-cols-2 gap-4">
                   {plans.map((p) => (
-                    <div key={p.id} className="border-4 border-black p-4" data-testid={`plan-${p.id}`}>
+                    <div key={p.id} className={`border-4 border-black p-4 ${p.is_active === false ? 'opacity-60 bg-gray-100' : ''}`} data-testid={`plan-${p.id}`}>
                       <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-black text-lg">{p.name}</h4>
-                        <BrutalButton variant="rose" size="sm" onClick={() => deletePlanMutation.mutate(p.id)}><Trash2 size={14} /></BrutalButton>
+                        <div>
+                          <h4 className="font-black text-lg">{p.name}</h4>
+                          {p.is_active === false && <BrutalBadge variant="rose">Inactive</BrutalBadge>}
+                        </div>
+                        <div className="flex gap-1">
+                          <BrutalButton variant="default" size="sm" onClick={() => {
+                            setEditingPlan(p);
+                            setEditPlanForm({
+                              name: p.name, description: p.description || '',
+                              price_monthly: String(p.price_monthly), student_seats: String(p.student_seats),
+                              story_limit: String(p.story_limit), is_active: p.is_active !== false,
+                            });
+                          }} data-testid={`edit-plan-${p.id}`}><Edit size={14} /></BrutalButton>
+                          <BrutalButton variant="rose" size="sm" onClick={() => deletePlanMutation.mutate(p.id)}><Trash2 size={14} /></BrutalButton>
+                        </div>
                       </div>
                       <p className="text-2xl font-black text-indigo-600">${p.price_monthly}/mo</p>
                       <p className="text-sm mt-1">{p.student_seats} seats | {p.story_limit === -1 ? 'Unlimited' : p.story_limit} stories</p>
@@ -1326,6 +1391,47 @@ const AdminPortal = () => {
                 </div>
               )}
             </BrutalCard>
+
+            {/* Edit Plan Modal */}
+            {editingPlan && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setEditingPlan(null)}>
+                <div className="bg-white border-6 border-black brutal-shadow-xl p-6 w-full max-w-lg mx-4" onClick={(e) => e.stopPropagation()}>
+                  <h3 className="text-xl font-black uppercase mb-4">Edit Plan: {editingPlan.name}</h3>
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    updatePlanMutation.mutate({
+                      id: editingPlan.id,
+                      data: {
+                        name: editPlanForm.name,
+                        description: editPlanForm.description,
+                        price_monthly: parseFloat(editPlanForm.price_monthly) || 0,
+                        student_seats: parseInt(editPlanForm.student_seats) || 10,
+                        story_limit: parseInt(editPlanForm.story_limit),
+                        is_active: editPlanForm.is_active,
+                      },
+                    });
+                  }} className="space-y-4">
+                    <BrutalInput label="Plan Name" value={editPlanForm.name} onChange={(e) => setEditPlanForm({ ...editPlanForm, name: e.target.value })} data-testid="edit-plan-name" />
+                    <div className="grid grid-cols-2 gap-4">
+                      <BrutalInput label="Monthly Price ($)" type="number" step="0.01" value={editPlanForm.price_monthly} onChange={(e) => setEditPlanForm({ ...editPlanForm, price_monthly: e.target.value })} data-testid="edit-plan-price" />
+                      <BrutalInput label="Student Seats" type="number" value={editPlanForm.student_seats} onChange={(e) => setEditPlanForm({ ...editPlanForm, student_seats: e.target.value })} data-testid="edit-plan-seats" />
+                    </div>
+                    <BrutalInput label="Story Limit (-1=unlimited)" type="number" value={editPlanForm.story_limit} onChange={(e) => setEditPlanForm({ ...editPlanForm, story_limit: e.target.value })} />
+                    <BrutalInput label="Description" value={editPlanForm.description} onChange={(e) => setEditPlanForm({ ...editPlanForm, description: e.target.value })} />
+                    <label className="flex items-center gap-3 p-3 border-4 border-black cursor-pointer">
+                      <input type="checkbox" checked={editPlanForm.is_active} onChange={(e) => setEditPlanForm({ ...editPlanForm, is_active: e.target.checked })} className="w-5 h-5" />
+                      <span className="font-bold">Active (visible to parents)</span>
+                    </label>
+                    <div className="flex gap-3">
+                      <BrutalButton type="submit" variant="indigo" fullWidth disabled={updatePlanMutation.isPending} data-testid="save-plan-btn">
+                        {updatePlanMutation.isPending ? 'Saving...' : 'Save Changes'}
+                      </BrutalButton>
+                      <BrutalButton type="button" variant="default" onClick={() => setEditingPlan(null)}>Cancel</BrutalButton>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

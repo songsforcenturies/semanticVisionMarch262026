@@ -126,6 +126,11 @@ const LandingPage = () => {
                 Semantic Vision generates personalized AI stories that teach vocabulary, reflect your family's culture and values, and seamlessly weave real brands as problem-solving heroes inside the narrative.
               </motion.p>
 
+              <motion.div variants={fadeUp} className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full mb-8" style={{ background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.25)' }}>
+                <Globe size={18} style={{ color: C.teal }} />
+                <span className="text-sm font-semibold" style={{ color: C.teal }}>Your child can learn in 20+ languages</span>
+              </motion.div>
+
               <motion.div variants={fadeUp} className="flex flex-wrap gap-4">
                 <button
                   onClick={() => navigate('/register')}

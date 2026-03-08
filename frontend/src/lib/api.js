@@ -70,6 +70,8 @@ export const studentAPI = {
 
 export const subscriptionAPI = {
   get: (guardianId) => apiClient.get(`/subscriptions/${guardianId}`),
+  getAvailablePlans: () => apiClient.get('/subscription-plans/available'),
+  upgrade: (data) => apiClient.post('/subscriptions/upgrade', data),
 };
 
 // ==================== WORD BANK API ====================
@@ -147,6 +149,8 @@ export const adminAPI = {
   getPlans: () => apiClient.get('/admin/plans'),
   createPlan: (data) => apiClient.post('/admin/plans', data),
   deletePlan: (id) => apiClient.delete(`/admin/plans/${id}`),
+  updatePlan: (id, data) => apiClient.put(`/admin/plans/${id}`, data),
+  assignSubscription: (userId, data) => apiClient.post(`/admin/users/${userId}/assign-subscription`, data),
   createWordBank: (data) => apiClient.post('/admin/word-banks', data),
   getBillingConfig: () => apiClient.get('/admin/billing-config'),
   updateBillingConfig: (data) => apiClient.post('/admin/billing-config', data),

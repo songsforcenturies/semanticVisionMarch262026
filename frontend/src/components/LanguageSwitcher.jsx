@@ -29,7 +29,7 @@ const LanguageSwitcher = ({ className = '' }) => {
     <div className={`relative ${className}`} ref={ref} data-testid="language-switcher">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-3 py-2 border-4 border-black bg-white font-bold text-sm uppercase brutal-shadow-sm hover:brutal-shadow-md transition-all brutal-active"
+        className="flex items-center gap-2 px-3 py-2 border-4 border-black bg-white text-black font-bold text-sm uppercase brutal-shadow-sm hover:brutal-shadow-md transition-all brutal-active"
         data-testid="language-switcher-btn"
       >
         <Globe size={16} />
@@ -42,7 +42,7 @@ const LanguageSwitcher = ({ className = '' }) => {
               key={lang.code}
               onClick={() => changeLanguage(lang.code)}
               className={`w-full text-left px-4 py-2 text-sm font-bold hover:bg-indigo-50 transition-colors flex justify-between items-center ${
-                i18n.language === lang.code ? 'bg-indigo-100 text-indigo-700' : ''
+                i18n.language === lang.code ? 'bg-indigo-100 text-indigo-700' : 'text-gray-900'
               }`}
               data-testid={`lang-${lang.code}`}
             >

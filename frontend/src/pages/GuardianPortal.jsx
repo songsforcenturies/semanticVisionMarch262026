@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { BrutalButton } from '@/components/brutal';
-import { LogOut, Users, ShoppingBag, TrendingUp, Home, Wallet, Share2 } from 'lucide-react';
+import { LogOut, Users, ShoppingBag, TrendingUp, Home, Wallet, Share2, Crown } from 'lucide-react';
 import StudentsTab from '@/components/guardian/StudentsTab';
 import MarketplaceTab from '@/components/guardian/MarketplaceTab';
 import ProgressTab from '@/components/guardian/ProgressTab';
 import WalletTab from '@/components/guardian/WalletTab';
 import ReferralTab from '@/components/guardian/ReferralTab';
+import SubscriptionTab from '@/components/guardian/SubscriptionTab';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const GuardianPortal = () => {
@@ -24,6 +25,7 @@ const GuardianPortal = () => {
 
   const tabs = [
     { id: 'students', label: t('guardian.students'), icon: Users, color: 'indigo' },
+    { id: 'subscription', label: 'Subscription', icon: Crown, color: 'amber' },
     { id: 'marketplace', label: t('guardian.marketplace'), icon: ShoppingBag, color: 'emerald' },
     { id: 'wallet', label: t('guardian.wallet'), icon: Wallet, color: 'amber' },
     { id: 'referral', label: t('guardian.inviteEarn'), icon: Share2, color: 'rose' },
@@ -72,6 +74,7 @@ const GuardianPortal = () => {
 
         <div>
           {activeTab === 'students' && <StudentsTab />}
+          {activeTab === 'subscription' && <SubscriptionTab />}
           {activeTab === 'marketplace' && <MarketplaceTab />}
           {activeTab === 'wallet' && <WalletTab />}
           {activeTab === 'referral' && <ReferralTab />}
