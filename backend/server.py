@@ -859,10 +859,19 @@ async def get_subscription(
     guardian_id: str,
     current_user: dict = Depends(get_current_user)
 ):
-    """Get guardian's subscription"""
-    subscription = await db.subscriptions.find_one({"guardian_id": guardian_id})
+    """Get guardian's subscription — auto-creates a free plan if missing"""
+    subscription = await db.subscriptions.find_one({"guardian_id": guardian_id}, {"_id": 0})
     if not subscription:
-        raise HTTPException(status_code=404, detail="Subscription not found")
+        # Auto-create a free subscription for guardians who don't have one
+        active_students = await db.students.count_documents({"guardian_id": guardian_id})
+        new_sub = Subscription(
+            guardian_id=guardian_id,
+            plan=SubscriptionPlan.FREE,
+            student_seats=10,
+            active_students=active_students,
+        )
+        await db.subscriptions.insert_one(new_sub.model_dump())
+        subscription = new_sub.model_dump()
     return subscription
 
 
@@ -2712,15 +2721,113 @@ async def delegate_admin(data: DelegateRequest, current_user: dict = Depends(get
 
 
 @api_router.get("/admin/users")
-async def list_all_users(current_user: dict = Depends(get_current_user)):
-    """List all users (admin only)"""
+async def list_all_users(
+    search: Optional[str] = None,
+    current_user: dict = Depends(get_current_user),
+):
+    """List all users (admin only) — supports search by name or email"""
     if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
 
+    query = {}
+    if search and search.strip():
+        s = search.strip()
+        query = {"$or": [
+            {"email": {"$regex": s, "$options": "i"}},
+            {"full_name": {"$regex": s, "$options": "i"}},
+        ]}
+
     users = await db.users.find(
-        {}, {"_id": 0, "password_hash": 0}
+        query, {"_id": 0, "password_hash": 0}
     ).sort("created_date", -1).to_list(500)
     return users
+
+
+@api_router.get("/admin/plan-stats")
+async def get_plan_stats(current_user: dict = Depends(get_current_user)):
+    """Get count of users per subscription plan (admin only)"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    pipeline = [
+        {"$group": {"_id": "$plan", "count": {"$sum": 1}, "total_seats": {"$sum": "$student_seats"}, "active_students": {"$sum": "$active_students"}}},
+        {"$sort": {"count": -1}},
+    ]
+    stats = await db.subscriptions.aggregate(pipeline).to_list(50)
+    total_guardians = await db.users.count_documents({"role": "guardian"})
+    total_with_sub = await db.subscriptions.count_documents({})
+
+    return {
+        "plan_breakdown": [{"plan": s["_id"], "users": s["count"], "total_seats": s["total_seats"], "active_students": s["active_students"]} for s in stats],
+        "total_guardians": total_guardians,
+        "total_with_subscription": total_with_sub,
+        "total_without_subscription": total_guardians - total_with_sub,
+    }
+
+
+class AdminEditUserSubscription(BaseModel):
+    plan_name: Optional[str] = None
+    student_seats: Optional[int] = None
+    status: Optional[str] = None
+
+
+@api_router.put("/admin/users/{user_id}/subscription")
+async def admin_edit_user_subscription(user_id: str, data: AdminEditUserSubscription, current_user: dict = Depends(get_current_user)):
+    """Admin directly edits a user's subscription (seats, plan, status)"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    sub = await db.subscriptions.find_one({"guardian_id": user_id})
+    if not sub:
+        # Auto-create
+        active_students = await db.students.count_documents({"guardian_id": user_id})
+        new_sub = Subscription(guardian_id=user_id, plan=SubscriptionPlan.FREE, student_seats=10, active_students=active_students)
+        await db.subscriptions.insert_one(new_sub.model_dump())
+
+    update = {}
+    if data.plan_name is not None:
+        update["plan"] = data.plan_name.lower().replace(" ", "_")
+    if data.student_seats is not None:
+        update["student_seats"] = data.student_seats
+    if data.status is not None:
+        update["status"] = data.status
+
+    if not update:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    await db.subscriptions.update_one({"guardian_id": user_id}, {"$set": update})
+    updated = await db.subscriptions.find_one({"guardian_id": user_id}, {"_id": 0})
+    return updated
+
+
+class AdminEditUserWallet(BaseModel):
+    wallet_balance: float
+    description: str = "Admin wallet adjustment"
+
+
+@api_router.put("/admin/users/{user_id}/wallet")
+async def admin_edit_user_wallet(user_id: str, data: AdminEditUserWallet, current_user: dict = Depends(get_current_user)):
+    """Admin directly sets a user's wallet balance"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "wallet_balance": 1})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    old_balance = user.get("wallet_balance", 0.0)
+    new_balance = round(data.wallet_balance, 2)
+    await db.users.update_one({"id": user_id}, {"$set": {"wallet_balance": new_balance}})
+
+    diff = round(new_balance - old_balance, 2)
+    txn_type = WalletTransactionType.CREDIT if diff >= 0 else WalletTransactionType.DEBIT
+    await db.wallet_transactions.insert_one(WalletTransaction(
+        user_id=user_id, type=txn_type, amount=abs(diff),
+        description=data.description, reference_id="admin-adjustment",
+        balance_after=new_balance,
+    ).model_dump())
+
+    return {"message": f"Wallet updated to ${new_balance:.2f}", "new_balance": new_balance}
 
 
 

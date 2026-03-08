@@ -141,7 +141,7 @@ export const adminAPI = {
   getSettings: () => apiClient.get('/admin/settings'),
   updateSettings: (data) => apiClient.post('/admin/settings', data),
   getStats: () => apiClient.get('/admin/stats'),
-  getUsers: () => apiClient.get('/admin/users'),
+  getUsers: (search) => apiClient.get('/admin/users', { params: search ? { search } : {} }),
   delegateAdmin: (data) => apiClient.post('/admin/delegate', data),
   getCoupons: () => apiClient.get('/admin/coupons'),
   createCoupon: (data) => apiClient.post('/admin/coupons', data),
@@ -171,6 +171,9 @@ export const adminAPI = {
   deactivateUser: (id) => apiClient.post(`/admin/users/${id}/deactivate`),
   deleteUser: (id) => apiClient.delete(`/admin/users/${id}`),
   addCredits: (id, data) => apiClient.post(`/admin/users/${id}/add-credits`, data),
+  getPlanStats: () => apiClient.get('/admin/plan-stats'),
+  editUserSubscription: (userId, data) => apiClient.put(`/admin/users/${userId}/subscription`, data),
+  editUserWallet: (userId, data) => apiClient.put(`/admin/users/${userId}/wallet`, data),
 };
 
 // ==================== WALLET API ====================

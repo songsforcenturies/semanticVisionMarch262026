@@ -8,7 +8,7 @@ import { BrutalCard, BrutalButton, BrutalBadge, BrutalInput } from '@/components
 import {
   Home, LogOut, DollarSign, Cpu, Users, BarChart3, Settings, Shield,
   Ticket, Crown, PlusCircle, Trash2, UserCheck, BookOpen, Clock, Zap, Sliders, ToggleLeft,
-  Megaphone, Building2, Edit, Trophy,
+  Megaphone, Building2, Edit, Trophy, Wallet,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -22,6 +22,7 @@ const AdminPortal = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('stats');
+  const [userSearch, setUserSearch] = useState('');
 
   // === Data Queries ===
   const { data: costs } = useQuery({
@@ -41,9 +42,14 @@ const AdminPortal = () => {
     queryFn: async () => (await adminAPI.getStats()).data,
   });
   const { data: allUsers = [] } = useQuery({
-    queryKey: ['admin-users'],
-    queryFn: async () => (await adminAPI.getUsers()).data,
+    queryKey: ['admin-users', userSearch],
+    queryFn: async () => (await adminAPI.getUsers(userSearch)).data,
     enabled: activeTab === 'users',
+  });
+  const { data: planStats } = useQuery({
+    queryKey: ['admin-plan-stats'],
+    queryFn: async () => (await adminAPI.getPlanStats()).data,
+    enabled: activeTab === 'users' || activeTab === 'plans',
   });
   const { data: coupons = [] } = useQuery({
     queryKey: ['admin-coupons'],
@@ -108,6 +114,11 @@ const AdminPortal = () => {
   const [resetResult, setResetResult] = useState(null); // {email, temp_password}
   const [creditUser, setCreditUser] = useState(null); // user to add credits to
   const [creditAmount, setCreditAmount] = useState('');
+  const [editSubUser, setEditSubUser] = useState(null);
+  const [editSubForm, setEditSubForm] = useState({ plan_name: '', student_seats: '', status: 'active' });
+  const [editWalletUser, setEditWalletUser] = useState(null);
+  const [editWalletAmount, setEditWalletAmount] = useState('');
+  const [editWalletDesc, setEditWalletDesc] = useState('Admin wallet adjustment');
   const [editingPlan, setEditingPlan] = useState(null);
   const [editPlanForm, setEditPlanForm] = useState({
     name: '', description: '', price_monthly: '', student_seats: '', story_limit: '', is_active: true,
@@ -263,6 +274,24 @@ const AdminPortal = () => {
       setAssignPlanId('');
     },
     onError: (err) => toast.error(err.response?.data?.detail || 'Assignment failed'),
+  });
+  const editUserSubMutation = useMutation({
+    mutationFn: ({ userId, data }) => adminAPI.editUserSubscription(userId, data),
+    onSuccess: () => {
+      toast.success('Subscription updated!');
+      setEditSubUser(null);
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Update failed'),
+  });
+  const editUserWalletMutation = useMutation({
+    mutationFn: ({ userId, data }) => adminAPI.editUserWallet(userId, data),
+    onSuccess: (res) => {
+      toast.success(res.data.message);
+      setEditWalletUser(null);
+      setEditWalletAmount('');
+      queryClient.invalidateQueries(['admin-users']);
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Update failed'),
   });
   const updateBillingMutation = useMutation({
     mutationFn: (data) => adminAPI.updateBillingConfig(data),
@@ -881,6 +910,40 @@ const AdminPortal = () => {
         {/* =================== USERS TAB =================== */}
         {activeTab === 'users' && (
           <div className="space-y-6" data-testid="users-tab">
+            {/* Plan Membership Stats */}
+            {planStats && (
+              <BrutalCard shadow="lg" className="bg-violet-50">
+                <h3 className="text-xl font-black uppercase mb-4">Plan Membership Overview</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                  <div className="border-4 border-black p-3 text-center bg-white">
+                    <div className="text-2xl font-black">{planStats.total_guardians}</div>
+                    <div className="text-xs font-bold uppercase text-gray-500">Total Parents</div>
+                  </div>
+                  <div className="border-4 border-black p-3 text-center bg-white">
+                    <div className="text-2xl font-black">{planStats.total_with_subscription}</div>
+                    <div className="text-xs font-bold uppercase text-gray-500">With Plans</div>
+                  </div>
+                  <div className="border-4 border-black p-3 text-center bg-amber-100">
+                    <div className="text-2xl font-black">{planStats.total_without_subscription}</div>
+                    <div className="text-xs font-bold uppercase text-gray-500">No Plan</div>
+                  </div>
+                  <div className="border-4 border-black p-3 text-center bg-white">
+                    <div className="text-2xl font-black">{planStats.plan_breakdown?.reduce((s, p) => s + p.active_students, 0) || 0}</div>
+                    <div className="text-xs font-bold uppercase text-gray-500">Total Students</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {planStats.plan_breakdown?.map((p) => (
+                    <div key={p.plan} className="border-4 border-black p-3 bg-white" data-testid={`plan-stat-${p.plan}`}>
+                      <div className="font-black uppercase text-sm">{(p.plan || 'unknown').replace(/_/g, ' ')}</div>
+                      <div className="text-2xl font-black text-indigo-600">{p.users}</div>
+                      <div className="text-xs text-gray-500">{p.active_students} students / {p.total_seats} seats</div>
+                    </div>
+                  ))}
+                </div>
+              </BrutalCard>
+            )}
+
             {/* Create New User */}
             <BrutalCard shadow="lg">
               <h3 className="text-xl font-black uppercase mb-4 flex items-center gap-2"><PlusCircle size={22} /> Create New User</h3>
@@ -932,7 +995,7 @@ const AdminPortal = () => {
               </BrutalCard>
             )}
 
-            {/* Add Credits Dialog */}
+            {/* Action panels */}
             {creditUser && (
               <BrutalCard shadow="lg" className="bg-emerald-50 border-emerald-400">
                 <h4 className="font-black text-lg mb-3 flex items-center gap-2">Add Credits: {creditUser.full_name}</h4>
@@ -950,11 +1013,9 @@ const AdminPortal = () => {
                   </BrutalButton>
                   <BrutalButton variant="default" onClick={() => { setCreditUser(null); setCreditAmount(''); }}>Cancel</BrutalButton>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">Credits will be added directly to the user's wallet balance.</p>
               </BrutalCard>
             )}
 
-            {/* Assign Subscription Dialog */}
             {assignSubUser && (
               <BrutalCard shadow="lg" className="bg-amber-50 border-amber-400">
                 <h4 className="font-black text-lg mb-3 flex items-center gap-2"><Crown size={18} /> Assign Subscription: {assignSubUser.full_name}</h4>
@@ -973,7 +1034,69 @@ const AdminPortal = () => {
                   </BrutalButton>
                   <BrutalButton variant="default" onClick={() => { setAssignSubUser(null); setAssignPlanId(''); }}>Cancel</BrutalButton>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">This will immediately update the user's subscription plan and student seat limit.</p>
+              </BrutalCard>
+            )}
+
+            {/* Edit Subscription Dialog */}
+            {editSubUser && (
+              <BrutalCard shadow="lg" className="bg-violet-50 border-violet-400">
+                <h4 className="font-black text-lg mb-3 flex items-center gap-2"><Crown size={18} /> Edit Subscription: {editSubUser.full_name}</h4>
+                <div className="grid md:grid-cols-3 gap-4 mb-4" data-testid="edit-subscription-form">
+                  <div>
+                    <label className="block font-bold text-sm uppercase mb-2">Plan Name</label>
+                    <input value={editSubForm.plan_name} onChange={(e) => setEditSubForm({ ...editSubForm, plan_name: e.target.value })}
+                      className="w-full border-4 border-black px-4 py-3 font-bold" placeholder="e.g. starter"
+                      data-testid="edit-sub-plan-name" />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-sm uppercase mb-2">Student Seats</label>
+                    <input type="number" value={editSubForm.student_seats} onChange={(e) => setEditSubForm({ ...editSubForm, student_seats: e.target.value })}
+                      className="w-full border-4 border-black px-4 py-3 font-bold" placeholder="10"
+                      data-testid="edit-sub-seats" />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-sm uppercase mb-2">Status</label>
+                    <select value={editSubForm.status} onChange={(e) => setEditSubForm({ ...editSubForm, status: e.target.value })}
+                      className="w-full border-4 border-black px-4 py-3 font-bold bg-white" data-testid="edit-sub-status">
+                      <option value="active">Active</option>
+                      <option value="paused">Paused</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <BrutalButton variant="indigo" onClick={() => {
+                    const data = {};
+                    if (editSubForm.plan_name) data.plan_name = editSubForm.plan_name;
+                    if (editSubForm.student_seats) data.student_seats = parseInt(editSubForm.student_seats);
+                    if (editSubForm.status) data.status = editSubForm.status;
+                    editUserSubMutation.mutate({ userId: editSubUser.id, data });
+                  }} disabled={editUserSubMutation.isPending} data-testid="save-sub-btn">
+                    {editUserSubMutation.isPending ? 'Saving...' : 'Save Subscription'}
+                  </BrutalButton>
+                  <BrutalButton variant="default" onClick={() => setEditSubUser(null)}>Cancel</BrutalButton>
+                </div>
+              </BrutalCard>
+            )}
+
+            {/* Edit Wallet Dialog */}
+            {editWalletUser && (
+              <BrutalCard shadow="lg" className="bg-emerald-50 border-emerald-400">
+                <h4 className="font-black text-lg mb-3 flex items-center gap-2"><Wallet size={18} /> Set Wallet: {editWalletUser.full_name} (current: ${(editWalletUser.wallet_balance || 0).toFixed(2)})</h4>
+                <div className="flex gap-3 items-end" data-testid="edit-wallet-form">
+                  <div className="flex-1">
+                    <label className="block font-bold text-sm uppercase mb-2">New Balance ($)</label>
+                    <input type="number" min="0" step="0.01" value={editWalletAmount}
+                      onChange={(e) => setEditWalletAmount(e.target.value)}
+                      className="w-full border-4 border-black px-4 py-3 font-bold text-xl" placeholder="0.00"
+                      data-testid="edit-wallet-amount" />
+                  </div>
+                  <BrutalButton variant="emerald" onClick={() => editUserWalletMutation.mutate({ userId: editWalletUser.id, data: { wallet_balance: parseFloat(editWalletAmount), description: editWalletDesc } })}
+                    disabled={editWalletAmount === '' || editUserWalletMutation.isPending} data-testid="save-wallet-btn">
+                    {editUserWalletMutation.isPending ? 'Saving...' : 'Set Balance'}
+                  </BrutalButton>
+                  <BrutalButton variant="default" onClick={() => { setEditWalletUser(null); setEditWalletAmount(''); }}>Cancel</BrutalButton>
+                </div>
               </BrutalCard>
             )}
 
@@ -1009,12 +1132,22 @@ const AdminPortal = () => {
                 <BrutalButton variant="indigo" onClick={() => delegateMutation.mutate({ email: delegateEmail, is_delegated: true })} disabled={!delegateEmail.trim()} data-testid="delegate-btn">Grant</BrutalButton>
                 <BrutalButton variant="rose" onClick={() => delegateMutation.mutate({ email: delegateEmail, is_delegated: false })} disabled={!delegateEmail.trim()} data-testid="revoke-btn">Revoke</BrutalButton>
               </div>
-              <p className="text-xs text-gray-500 mt-2">Delegated admins can create/edit word banks and manage subscriptions.</p>
             </BrutalCard>
 
-            {/* All Users Table */}
+            {/* All Users Table with Search */}
             <BrutalCard shadow="lg">
-              <h3 className="text-xl font-black uppercase mb-4">All Users ({allUsers.length})</h3>
+              <div className="flex items-center justify-between mb-4 gap-4">
+                <h3 className="text-xl font-black uppercase whitespace-nowrap">All Users ({allUsers.length})</h3>
+                <div className="flex-1 max-w-md">
+                  <input
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    placeholder="Search by name or email..."
+                    className="w-full border-4 border-black px-4 py-2 font-bold text-sm"
+                    data-testid="user-search-input"
+                  />
+                </div>
+              </div>
               <div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="border-b-4 border-black">
                 <th className="py-3 px-3 font-black text-xs uppercase">Name</th><th className="py-3 px-3 font-black text-xs uppercase">Email</th>
                 <th className="py-3 px-3 font-black text-xs uppercase">Role</th><th className="py-3 px-3 font-black text-xs uppercase">Balance</th>
@@ -1043,13 +1176,18 @@ const AdminPortal = () => {
                               <BrutalButton variant="default" size="sm" onClick={() => { setEditingUser(u); setEditForm({ email: u.email, full_name: u.full_name }); }} data-testid={`edit-${u.id}`}>
                                 <Edit size={13} />
                               </BrutalButton>
-                              <BrutalButton variant="emerald" size="sm" onClick={() => setCreditUser(u)} data-testid={`credits-${u.id}`}>
-                                +$
+                              <BrutalButton variant="emerald" size="sm" onClick={() => { setEditWalletUser(u); setEditWalletAmount(String((u.wallet_balance || 0).toFixed(2))); }} data-testid={`wallet-${u.id}`}>
+                                <Wallet size={13} />
                               </BrutalButton>
                               {u.role === 'guardian' && (
-                                <BrutalButton variant="indigo" size="sm" onClick={() => setAssignSubUser(u)} data-testid={`assign-sub-${u.id}`}>
-                                  Plan
-                                </BrutalButton>
+                                <>
+                                  <BrutalButton variant="indigo" size="sm" onClick={() => setAssignSubUser(u)} data-testid={`assign-sub-${u.id}`}>
+                                    Plan
+                                  </BrutalButton>
+                                  <BrutalButton variant="violet" size="sm" onClick={() => { setEditSubUser(u); setEditSubForm({ plan_name: '', student_seats: '', status: 'active' }); }} data-testid={`edit-sub-${u.id}`}>
+                                    Sub
+                                  </BrutalButton>
+                                </>
                               )}
                               <BrutalButton variant="amber" size="sm" onClick={() => resetPasswordMut.mutate(u.id)} disabled={resetPasswordMut.isPending} data-testid={`reset-pwd-${u.id}`}>
                                 Reset Pwd
