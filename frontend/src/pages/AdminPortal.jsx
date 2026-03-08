@@ -313,9 +313,14 @@ const AdminPortal = () => {
                 <p className="text-lg font-medium mt-1">{user?.full_name} — Master Admin</p>
               </div>
             </div>
-            <BrutalButton variant="dark" onClick={handleLogout} className="flex items-center gap-2">
-              <LogOut size={20} /> Logout
-            </BrutalButton>
+            <div className="flex items-center gap-3">
+              <BrutalButton variant="emerald" onClick={() => navigate('/portal')} className="flex items-center gap-2" data-testid="go-to-parent-portal">
+                <Users size={20} /> Parent Portal
+              </BrutalButton>
+              <BrutalButton variant="dark" onClick={handleLogout} className="flex items-center gap-2">
+                <LogOut size={20} /> Logout
+              </BrutalButton>
+            </div>
           </div>
         </div>
       </header>
