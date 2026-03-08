@@ -11,7 +11,6 @@ Build "Semantic Vision," an educational platform — "Learning How to Read incre
 - **Email:** Resend
 - **Currency:** Open Exchange Rates API, ip-api.com
 - **i18n:** react-i18next (20 languages)
-- **Fonts:** Sora (headlines), Plus Jakarta Sans (body)
 
 ## Implemented Features
 
@@ -20,48 +19,35 @@ Build "Semantic Vision," an educational platform — "Learning How to Read incre
 - AI story generation with brand integration, belief-system awareness, cultural context
 - 60/30/10 vocabulary tier system, WebSocket-based live classroom sessions
 
-### Subscription System (Complete)
+### Student Profile — Strengths & Weaknesses (NEW)
+- Free-text `strengths` and `weaknesses` fields in student profile
+- Parents describe what their child excels at and where they need growth
+- AI prompt uses strengths as the character's "superpowers" — abilities celebrated and reinforced
+- AI prompt models growth in weak areas through empathetic character development, never shame
+- Combined with interests, beliefs, culture, virtues, vocabulary, and brand products — every story is truly one-of-a-kind
+- New patent claim added: Claim 5 in TECHNICAL_SPECIFICATIONS.md
+
+### Subscription System
 - Auto-creates free subscription (10 seats) for guardians missing one
-- Plans: Free, Starter, Family, Academy (admin-configurable)
-- Parents can upgrade plans using wallet balance (with discount support)
-- Parents can redeem coupons/invitation codes for credits, seats, stories, discounts
-- Admin can assign plans directly to users
-- Admin can directly edit user subscriptions (plan name, seats, status)
-- Admin can directly set user wallet balance
+- Parents can upgrade plans using wallet balance, redeem coupons
+- Admin: create/edit/delete plans, assign plans to users, edit user subscriptions & wallets
 
 ### Admin Portal
-- **Plan Membership Overview:** Stats card showing total parents, users with/without plans, students, breakdown by plan type
-- **User Search:** Filter users by name or email in real-time
-- **Per-User Controls:** Edit profile, edit wallet (set balance), assign plan from dropdown, edit subscription (plan/seats/status), reset password, activate/deactivate, delete
-- **Plans Management:** Create, edit (name, price, seats, active toggle), delete subscription plans
-- Stats, Word Banks (CRUD + category filter + edit), AI Costs, Brands, Coupons, Contests, Billing/ROI, Features, LLM Config, Settings
-
-### Parent (Guardian) Portal
-- Students, **Subscription Tab**, Marketplace, Wallet, Invite & Earn, Progress
-- **Subscription Tab:** Current plan display, available plans with upgrade, coupon redemption
+- Plan Membership Overview stats, user search by name/email
+- Per-user controls: edit profile, wallet, subscription, plan assignment, reset password, activate/deactivate
 
 ### Landing Page
 - Premium dark theme (midnight navy + gold/teal), Sora + Plus Jakarta Sans fonts
-- Sections: Hero, Stats, Philosophy, How It Works, Brand Integration, Cultural Awareness, 60/30/10 System, Role Cards, CTA, Footer
-- Framer Motion scroll animations, AI-generated illustrations, "20+ languages" callout badge
+- NEW: "Truly Personalized" section — "Stories that know your child's superpowers and help them grow"
+- Shows example AI story snippet demonstrating strengths/weaknesses in action
+- "20+ languages" callout badge
 
-### Technical Specifications Document
-- Comprehensive patent-support document at `/app/memory/TECHNICAL_SPECIFICATIONS.md`
+### Technical Specifications
+- `/app/memory/TECHNICAL_SPECIFICATIONS.md` — 5 patent claims including new Claim 5: Strengths-and-Weaknesses-Aware Personalized Narrative Generation
 
 ## Credentials
 - Admin: allen@songsforcenturies.com / LexiAdmin2026!
 - Guardian: allen@ourfamily.contact / LexiAdmin2026!
-
-## Key API Endpoints
-- `GET /api/subscriptions/{guardian_id}` — Auto-creates free plan if missing
-- `GET /api/subscription-plans/available` — Public, returns active plans
-- `POST /api/subscriptions/upgrade` — Parent upgrades plan (wallet payment)
-- `GET /api/admin/plan-stats` — User counts per plan type
-- `GET /api/admin/users?search=term` — Search users by name/email
-- `PUT /api/admin/plans/{plan_id}` — Admin edits plan
-- `POST /api/admin/users/{user_id}/assign-subscription` — Assign plan from dropdown
-- `PUT /api/admin/users/{user_id}/subscription` — Edit user subscription directly
-- `PUT /api/admin/users/{user_id}/wallet` — Set user wallet balance
 
 ## Backlog
 - [ ] P0: Refactor server.py into modular routers
