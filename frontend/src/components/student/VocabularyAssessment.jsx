@@ -81,7 +81,7 @@ const VocabularyAssessment = ({ narrative, student, onClose }) => {
     
     try {
       const response = await assessmentAPI.evaluate(assessmentId, { answers: answersArray });
-      setResults(response);
+      setResults(response.data);
       setShowResults(true);
       
       // Invalidate student data to refresh stats

@@ -1430,12 +1430,26 @@ Return ONLY valid JSON:
             text = await chat.send_message(UserMessage(text=prompt))
 
         text = text.strip()
-        if text.startswith("```"):
-            text = text.split("\n", 1)[1] if "\n" in text else text[3:]
-            if text.endswith("```"): text = text[:-3]
-            text = text.strip()
+        if "```" in text:
+            import re
+            json_match = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', text, re.DOTALL)
+            if json_match:
+                text = json_match.group(1).strip()
+            else:
+                text = text.replace("```json", "").replace("```", "").strip()
 
-        result = json_lib.loads(text)
+        try:
+            result = json_lib.loads(text)
+        except json_lib.JSONDecodeError:
+            import re
+            json_match = re.search(r'\{[\s\S]*\}', text)
+            if json_match:
+                cleaned = json_match.group(0)
+                cleaned = re.sub(r',\s*}', '}', cleaned)
+                cleaned = re.sub(r',\s*]', ']', cleaned)
+                result = json_lib.loads(cleaned)
+            else:
+                raise ValueError(f"No valid JSON in response: {text[:200]}")
 
         # Log spelling errors for the student
         if result.get("spelling_errors"):
@@ -1717,14 +1731,36 @@ Return ONLY valid JSON (no markdown):
             message = UserMessage(text=prompt)
             response = await chat.send_message(message)
 
-        # Parse response
+        # Parse response — robust JSON extraction
         text = response.strip()
-        if text.startswith("```"):
-            text = text.split("\n", 1)[1] if "\n" in text else text[3:]
-            if text.endswith("```"): text = text[:-3]
-            text = text.strip()
+        # Strip markdown code blocks
+        if "```" in text:
+            import re
+            json_match = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', text, re.DOTALL)
+            if json_match:
+                text = json_match.group(1).strip()
+            else:
+                text = text.replace("```json", "").replace("```", "").strip()
 
-        evaluation = json_lib.loads(text)
+        # Try to extract JSON object
+        try:
+            evaluation = json_lib.loads(text)
+        except json_lib.JSONDecodeError:
+            # Try to find JSON object within text
+            import re
+            json_match = re.search(r'\{[\s\S]*\}', text)
+            if json_match:
+                try:
+                    evaluation = json_lib.loads(json_match.group(0))
+                except json_lib.JSONDecodeError:
+                    # Last resort: truncate at the last valid closing brace
+                    raw = json_match.group(0)
+                    # Fix common LLM JSON issues: trailing commas, unescaped quotes
+                    raw = re.sub(r',\s*}', '}', raw)
+                    raw = re.sub(r',\s*]', ']', raw)
+                    evaluation = json_lib.loads(raw)
+            else:
+                raise ValueError(f"No valid JSON found in LLM response: {text[:200]}")
         
         # Update assessment with results
         correct_count = sum(1 for r in evaluation["results"] if r["overall_correct"])
