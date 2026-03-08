@@ -80,6 +80,7 @@ const BrandPortal = () => {
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+    { id: 'stories', label: 'Story Integrations', icon: BookOpen },
     { id: 'brand-profile', label: 'Brand Profile', icon: Building2 },
     { id: 'products', label: 'Products', icon: Package },
     { id: 'coupons', label: 'Coupons', icon: CreditCard },
@@ -130,6 +131,7 @@ const BrandPortal = () => {
         </div>
 
         {activeTab === 'dashboard' && <DashboardTab brand={brand} stats={stats} campaigns={campaigns} dashboard={dashboard} />}
+        {activeTab === 'stories' && <StoryPreviewCard brand={brand} />}
         {activeTab === 'brand-profile' && <BrandProfileTab brand={brand} queryClient={queryClient} />}
         {activeTab === 'products' && <ProductsTab brand={brand} queryClient={queryClient} />}
         {activeTab === 'coupons' && <BrandCouponsTab queryClient={queryClient} />}
@@ -1109,100 +1111,207 @@ const StatCard = ({ icon: Icon, label, value, color = 'indigo' }) => {
 };
 
 
-// ==================== STORY PREVIEW CARD ====================
+// ==================== STORY INTEGRATIONS CARD ====================
 const StoryPreviewCard = ({ brand }) => {
-  const { data: previewData, isLoading: loadingCached } = useQuery({
-    queryKey: ['story-preview', brand?.id],
+  const { data: integrationsData, isLoading: loadingIntegrations } = useQuery({
+    queryKey: ['story-integrations', brand?.id || 'all'],
+    queryFn: async () => (await brandPortalAPI.getStoryIntegrations()).data,
+  });
+
+  const { data: previewData } = useQuery({
+    queryKey: ['story-preview', brand?.id || 'all'],
     queryFn: async () => (await brandPortalAPI.getStoryPreview()).data,
-    enabled: !!brand,
   });
 
   const generateMut = useMutation({
     mutationFn: () => brandPortalAPI.generateStoryPreview(),
-    onSuccess: (res) => {
-      toast.success('Story preview generated!');
-    },
+    onSuccess: () => toast.success('Story preview generated!'),
     onError: (err) => toast.error(err.response?.data?.detail || 'Failed to generate preview'),
   });
 
   const queryClient = useQueryClient();
   const preview = generateMut.data?.data?.preview || previewData?.preview || '';
   const generatedAt = generateMut.data?.data?.generated_at || previewData?.generated_at;
+  const snippets = integrationsData?.story_snippets || [];
+  const responses = integrationsData?.student_responses || [];
+  const summary = integrationsData?.summary || {};
 
   const handleGenerate = async () => {
     await generateMut.mutateAsync();
     queryClient.invalidateQueries(['story-preview', brand?.id]);
   };
 
-  // Highlight brand name in preview text
+  // Highlight brand/product names in text
   const highlightBrand = (text) => {
     if (!text || !brand?.name) return text;
-    // Clean markdown bold markers around brand name
-    const cleanName = brand.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    let cleaned = text.replace(new RegExp(`\\*\\*\\s*${cleanName}\\s*\\*\\*`, 'gi'), brand.name);
-    const parts = cleaned.split(new RegExp(`(${cleanName})`, 'gi'));
-    return parts.map((part, i) =>
-      part.toLowerCase() === brand.name.toLowerCase()
-        ? <span key={i} className="bg-amber-200 font-bold px-0.5">{part}</span>
-        : part
-    );
+    const terms = [brand.name, ...(brand.products?.map(p => p.name) || [])].filter(Boolean);
+    let result = text;
+    const parts = [];
+    let lastIdx = 0;
+    const lowerText = text.toLowerCase();
+    
+    for (const term of terms) {
+      const termLower = term.toLowerCase();
+      let searchIdx = 0;
+      while (searchIdx < lowerText.length) {
+        const foundIdx = lowerText.indexOf(termLower, searchIdx);
+        if (foundIdx === -1) break;
+        parts.push({ idx: foundIdx, len: term.length });
+        searchIdx = foundIdx + term.length;
+      }
+    }
+    
+    if (parts.length === 0) return text;
+    parts.sort((a, b) => a.idx - b.idx);
+    
+    const elements = [];
+    let cursor = 0;
+    parts.forEach((p, i) => {
+      if (p.idx > cursor) elements.push(<span key={`t-${i}`}>{text.slice(cursor, p.idx)}</span>);
+      elements.push(
+        <span key={`h-${i}`} className="font-bold px-1 rounded" style={{ background: 'rgba(212,168,83,0.25)', color: '#F5D799' }}>
+          {text.slice(p.idx, p.idx + p.len)}
+        </span>
+      );
+      cursor = p.idx + p.len;
+    });
+    if (cursor < text.length) elements.push(<span key="end">{text.slice(cursor)}</span>);
+    return elements;
   };
 
+  const hasRealData = snippets.length > 0 || responses.length > 0;
+
   return (
-    <BrutalCard shadow="lg" data-testid="story-preview-card">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xl font-black uppercase flex items-center gap-2">
-          <BookOpen size={22} className="text-amber-600" /> Story Preview
-        </h3>
-        <BrutalButton
-          variant={preview ? 'default' : 'amber'}
-          size="sm"
-          onClick={handleGenerate}
-          disabled={generateMut.isPending}
-          className="flex items-center gap-2"
-          data-testid="generate-preview-btn"
-        >
-          {generateMut.isPending ? (
-            <><Loader2 size={16} className="animate-spin" /> Generating...</>
-          ) : preview ? (
-            <><RefreshCw size={16} /> Regenerate</>
-          ) : (
-            <><Sparkles size={16} /> Generate Preview</>
+    <div className="space-y-6" data-testid="story-integrations-section">
+      {/* Summary Stats */}
+      {hasRealData && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: 'Stories Featuring Brand', value: summary.total_stories_with_brand || 0, color: '#818CF8' },
+            { label: 'Brand Mentions', value: summary.total_snippets || 0, color: '#D4A853' },
+            { label: 'Student Responses', value: summary.total_student_responses || 0, color: '#34D399' },
+            { label: 'Avg Comprehension', value: `${summary.avg_comprehension_score || 0}%`, color: '#38BDF8' },
+          ].map((s, i) => (
+            <div key={i} className="p-4 rounded-xl" style={{ background: '#1A2236', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <p className="text-xs font-semibold uppercase" style={{ color: '#94A3B8' }}>{s.label}</p>
+              <p className="text-2xl font-bold mt-1" style={{ color: s.color }}>{s.value}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Live Story Excerpts */}
+      <div className="p-6 rounded-2xl" style={{ background: '#1A2236', border: '1px solid rgba(255,255,255,0.08)' }} data-testid="story-excerpts-card">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: '#F8F5EE', fontFamily: "'Sora', sans-serif" }}>
+            <BookOpen size={20} style={{ color: '#D4A853' }} /> Brand In Stories
+          </h3>
+          {snippets.length === 0 && (
+            <button onClick={handleGenerate} disabled={generateMut.isPending}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold text-black disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg, #D4A853, #F5D799)' }} data-testid="generate-preview-btn">
+              {generateMut.isPending ? <><Loader2 size={14} className="animate-spin" /> Generating...</> : <><Sparkles size={14} /> Generate Preview</>}
+            </button>
           )}
-        </BrutalButton>
+        </div>
+
+        {snippets.length > 0 ? (
+          <div className="space-y-4">
+            {snippets.map((snippet, idx) => (
+              <div key={idx} className="p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }} data-testid={`story-snippet-${idx}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="text-sm font-bold" style={{ color: '#F8F5EE' }}>{snippet.narrative_title}</p>
+                    <p className="text-xs" style={{ color: '#94A3B8' }}>Chapter {snippet.chapter_number}: {snippet.chapter_title} &middot; Reader: {snippet.student_name}</p>
+                  </div>
+                  <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{ background: 'rgba(212,168,83,0.12)', color: '#D4A853' }}>
+                    {snippet.brand_terms_found?.length || 0} mentions
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {snippet.excerpts.map((excerpt, eIdx) => (
+                    <div key={eIdx} className="text-sm leading-relaxed pl-3" style={{ color: '#E8E0D0', borderLeft: '2px solid rgba(212,168,83,0.4)' }}>
+                      "{highlightBrand(excerpt)}"
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : preview ? (
+          <div data-testid="preview-content">
+            <div className="p-5 rounded-xl leading-relaxed text-base" style={{ background: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.15)', color: '#E8E0D0' }}>
+              <p>{highlightBrand(preview)}</p>
+            </div>
+            {generatedAt && (
+              <p className="text-xs mt-2 text-right" style={{ color: '#64748B' }}>
+                Generated {new Date(generatedAt).toLocaleDateString()} at {new Date(generatedAt).toLocaleTimeString()}
+              </p>
+            )}
+            <p className="text-xs mt-1" style={{ color: '#94A3B8' }}>
+              This is a sample. Real story excerpts will appear here once students read stories featuring your brand.
+            </p>
+          </div>
+        ) : !generateMut.isPending ? (
+          <div className="text-center py-10" data-testid="preview-empty">
+            <Sparkles size={40} className="mx-auto mb-3" style={{ color: '#475569' }} />
+            <p className="font-bold text-base" style={{ color: '#94A3B8' }}>See how your brand comes to life in stories</p>
+            <p className="text-sm mt-1" style={{ color: '#64748B' }}>Generate a preview or wait for students to read stories featuring your brand.</p>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center py-10 gap-3" data-testid="preview-loading">
+            <Loader2 size={28} className="animate-spin" style={{ color: '#D4A853' }} />
+            <p className="font-bold" style={{ color: '#94A3B8' }}>AI is crafting your story preview...</p>
+          </div>
+        )}
       </div>
 
-      {generateMut.isPending && (
-        <div className="flex items-center justify-center py-10 gap-3" data-testid="preview-loading">
-          <Loader2 size={28} className="animate-spin text-amber-500" />
-          <p className="font-bold text-gray-500">AI is crafting your story preview...</p>
-        </div>
-      )}
+      {/* Student Responses / Activation Data */}
+      <div className="p-6 rounded-2xl" style={{ background: '#1A2236', border: '1px solid rgba(255,255,255,0.08)' }} data-testid="student-responses-card">
+        <h3 className="text-lg font-bold flex items-center gap-2 mb-4" style={{ color: '#F8F5EE', fontFamily: "'Sora', sans-serif" }}>
+          <FileText size={20} style={{ color: '#38BDF8' }} /> Student Activation Responses
+        </h3>
+        <p className="text-xs mb-4" style={{ color: '#64748B' }}>
+          Real responses from students who answered comprehension questions after reading stories featuring your brand.
+        </p>
 
-      {!generateMut.isPending && preview && (
-        <div data-testid="preview-content">
-          <div className="bg-amber-50 border-2 border-amber-300 p-5 leading-relaxed text-base">
-            <p>{highlightBrand(preview)}</p>
+        {responses.length > 0 ? (
+          <div className="space-y-3">
+            {responses.map((resp, idx) => (
+              <div key={idx} className="p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }} data-testid={`student-response-${idx}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: 'rgba(56,189,248,0.12)', color: '#38BDF8' }}>
+                      {resp.student_name}
+                    </span>
+                    <span className="text-xs" style={{ color: '#64748B' }}>Chapter {resp.chapter_number}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold px-2 py-1 rounded-full"
+                      style={{ background: resp.passed ? 'rgba(52,211,153,0.12)' : 'rgba(244,63,94,0.12)', color: resp.passed ? '#34D399' : '#FB7185' }}>
+                      {resp.passed ? 'Passed' : 'Needs Work'} &middot; {resp.comprehension_score}%
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs font-semibold mb-1" style={{ color: '#D4A853' }}>Q: {resp.question}</p>
+                <p className="text-sm pl-3" style={{ color: '#E8E0D0', borderLeft: '2px solid rgba(56,189,248,0.3)' }}>
+                  "{resp.student_answer}"
+                </p>
+                {resp.created_date && (
+                  <p className="text-xs mt-2 text-right" style={{ color: '#475569' }}>{new Date(resp.created_date).toLocaleDateString()}</p>
+                )}
+              </div>
+            ))}
           </div>
-          {generatedAt && (
-            <p className="text-xs text-gray-400 mt-2 text-right">
-              Generated {new Date(generatedAt).toLocaleDateString()} at {new Date(generatedAt).toLocaleTimeString()}
-            </p>
-          )}
-          <p className="text-xs text-gray-500 mt-1">
-            This is a sample of how your brand appears in our AI-generated stories. Your brand name is <span className="bg-amber-200 px-0.5 font-bold">highlighted</span>.
-          </p>
-        </div>
-      )}
-
-      {!generateMut.isPending && !preview && (
-        <div className="text-center py-8" data-testid="preview-empty">
-          <Sparkles size={40} className="mx-auto text-gray-300 mb-3" />
-          <p className="font-bold text-gray-500">See how your brand comes to life in stories</p>
-          <p className="text-sm text-gray-400 mt-1">Click "Generate Preview" to see an AI-crafted snippet featuring your brand.</p>
-        </div>
-      )}
-    </BrutalCard>
+        ) : (
+          <div className="text-center py-8">
+            <FileText size={36} className="mx-auto mb-3" style={{ color: '#475569' }} />
+            <p className="font-bold text-sm" style={{ color: '#94A3B8' }}>No student responses yet</p>
+            <p className="text-xs mt-1" style={{ color: '#64748B' }}>When students answer questions about stories featuring your brand, their responses will appear here.</p>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 

@@ -3,7 +3,7 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Eye, Gift, Megaphone, GraduationCap } from 'lucide-react';
+import { Eye, Gift, Megaphone, GraduationCap, Heart } from 'lucide-react';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const C = {
@@ -153,11 +153,23 @@ const GuardianRegister = () => {
                 <Link to="/login" className="font-semibold hover:underline" style={{ color: C.gold }}>{t('common.loginHere')}</Link>
               </p>
             </div>
-            <div className="flex flex-wrap justify-center gap-4 text-sm pt-2" style={{ color: C.muted }}>
-              <button type="button" onClick={() => navigate('/student-login')} className="hover:underline flex items-center gap-1"><GraduationCap size={14} /> Student Login</button>
-              {!isBrandPartner && (
-                <button type="button" onClick={() => navigate('/register?role=brand_partner')} className="hover:underline flex items-center gap-1"><Megaphone size={14} /> Brand Partner</button>
-              )}
+            {/* Access Your Portal */}
+            <div className="pt-4 mt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <p className="text-xs font-semibold uppercase tracking-wide text-center mb-3" style={{ color: C.muted }}>Access Your Portal</p>
+              <div className="grid grid-cols-3 gap-2">
+                <button type="button" onClick={() => navigate('/login')} className="flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all hover:scale-105" style={{ background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(212,168,83,0.2)' }}>
+                  <Heart size={18} style={{ color: '#D4A853' }} />
+                  <span className="text-xs font-semibold" style={{ color: '#F8F5EE' }}>Parents</span>
+                </button>
+                <button type="button" onClick={() => navigate('/register?role=brand_partner')} className="flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all hover:scale-105" style={{ background: 'rgba(244,114,182,0.08)', border: '1px solid rgba(244,114,182,0.2)' }}>
+                  <Megaphone size={18} style={{ color: '#F472B6' }} />
+                  <span className="text-xs font-semibold" style={{ color: '#F8F5EE' }}>Brands</span>
+                </button>
+                <button type="button" onClick={() => navigate('/student-login')} className="flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all hover:scale-105" style={{ background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(56,189,248,0.2)' }}>
+                  <GraduationCap size={18} style={{ color: '#38BDF8' }} />
+                  <span className="text-xs font-semibold" style={{ color: '#F8F5EE' }}>Students</span>
+                </button>
+              </div>
             </div>
           </form>
         </div>

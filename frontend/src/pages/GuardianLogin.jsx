@@ -106,9 +106,23 @@ const GuardianLogin = () => {
                 <Link to="/register" className="font-semibold hover:underline" style={{ color: C.gold }}>{t('common.registerHere')}</Link>
               </p>
             </div>
-            <div className="flex flex-wrap justify-center gap-4 text-sm pt-2" style={{ color: C.muted }}>
-              <button type="button" onClick={() => navigate('/student-login')} className="hover:underline flex items-center gap-1"><GraduationCap size={14} /> {t('auth.studentPinLogin')}</button>
-              <button type="button" onClick={() => navigate('/register?role=brand_partner')} className="hover:underline flex items-center gap-1"><Megaphone size={14} /> Brand Partner</button>
+            {/* Access Your Portal */}
+            <div className="pt-4 mt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <p className="text-xs font-semibold uppercase tracking-wide text-center mb-3" style={{ color: C.muted }}>Access Your Portal</p>
+              <div className="grid grid-cols-3 gap-2">
+                <button type="button" onClick={() => navigate('/login')} className="flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all hover:scale-105" style={{ background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(212,168,83,0.2)' }}>
+                  <Heart size={18} style={{ color: C.gold }} />
+                  <span className="text-xs font-semibold" style={{ color: C.cream }}>Parents</span>
+                </button>
+                <button type="button" onClick={() => navigate('/register?role=brand_partner')} className="flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all hover:scale-105" style={{ background: 'rgba(244,114,182,0.08)', border: '1px solid rgba(244,114,182,0.2)' }}>
+                  <Megaphone size={18} style={{ color: '#F472B6' }} />
+                  <span className="text-xs font-semibold" style={{ color: C.cream }}>Brands</span>
+                </button>
+                <button type="button" onClick={() => navigate('/student-login')} className="flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all hover:scale-105" style={{ background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(56,189,248,0.2)' }}>
+                  <GraduationCap size={18} style={{ color: C.teal }} />
+                  <span className="text-xs font-semibold" style={{ color: C.cream }}>Students</span>
+                </button>
+              </div>
             </div>
           </form>
         </div>

@@ -1207,21 +1207,8 @@ async def create_narrative(narrative_data: NarrativeCreate):
             weaknesses=student.get("weaknesses", ""),
         )
         
-        # Record brand impressions
-        if brand_placements:
-            for bp in brand_placements:
-                impression = BrandImpression(
-                    brand_id=bp["id"], brand_name=bp["name"],
-                    narrative_id="pending", student_id=student["id"],
-                    guardian_id=student.get("guardian_id", ""),
-                    products_featured=[p.get("name", "") for p in bp.get("products", [])],
-                    cost=0.05,  # default cost per impression
-                )
-                await db.brand_impressions.insert_one(impression.model_dump())
-                await db.brands.update_one(
-                    {"id": bp["id"]},
-                    {"$inc": {"total_impressions": 1, "total_stories": 1, "budget_spent": 0.05}}
-                )
+        # Record brand impressions (after narrative creation so we have the real ID)
+        # Brand impressions will be recorded below after narrative_dict is inserted
         
         # Create narrative object
         from models import Chapter, EmbeddedToken, VisionCheck
@@ -1265,7 +1252,26 @@ async def create_narrative(narrative_data: NarrativeCreate):
         )
         
         narrative_dict = narrative.model_dump()
+        # Store brand placements on the narrative for brand portal story snippets
+        if brand_placements:
+            narrative_dict["brand_placements"] = brand_placements
         await db.narratives.insert_one(narrative_dict)
+        
+        # Record brand impressions with the real narrative ID
+        if brand_placements:
+            for bp in brand_placements:
+                impression = BrandImpression(
+                    brand_id=bp["id"], brand_name=bp["name"],
+                    narrative_id=narrative.id, student_id=student["id"],
+                    guardian_id=student.get("guardian_id", ""),
+                    products_featured=[p.get("name", "") for p in bp.get("products", [])],
+                    cost=0.05,
+                )
+                await db.brand_impressions.insert_one(impression.model_dump())
+                await db.brands.update_one(
+                    {"id": bp["id"]},
+                    {"$inc": {"total_impressions": 1, "total_stories": 1, "budget_spent": 0.05}}
+                )
         
         return narrative
         
@@ -1520,6 +1526,18 @@ Return ONLY valid JSON:
                 "answer_text": data.student_answer,
                 "created_date": datetime.now(timezone.utc).isoformat(),
             })
+
+        # Save written answer for brand analytics (shows student engagement with content)
+        await db.written_answers.insert_one({
+            "student_id": data.student_id,
+            "chapter_number": data.chapter_number,
+            "question": data.question,
+            "student_answer": data.student_answer,
+            "passed": result.get("passed", False),
+            "comprehension_score": result.get("comprehension_score", 0),
+            "feedback": result.get("feedback", ""),
+            "created_date": datetime.now(timezone.utc).isoformat(),
+        })
 
         return result
 
@@ -4722,6 +4740,147 @@ async def get_brand_analytics_dashboard(current_user: dict = Depends(get_current
         "campaign_breakdown": campaign_breakdown,
         "product_breakdown": product_breakdown,
         "metrics": metrics,
+    }
+
+
+
+# ==================== BRAND STORY INTEGRATIONS ====================
+
+@api_router.get("/brand-portal/story-integrations")
+async def get_brand_story_integrations(brand_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    """Get actual story excerpts where brand appeared + student responses"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    
+    # Admin can query any brand, brand_partner sees their own
+    if user.get("role") == "admin":
+        if not brand_id:
+            # Get the first active brand for admin viewing
+            brand = await db.brands.find_one({"is_active": True}, {"_id": 0})
+        else:
+            brand = await db.brands.find_one({"id": brand_id}, {"_id": 0})
+    elif user.get("role") == "brand_partner":
+        linked_brand_id = user.get("linked_brand_id")
+        if not linked_brand_id:
+            return {"story_snippets": [], "student_responses": [], "summary": {}}
+        brand = await db.brands.find_one({"id": linked_brand_id}, {"_id": 0})
+    else:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    if not brand:
+        return {"story_snippets": [], "student_responses": [], "summary": {}}
+
+    brand_name = brand.get("name", "")
+    product_names = [p.get("name", "") for p in brand.get("products", []) if p.get("name")]
+
+    # 1. Find all narratives that have this brand in brand_placements
+    narratives_with_brand = await db.narratives.find(
+        {"brand_placements.id": brand_id},
+        {"_id": 0, "id": 1, "title": 1, "student_id": 1, "chapters": 1, "brand_placements": 1, "created_date": 1}
+    ).to_list(50)
+
+    # Also find narratives via brand_impressions (for older narratives)
+    impression_narrative_ids = []
+    impressions = await db.brand_impressions.find(
+        {"brand_id": brand_id},
+        {"_id": 0, "narrative_id": 1, "student_id": 1, "created_date": 1}
+    ).to_list(200)
+    for imp in impressions:
+        if imp.get("narrative_id") and imp["narrative_id"] != "pending":
+            impression_narrative_ids.append(imp["narrative_id"])
+
+    # Get narratives from impressions that aren't already found
+    found_ids = {n["id"] for n in narratives_with_brand}
+    missing_ids = [nid for nid in set(impression_narrative_ids) if nid not in found_ids]
+    if missing_ids:
+        extra_narratives = await db.narratives.find(
+            {"id": {"$in": missing_ids}},
+            {"_id": 0, "id": 1, "title": 1, "student_id": 1, "chapters": 1, "created_date": 1}
+        ).to_list(50)
+        narratives_with_brand.extend(extra_narratives)
+
+    # 2. Extract story snippets where brand/products are mentioned
+    story_snippets = []
+    all_student_ids = set()
+    search_terms = [brand_name.lower()] + [p.lower() for p in product_names if p]
+
+    for narrative in narratives_with_brand:
+        all_student_ids.add(narrative["student_id"])
+        for chapter in narrative.get("chapters", []):
+            content = chapter.get("content", "")
+            content_lower = content.lower()
+
+            # Check if any brand/product name appears in chapter
+            found_terms = [t for t in search_terms if t and t in content_lower]
+            if not found_terms:
+                continue
+
+            # Extract the relevant sentences containing the brand mention
+            sentences = content.replace(".", ".|").replace("!", "!|").replace("?", "?|").split("|")
+            relevant_sentences = []
+            for sentence in sentences:
+                sentence_lower = sentence.lower().strip()
+                if any(term in sentence_lower for term in found_terms):
+                    relevant_sentences.append(sentence.strip())
+
+            if relevant_sentences:
+                story_snippets.append({
+                    "narrative_id": narrative["id"],
+                    "narrative_title": narrative.get("title", "Untitled"),
+                    "chapter_number": chapter.get("number", 0),
+                    "chapter_title": chapter.get("title", ""),
+                    "student_id": narrative["student_id"],
+                    "excerpts": relevant_sentences[:5],  # Max 5 excerpts per chapter
+                    "brand_terms_found": found_terms,
+                    "created_date": narrative.get("created_date", ""),
+                })
+
+    # 3. Get student names for display
+    student_names = {}
+    if all_student_ids:
+        students = await db.students.find(
+            {"id": {"$in": list(all_student_ids)}},
+            {"_id": 0, "id": 1, "full_name": 1}
+        ).to_list(100)
+        student_names = {s["id"]: s["full_name"] for s in students}
+
+    # Add student names to snippets
+    for snippet in story_snippets:
+        snippet["student_name"] = student_names.get(snippet["student_id"], "Student")
+
+    # 4. Get written answers from students who read these narratives
+    student_responses = []
+    if all_student_ids:
+        answers = await db.written_answers.find(
+            {"student_id": {"$in": list(all_student_ids)}},
+            {"_id": 0}
+        ).sort("created_date", -1).to_list(100)
+
+        for ans in answers:
+            student_responses.append({
+                "student_name": student_names.get(ans["student_id"], "Student"),
+                "question": ans.get("question", ""),
+                "student_answer": ans.get("student_answer", ""),
+                "passed": ans.get("passed", False),
+                "comprehension_score": ans.get("comprehension_score", 0),
+                "chapter_number": ans.get("chapter_number", 0),
+                "created_date": ans.get("created_date", ""),
+            })
+
+    # 5. Summary stats
+    summary = {
+        "total_stories_with_brand": len(narratives_with_brand),
+        "total_snippets": len(story_snippets),
+        "total_student_responses": len(student_responses),
+        "unique_students_reached": len(all_student_ids),
+        "avg_comprehension_score": round(
+            sum(r["comprehension_score"] for r in student_responses) / len(student_responses), 1
+        ) if student_responses else 0,
+    }
+
+    return {
+        "story_snippets": story_snippets[:30],  # Limit to 30 most recent
+        "student_responses": student_responses[:50],  # Limit to 50
+        "summary": summary,
     }
 
 
