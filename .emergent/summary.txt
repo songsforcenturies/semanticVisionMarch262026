@@ -1,168 +1,160 @@
 <analysis>**original_problem_statement:**
-The user requested to build LexiMaster, a high-quality educational platform for students, guardians, and teachers, focusing on vocabulary building and character education through AI-generated stories. The project has evolved significantly through user feedback to include a multi-role system (Guardian/Parent/School, Teacher, Student, Admin, Brand Partner), a comprehensive wallet and payment system, advanced administrative controls for billing and content, a brand sponsorship model, and a self-service portal for brand partners.
+The user initially requested to build LexiMaster, an educational platform for vocabulary and character education using AI-generated stories. The project has evolved to include a multi-role system (Guardian/Parent/School, Teacher, Student, Admin, Brand Partner), a wallet with a payment system, a referral program with contests, extensive admin controls, and a brand sponsorship model.
+
+The current focus has shifted to a complete rebranding of the application to **Semantic Vision.** The user wants to position the product as a revolutionary tool for learning, emphasizing its unique, patentable technology: the real-time, dynamic integration of brand products as solutions within personalized, AI-generated stories tailored to user preferences (including religious context). The core marketing message is: If glasses are for your eye, words are vision for your mind. See the whole world with Semantic Vision.
 
 **PRODUCT REQUIREMENTS:**
-- **Core Platform:** A full-stack application with distinct portals for all user roles.
-- **User Roles & Renaming:** The Guardian role has been renamed to Parent / School throughout the UI.
-- **Admin Portal:** A super-user dashboard to manage system-wide settings, user roles (including create, edit, delete, deactivate, and password reset), AI provider configuration, cost tracking, and brand sponsorship. Admins can also add credits to any user's wallet and toggle features like parent-created word banks.
-- **Brand & Monetization System:** A complete ecosystem for brands to be woven into stories. Includes a self-service Brand Partner Portal for campaign management, product management, logo uploads, geo-targeting, analytics, and self-service coupon creation.
-- **Payment System:** A wallet-based system where users can add funds via Stripe and redeem coupons. The user has requested to add Cash App, Zelle, Venmo, and PayPal.
-- **Authentication:** JWT-based auth with email verification and a Forgot Password flow using Resend for sending reset codes.
+-   **Core Task:** Articulate the platform's unique technical features in a specification document to support a provisional patent application.
+-   **Branding:** Redesign the landing page to powerfully communicate the Semantic Vision brand, its philosophy, and its core technical advantages over any other product on the market.
+-   **Core Platform:** A full-stack application, now named Semantic Vision, with distinct portals for all user roles.
+-   **User Roles:** Parent / School, Teacher, Student, Admin, Brand Partner.
+-   **Monetization:** Wallet system (Stripe), admin-configurable referral rewards, and a brand sponsorship/story integration model.
+-   **User Engagement:** A referral contest system with an admin-managed leaderboard and prizes.
 
 **User's preferred language**: English
 
 **what currently exists?**
-A mature full-stack application, LexiMaster, with a FastAPI/MongoDB backend and a React/TypeScript frontend. The platform features robust portals for all user roles, a working wallet system, extensive admin controls, a sophisticated brand analytics dashboard, and a Forgot Password system using Resend. However, a critical and recurring bug is preventing Parent/School users from logging in, as they are immediately redirected back to the login page. The agent has made multiple unsuccessful attempts to fix this.
+The application is a mature full-stack platform named Semantic Vision, with a FastAPI/MongoDB backend and a React/TypeScript frontend. It features robust portals for all user roles, a working wallet system with Stripe, and a dynamic referral program with contests and currency conversion. The critical login bug that plagued the previous session has been identified and fixed. The platform now supports advanced word bank management (CRUD, editing, privacy, categorization), configurable referral contests, and seamless navigation between admin and parent views. The entire application has been rebranded from LexiMaster to Semantic Vision.
 
 **Last working item**:
--   **Last item agent was working:** The agent had just started implementing a new feature requested by the user: an admin-controlled toggle switch to enable or disable the ability for Parent / School users to create their own word banks. The agent was in the initial code exploration phase.
--   **Status:** NOT STARTED
+-   **Last item agent was working:** The agent was beginning to address the user's latest request: to prepare for a provisional patent application by documenting the unique technical aspects of the platform and then building a new, powerful landing page around this Semantic Vision brand identity. The agent's first step was to create a file to house the technical specifications.
+-   **Status:** IN PROGRESS
 -   **Agent Testing Done:** N
--   **Which testing method agent to use?** both
+-   **Which testing method agent to use?** Frontend testing agent for the new landing page.
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Critical Login Failure for Parent/School Role (P0)**
-    -   **Description:** When a user with the Parent / School role logs in, they are immediately redirected back to the login page, creating an infinite loop that blocks access to their portal. This is a recurring, high-priority bug. The user  is also affected.
-    -   **Attempted fixes:** The agent has tried several fixes, including:
-        1.  Correcting role-based navigation logic in the login components.
-        2.  Making the  component more robust by adding a  check as a fallback for the React context.
-        3.  Modifying the  401 interceptor to prevent it from clearing auth during the login process itself.
-        None of these fixes have resolved the underlying issue for the user.
-    -   **Next debug checklist:**
-        -   **Frontend:**
-            -   : Re-examine the  401 interceptor. The redirect () is the direct cause. The trigger needs to be found.
-            -   : The logic might still have a race condition.
-            -   : Check the initial API calls made by this component and its child tabs (e.g., ). One of these calls is likely returning the 401 that triggers the redirect.
-            -   **Browser Dev Tools:** Use the browser's developer tools on the user's side (or by impersonating them) to watch the Network tab for the exact API request that fails with a 401 status. Check the console for any related errors.
-        -   **Backend:**
-            -   : Review the authentication dependencies () on all endpoints called immediately after a parent logs in (e.g., ). Ensure the token is being correctly validated for these specific routes.
-    -   **Why fix this issue and what will be achieved with the fix?** This is a critical blocker preventing an entire user segment from using the application. Fixing it will restore core functionality.
-    -   **Status:** IN PROGRESS
-    -   **Is recurring issue?** Y
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** None. This is the primary blocker.
+There are no pending critical bugs. All work is focused on new feature development.
 
 **In progress Task List**:
--   **Task 1: Implement Admin Toggle for Parent-Created Word Banks (P1)**
-    -   **Where to resume:** The agent has only viewed the relevant code. The next step is to add a new boolean field (e.g., ) to a system settings collection in the DB, create an admin endpoint to toggle it, and then protect the word bank creation feature in the Parent Portal based on this flag.
-    -   **What will be achieved with this?** Admins will gain granular control over platform features, as requested.
-    -   **Status:** NOT STARTED
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on something:** Blocked by the critical login bug (Issue 1).
+-   **Task 1: Generate Technical Specifications Document (P0)**
+    -   **Where to resume:** Populate the newly created file  with a detailed breakdown of the platform's architecture, data flow, and unique features, especially the real-time brand integration into AI-generated stories.
+    -   **What will be achieved with this?** A comprehensive document the user can use for their provisional patent application.
+    -   **Status:** IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?** N/A
+    -   **Blocked on something:** None.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **P1: Finalize and Verify Coupon & Credit System:** The agent implemented a large feature for brands to create percentage-based coupons and for admins to add credits to user wallets. While the agent's self-tests passed, this feature has not been user-verified and should be reviewed now that the login bug is the priority.
-    -   **P2: Implement New Payment Gateways:** Integrate Cash App, Zelle, Venmo, and PayPal as requested by the user. This will require using the  subagent.
-    -   **P3: Propose Critical Backend Refactoring:** The  file is a large monolith. Propose a refactoring task to the user to break it into a modular structure using FastAPI's .
+    -   **P0: Redesign the Landing Page:** Based on the technical specifications, design and implement a new landing page () that effectively communicates the Semantic Vision brand narrative and its unique, protectable value proposition.
+    -   **P1: Finalize and Verify Coupon & Credit System:** Re-verify the full flow for brands creating coupons and admins adding credits to user wallets.
+    -   **P2: Implement New Payment Gateways:** Integrate Cash App, Zelle, Venmo, and PayPal using the  subagent.
+    -   **P3: Propose Critical Backend Refactoring:** Propose a plan to the user to break the monolithic  file into a modular structure using FastAPI's .
 
 -   **Future Tasks:**
+    -   **User Demo Flow:** The user mentioned needing to do a DEMO, which may require creating a streamlined demo mode or a set of test scenarios.
     -   **Accessibility Features:** Research and implement features for deaf users (e.g., text-to-sign-language AI).
-    -   **Granular Admin Analytics:** Expand the admin statistics dashboard to track more metrics.
+    -   **Granular Admin Analytics:** Expand the admin statistics dashboard.
 
 **Completed work in this session**
--   **Feature: Brand Partner Portal Overhaul:** Redesigned the portal with a step-by-step onboarding flow for brands to define their problem statement, manage products, upload a logo, and set target regions.
--   **Feature: Brand Story Preview:** Implemented a feature for brands to see an AI-generated preview of how their brand will be integrated into a story, with caching to prevent regeneration.
--   **Feature: Advanced Brand Analytics:** Built a comprehensive analytics dashboard for brands using Recharts, showing impressions, cost, campaign performance, and top products.
--   **Feature: Admin User Management:** Implemented full CRUD functionality for user management in the Admin Portal, including creating users with temporary passwords, editing, deactivating, deleting, and resetting passwords.
--   **Feature: Forgot Password Flow:** Integrated Resend to create a complete Forgot Password workflow with 6-digit codes sent via email.
--   **Refactor: Guardian to Parent / School Renaming:** Renamed the Guardian role to Parent / School across the entire application UI, including translation files.
+-   **Rebrand: LexiMaster to Semantic Vision**: Renamed the application across all frontend translation files,  title, and relevant components.
+-   **Feature: Referral Contest System**: Implemented a full system for admins to create, edit, and manage time-based referral contests with prizes. The user-facing referral tab now displays a live leaderboard and contest details.
+-   **Feature: Advanced Referral & Currency System**: Implemented an admin-configurable referral reward amount and integrated IP-based geolocation with a free currency exchange rate API to display all monetary values in the user's local currency.
+-   **Feature: Enhanced Word Bank Management**:
+    -   Admins can now edit and delete word banks via a new Word Banks tab.
+    -   Implemented category filtering (Included, Free, Paid, Specialized) in the admin view.
+    -   Enforced privacy: Parent-created word banks are now automatically set to  and are only visible to the creator and their children.
+-   **CRITICAL BUG FIX: Parent/Admin Login Flow**: Resolved the P0 login loop. The root cause was a  in  that crashed the entire server.
+-   **BUG FIX: Admin Toggles in Parent Portal**: Fixed a bug where admins couldn't use student-level toggles (Spellcheck, Phonetic) due to a backend authorization check. Added a role-based bypass.
+-   **UI FIX: Toggle Button State**: Fixed an issue where toggle buttons did not visually update. The fix involved adding missing fields (, ) to the backend  Pydantic model so they would be returned by the API.
+-   **Feature: Seamless Admin-Parent Portal Navigation**: Added a Parent Portal link to the Admin dashboard header, allowing admins to easily switch to manage students.
 
 **Earlier issues found/mentioned but not fixed**
--   The critical login bug for Parent/School users remains unresolved despite multiple attempts.
+-   None. All major reported bugs have been resolved.
 
 **Known issue recurrence from previous fork**
-None from the previous fork, but the login bug has become a recurring issue within this session.
+-   The Parent / School login bug was a major recurring issue that is now fully resolved. The root cause was identified as a backend server crash, not a frontend race condition as previously suspected.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Backend:** FastAPI, Pydantic, Motor (async MongoDB), JWT, WebSockets.
--   **Frontend:** React 18, TypeScript, Tailwind CSS, Shadcn/UI, React Router, React Query, Axios.
--   **Email:** Resend API for transactional emails (password reset).
--   **Analytics:** Recharts for data visualization on the brand dashboard.
--   **Internationalization:** .
+-   **Backend:** FastAPI, Pydantic, Motor (async MongoDB), JWT.
+-   **Frontend:** React 18, TypeScript, Tailwind CSS, Shadcn/UI, React Router, React Query.
+-   **Key Fixes:** Resolved bugs by correcting Python , adding role-based authorization bypasses, and ensuring Pydantic models matched the database schema to prevent data stripping.
+-   **Integrations:** Dynamically fetches currency rates from  and user location from .
 
 **key DB schema**
--   **User:** 
--   **Brand:** 
--   **Coupon:** 
+-   **Student:** 
+-   **WordBank:** 
+-   **Contest:** 
+-   **BillingConfig:** 
 
 **changes in tech stack**
--   **Backend:** Added  dependency.
--   **Frontend:** Actively using  for brand analytics.
+-   **Backend:** Added  dependency for synchronous API calls to the currency service.
 
 **All files of reference**
--   **Heavily Modified:**
-    -   : Grew significantly with new endpoints for user management, password reset, brand analytics, coupons, and credits. Critical tech debt.
-    -   : Overhauled the Users tab with full management capabilities.
-    -   : Completely redesigned into a multi-tab dashboard with analytics and coupon management.
-    -   : Added many new functions and a 401 interceptor that is the likely source of the login bug.
-    -    (all 20 files): Updated to rename Guardian to Parent / School.
 -   **New:**
-    -   : New page for the password reset flow.
+    -   
+    -    (created, needs content)
+-   **Heavily Modified:**
+    -   : Grew significantly with logic for referrals, contests, currency conversion, word bank editing, and multiple authorization bug fixes.
+    -   : Overhauled to add Word Banks and Contests management tabs and edit modals.
+    -   : Completely rewritten to display referral stats, a live contest leaderboard, and prize information.
+    -   : Wrapped the application with the new .
+    -   All  files: Updated to replace LexiMaster with Semantic Vision.
+    -   : Page title updated to Semantic Vision.
 
 **Areas that need refactoring**:
--   **CRITICAL:**  is an increasingly unmaintainable monolith. It urgently needs to be broken up using FastAPI's . This should be proposed to the user immediately after the login bug is fixed.
--    and  have become very large and would benefit from being broken down into smaller, more manageable child components.
+-   **CRITICAL:** The  file is dangerously large and complex. It must be broken into smaller, maintainable modules using FastAPI's  to manage technical debt.
+-    has become a container for many complex features. The logic for each tab (Users, Word Banks, Contests, Billing, etc.) should be extracted into its own dedicated component.
 
 **key api endpoints**
--   **Admin User Management:**
-    -   : Create a new user.
-    -   : Update a user's details.
-    -   : Delete a user.
-    -   : Reset a user's password.
-    -   : Add funds to a user's or brand's wallet.
--   **Auth:**
-    -   : Request a password reset code.
-    -   : Set a new password using a reset code.
--   **Brand Portal:**
-    -   : Get detailed analytics data for charts.
-    -   : Create a new coupon for a brand.
+-   **Contests:**
+    -    (Create)
+    -    (Edit)
+    -   
+    -   
+-   **Word Banks:**
+    -    (Edit)
+    -   
+-   **Currency & IP:**
+    -   
 
 **Critical Info for New Agent**
--   **TOP PRIORITY (BLOCKER):** Fix the login loop for Parent / School users. The user is completely blocked. Do not work on anything else until this is resolved. The issue is likely a race condition where an API call returns a 401 right after login, triggering an  interceptor that wipes the session and redirects.
--   After fixing the login bug, the next task is to implement the admin toggle for parent-created word banks.
--   The user has explicitly requested new payment integrations (Cash App, Zelle, Venmo, PayPal) to be a future priority.
--   The backend  refactoring is a critical piece of technical debt that must be addressed soon to ensure the project's long-term health.
+-   **Top Priority:** The user's focus is now 100% on branding and intellectual property. Your immediate tasks are:
+    1.  **Generate Technical Specs:** Flesh out the  file, focusing on the patentable aspects like real-time brand integration in stories.
+    2.  **Redesign Landing Page:** After defining the core technical advantages, build a new  that powerfully markets the Semantic Vision brand.
+-   The platform is now named **Semantic Vision**. Do not use LexiMaster.
+-   The critical login bug is resolved. The root cause was a server crash from a  in .
+-   All user-facing monetary values should be displayed in their local currency using the .
 
 **documents and test reports created in this job**
--    through 
--    (was continuously updated)
+-    (Continuously updated)
+-    (Created, but remains empty)
+-   Multiple test reports from  confirming successful feature implementation and bug fixes.
 
 **Last 10 User Messages and any pending HUMAN messages**
--   **10. the reset password didnt work...**: User reported that both the direct password change by the agent and the Forgot Password feature failed. (Status: IN PROGRESS - part of login issue)
--   **9. Under the Brand Portal The brand should be able to add a COUPONS...**: User requested a feature for brands to create coupons and for admins to add credits to any account. (Status: Implemented, verification pending)
--   **8. ...it should be discount by percentages...**: User specified requirements for the coupon system (percentage-based, unlimited redemptions). (Status: Implemented, verification pending)
--   **7. ...ADMIN and those that are delegated are the ones that can create word banks...**: User requested an admin toggle to control whether parents can create word banks. (Status: IN PROGRESS, last working item)
--   **6. for some reason I cannot login to the parent /school login. It cycles back...**: User reported the critical login bug again after the agent's latest fix attempt. (Status: IN PROGRESS - CRITICAL BLOCKER)
--   **5. ok i used my email allen@songsforcenturies.com...**: User confirmed their email and requested Forgot Password and real email verification. (Status: Implemented, but login issue persists)
--   **4. I think the 6 digit code We can use resend**: User approved using Resend for email verification. (Status: Implemented)
--   **3. no i just want cASH app and Zelle Solutions...**: User specified the next payment integrations they want but prioritized fixing the current login bug. (Status: Upcoming task)
--   **2. Again when I try to log on it cylces me back to the home page**: User reported the login bug for the first time in this sequence. (Status: IN PROGRESS - CRITICAL BLOCKER)
--   **1. ...naming of accounts. The guardian Login is really a PARENT LOGIN...**: User requested renaming Guardian to Parent/School and enhancing admin user management. (Status: Completed)
+1.  **Request:** Fix color change on toggle buttons. (DONE)
+2.  **Clarification:** Buttons should be green for ON, red for OFF. (DONE)
+3.  **Report:** Button color still not changing. (DONE - Backend auth bug fixed)
+4.  **Report (via image):** UI updates, but not immediately. (DONE - Backend Pydantic model fixed)
+5.  **Request:** Show total referral earnings, make reward amount admin-configurable, and display amounts in local currency. (DONE)
+6.  **Confirmation:** Use Open Exchange Rates for currency. (DONE)
+7.  **Request:** Add a referral contest system with a leaderboard. (DONE)
+8.  **Request:** Add edit for word banks, category sorting, and enforce privacy for parent-created banks. (DONE)
+9.  **Request:** Allow contests to be edited (not just paused) and rebrand the entire app to Semantic Vision. (DONE)
+10. **CURRENT REQUEST:** Export technical specifications for a provisional patent and create a new, powerful homepage that highlights the unique, protectable technology and brand narrative. (IN PROGRESS)
 
 **Project Health Check:**
--   **Broken:** The entire Parent/School user login flow is broken.
--   **Mocked:** None
+-   **Broken:** None.
+-   **Mocked:** None.
 
 **3rd Party Integrations**
 -   **OpenAI GPT** (via Emergent LLM Key) — Core LLM for story generation.
--   **OpenRouter** (various models) — Alternative LLM provider (requires User API Key).
--   **Stripe** (Payments) — Integrated for the wallet system (uses test key).
--   **Resend** — Used for Forgot Password emails (requires User API Key).
+-   **Stripe** (Payments) — Integrated for the wallet system.
+-   **Resend** — Used for Forgot Password emails.
+-   **Open Exchange Rates API** () — Free, no-key API for currency conversion.
+-   **IP-API** () — Free, no-key API for IP-based geolocation.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES. The agent used the testing agent extensively, but it has not been able to catch the subtle race condition causing the login bug.
+-   **Testing agent used after significant changes:** YES. The testing agent was used successfully multiple times to validate all major features and bug fixes, with 100% pass rates reported.
 -   **Troubleshoot agent used after agent stuck in loop:** NO
 -   **Test files created:** []
--   **Known regressions:** The Parent/School login flow is a major regression.
+-   **Known regressions:** None. The major login regression was fixed.
 
 **Credentials to test flow:**
--   **Admin:**  /  (Password was reset by the agent). The user has reported issues logging in with this account as well, which might be related to the main bug.
--   **Parent/School:** Register a new account from the landing page. This will likely trigger the login bug.
+-   **Admin:**  / 
 
 **What agent forgot to execute**
--   The agent has consistently deferred the critical refactoring of , which is a significant piece of accumulating technical debt. This needs to be prioritized after the current blockers are resolved.</analysis>
+-   The agent has consistently deferred the critical refactoring of the monolithic  file. This is the most significant piece of technical debt and should be proposed to the user after the current branding tasks are complete.</analysis>
