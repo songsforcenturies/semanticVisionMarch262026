@@ -1336,7 +1336,28 @@ async def create_read_log(log_data: ReadLogCreate):
     
     log_dict = read_log.model_dump()
     await db.read_logs.insert_one(log_dict)
-    
+
+    # Update narrative progress (chapters_completed, current_chapter, status)
+    narrative = await db.narratives.find_one({"id": log_data.narrative_id})
+    if narrative:
+        chapters_completed = narrative.get("chapters_completed", [])
+        if log_data.chapter_number not in chapters_completed:
+            chapters_completed.append(log_data.chapter_number)
+            chapters_completed = sorted(set(chapters_completed))
+
+        total_chapters = len(narrative.get("chapters", []))
+        new_current = max(chapters_completed) if chapters_completed else 1
+        new_status = "completed" if len(chapters_completed) >= total_chapters and total_chapters > 0 else "in_progress" if len(chapters_completed) > 0 else narrative.get("status", "ready")
+
+        await db.narratives.update_one(
+            {"id": log_data.narrative_id},
+            {"$set": {
+                "chapters_completed": chapters_completed,
+                "current_chapter": new_current,
+                "status": new_status,
+            }}
+        )
+
     # Update student statistics
     student = await db.students.find_one({"id": log_data.student_id})
     if student:
