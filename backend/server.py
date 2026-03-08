@@ -677,8 +677,8 @@ async def get_student_progress(
             "mastered_count": len(mastered_tokens),
             "biological_target": biological_target,
             "mastery_percentage": mastery_percentage,
-            "recent_mastered": [t.get("token", "") for t in mastered_tokens[-10:]],
-            "all_mastered": [t.get("token", "") for t in mastered_tokens],
+            "recent_mastered": [t if isinstance(t, str) else t.get("token", "") for t in mastered_tokens[-10:]],
+            "all_mastered": [t if isinstance(t, str) else t.get("token", "") for t in mastered_tokens],
         },
         "assessments": {
             "total": len(assessments),
@@ -1312,6 +1312,7 @@ class ReadLogCreate(BaseModel):
     session_start: datetime
     session_end: datetime
     words_read: int
+    vision_check_passed: Optional[bool] = None
 
 
 @api_router.post("/read-logs")
@@ -1321,7 +1322,7 @@ async def create_read_log(log_data: ReadLogCreate):
     
     # Calculate duration and WPM
     duration = (log_data.session_end - log_data.session_start).total_seconds()
-    wpm = (log_data.words_read / (duration / 60)) if duration > 0 else 0
+    wpm = (log_data.words_read / (duration / 60)) if duration > 0 and log_data.words_read > 0 else 0
     
     read_log = ReadLog(
         student_id=log_data.student_id,
@@ -1335,6 +1336,8 @@ async def create_read_log(log_data: ReadLogCreate):
     )
     
     log_dict = read_log.model_dump()
+    if log_data.vision_check_passed is not None:
+        log_dict["vision_check_passed"] = log_data.vision_check_passed
     await db.read_logs.insert_one(log_dict)
 
     # Update narrative progress (chapters_completed, current_chapter, status)
@@ -1358,23 +1361,59 @@ async def create_read_log(log_data: ReadLogCreate):
             }}
         )
 
-    # Update student statistics
-    student = await db.students.find_one({"id": log_data.student_id})
-    if student:
-        new_total_seconds = student.get("total_reading_seconds", 0) + int(duration)
-        new_total_words = student.get("total_words_read", 0) + log_data.words_read
-        new_average_wpm = (new_total_words / (new_total_seconds / 60)) if new_total_seconds > 0 else 0
-        
-        await db.students.update_one(
-            {"id": log_data.student_id},
-            {
-                "$set": {
-                    "total_reading_seconds": new_total_seconds,
-                    "total_words_read": new_total_words,
-                    "average_wpm": round(new_average_wpm, 1)
+        # When narrative is completed, credit vocabulary from embedded tokens
+        if new_status == "completed":
+            student = await db.students.find_one({"id": log_data.student_id})
+            if student:
+                # Normalize existing tokens to plain strings
+                existing_mastered = set()
+                for t in student.get("mastered_tokens", []):
+                    if isinstance(t, str):
+                        existing_mastered.add(t.lower().strip())
+                    elif isinstance(t, dict):
+                        existing_mastered.add(t.get("token", "").lower().strip())
+                
+                new_tokens = set()
+                for ch in narrative.get("chapters", []):
+                    for token in ch.get("embedded_tokens", []):
+                        word = token.get("word", "").lower().strip()
+                        if word and word not in existing_mastered:
+                            new_tokens.add(word)
+                
+                if new_tokens:
+                    all_mastered = list(existing_mastered | new_tokens)
+                    # Calculate agentic reach score
+                    total_narratives = await db.narratives.count_documents({"student_id": log_data.student_id})
+                    completed_narratives = await db.narratives.count_documents({"student_id": log_data.student_id, "status": "completed"})
+                    score = round((len(all_mastered) * 10 + completed_narratives * 50) / max(total_narratives * 50, 1) * 100, 1)
+                    score = min(score, 100.0)
+                    
+                    await db.students.update_one(
+                        {"id": log_data.student_id},
+                        {"$set": {
+                            "mastered_tokens": all_mastered,
+                            "agentic_reach_score": score,
+                        }}
+                    )
+
+    # Update student reading statistics
+    if log_data.words_read > 0:
+        student = await db.students.find_one({"id": log_data.student_id})
+        if student:
+            new_total_seconds = student.get("total_reading_seconds", 0) + int(duration)
+            new_total_words = student.get("total_words_read", 0) + log_data.words_read
+            new_average_wpm = (new_total_words / (new_total_seconds / 60)) if new_total_seconds > 0 else 0
+            
+            await db.students.update_one(
+                {"id": log_data.student_id},
+                {
+                    "$set": {
+                        "total_reading_seconds": new_total_seconds,
+                        "total_words_read": new_total_words,
+                        "average_wpm": round(new_average_wpm, 1)
+                    }
                 }
-            }
-        )
+            )
     
     return read_log
 
@@ -1609,6 +1648,13 @@ async def create_assessment(assessment_data: AssessmentCreate):
     if not narrative:
         raise HTTPException(status_code=404, detail="Narrative not found")
     
+    # Clean up any stuck in_progress assessments for this narrative+student
+    await db.assessments.delete_many({
+        "student_id": assessment_data.student_id,
+        "narrative_id": assessment_data.narrative_id,
+        "status": "in_progress",
+    })
+    
     # Get words to test (target + stretch)
     tokens_to_verify = narrative.get("tokens_to_verify", [])
     
@@ -1825,36 +1871,36 @@ Return ONLY valid JSON (no markdown):
         if accuracy >= 80:
             student = await db.students.find_one({"id": assessment["student_id"]})
             if student:
-                from models import MasteredToken
+                # Normalize existing tokens to plain strings
+                existing_tokens = set()
+                for t in student.get("mastered_tokens", []):
+                    if isinstance(t, str):
+                        existing_tokens.add(t.lower().strip())
+                    elif isinstance(t, dict):
+                        existing_tokens.add(t.get("token", "").lower().strip())
                 
-                existing_tokens = [t["token"] for t in student.get("mastered_tokens", [])]
                 new_tokens = []
-                
                 for word in tokens_mastered:
-                    if word not in existing_tokens:
-                        new_tokens.append(MasteredToken(
-                            token=word,
-                            source_type="narrative",
-                            source_id=assessment["narrative_id"],
-                            mastered_date=datetime.now(timezone.utc)
-                        ).model_dump())
+                    w = word.lower().strip()
+                    if w and w not in existing_tokens:
+                        new_tokens.append(w)
                 
                 if new_tokens:
-                    await db.students.update_one(
-                        {"id": assessment["student_id"]},
-                        {"$push": {"mastered_tokens": {"$each": new_tokens}}}
-                    )
+                    # Store all tokens as plain strings consistently
+                    all_mastered = list(existing_tokens | set(new_tokens))
                     
                     # Recalculate agentic reach score
-                    updated_student = await db.students.find_one({"id": assessment["student_id"]})
-                    mastered_count = len(updated_student.get("mastered_tokens", []))
-                    
-                    # Simple formula: mastered_tokens * 0.5 + (accuracy * 0.3)
-                    agentic_score = (mastered_count * 0.5) + (accuracy * 3)
+                    total_narratives = await db.narratives.count_documents({"student_id": assessment["student_id"]})
+                    completed_narratives = await db.narratives.count_documents({"student_id": assessment["student_id"], "status": "completed"})
+                    agentic_score = round((len(all_mastered) * 10 + completed_narratives * 50) / max(total_narratives * 50, 1) * 100, 1)
+                    agentic_score = min(agentic_score, 100.0)
                     
                     await db.students.update_one(
                         {"id": assessment["student_id"]},
-                        {"$set": {"agentic_reach_score": round(agentic_score, 1)}}
+                        {"$set": {
+                            "mastered_tokens": all_mastered,
+                            "agentic_reach_score": agentic_score,
+                        }}
                     )
         
         # Return updated assessment

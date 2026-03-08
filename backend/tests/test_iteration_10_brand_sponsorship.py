@@ -8,7 +8,7 @@ import os
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://ai-lexicon-1.preview.emergentagent.com"
+    BASE_URL = "https://story-ai-learn.preview.emergentagent.com"
 
 # Test credentials
 ADMIN_EMAIL = "testadmin@test.com"

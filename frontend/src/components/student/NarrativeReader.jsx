@@ -51,12 +51,23 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
       session_end: new Date().toISOString(),
       words_read: chapter.word_count
     });
-    // Show written comprehension check
+    // Show written comprehension check — result will be sent separately
     setShowWrittenCheck(true);
   };
 
   const handleWrittenCheckComplete = (passed) => {
     setShowWrittenCheck(false);
+    // Send vision check result to backend
+    readLogAPI.create({
+      student_id: student.id,
+      narrative_id: narrative.id,
+      chapter_number: currentChapter,
+      session_start: sessionStart.toISOString(),
+      session_end: new Date().toISOString(),
+      words_read: 0,
+      vision_check_passed: passed,
+    }).catch(() => {});
+
     if (passed) {
       const newCompletedChapters = [...new Set([...completedChapters, currentChapter])];
       setCompletedChapters(newCompletedChapters);

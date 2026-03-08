@@ -198,7 +198,7 @@ class Student(MongoBaseModel):
     strengths: str = ""  # Free-text: what the child excels at
     weaknesses: str = ""  # Free-text: areas where the child needs growth
     assigned_banks: List[str] = Field(default_factory=list)  # WordBank IDs
-    mastered_tokens: List[MasteredToken] = Field(default_factory=list)
+    mastered_tokens: list = Field(default_factory=list)  # List of token strings
     agentic_reach_score: float = 0.0
     biological_target: int = 0  # Age-based expected vocabulary
     total_reading_seconds: int = 0
