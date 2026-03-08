@@ -368,7 +368,7 @@ const StudentsTab = () => {
                 {/* Spelling Controls */}
                 <div className="flex gap-2">
                   <BrutalButton
-                    variant={student.spellcheck_disabled ? 'rose' : 'default'}
+                    variant={student.spellcheck_disabled ? 'rose' : 'emerald'}
                     size="sm"
                     fullWidth
                     onClick={() => spellcheckMutation.mutate(student.id)}
@@ -379,7 +379,7 @@ const StudentsTab = () => {
                     {student.spellcheck_disabled ? 'Spellcheck OFF' : 'Spellcheck ON'}
                   </BrutalButton>
                   <BrutalButton
-                    variant={student.spelling_mode === 'exact' ? 'indigo' : 'default'}
+                    variant={student.spelling_mode === 'exact' ? 'indigo' : 'emerald'}
                     size="sm"
                     fullWidth
                     onClick={() => spellingModeMutation.mutate(student.id)}
