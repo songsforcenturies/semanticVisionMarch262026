@@ -143,6 +143,11 @@ const AdminPortal = () => {
     title: '', description: '', prize_description: '', prize_value: '',
     start_date: '', end_date: '', runner_up_2nd: '', runner_up_3rd: '',
   });
+  const [editingContest, setEditingContest] = useState(null);
+  const [editContestForm, setEditContestForm] = useState({
+    title: '', description: '', prize_description: '', prize_value: '',
+    start_date: '', end_date: '', runner_up_2nd: '', runner_up_3rd: '',
+  });
 
   // === Mutations ===
   const updateModelMutation = useMutation({
@@ -301,6 +306,15 @@ const AdminPortal = () => {
   const toggleContestMutation = useMutation({
     mutationFn: ({ id, is_active }) => apiClient.put(`/admin/contests/${id}`, { is_active }),
     onSuccess: () => { queryClient.invalidateQueries(['admin-contests']); toast.success('Contest updated'); },
+  });
+  const editContestMutation = useMutation({
+    mutationFn: ({ id, data }) => apiClient.put(`/admin/contests/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['admin-contests']);
+      toast.success('Contest updated!');
+      setEditingContest(null);
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed to update'),
   });
 
   // === Sync forms with data ===
@@ -1176,6 +1190,21 @@ const AdminPortal = () => {
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
+                          <BrutalButton variant="indigo" size="sm"
+                            onClick={() => {
+                              setEditingContest(c);
+                              const toLocal = (iso) => { try { return new Date(iso).toISOString().slice(0,16); } catch { return ''; } };
+                              setEditContestForm({
+                                title: c.title, description: c.description || '',
+                                prize_description: c.prize_description, prize_value: String(c.prize_value || ''),
+                                start_date: toLocal(c.start_date), end_date: toLocal(c.end_date),
+                                runner_up_2nd: c.runner_up_prizes?.find(p => p.place === 2)?.prize || '',
+                                runner_up_3rd: c.runner_up_prizes?.find(p => p.place === 3)?.prize || '',
+                              });
+                            }}
+                            className="flex items-center gap-1" data-testid={`edit-contest-${c.id}`}>
+                            <Edit size={14} /> Edit
+                          </BrutalButton>
                           <BrutalButton
                             variant={c.is_active ? 'rose' : 'emerald'}
                             size="sm"
@@ -1188,13 +1217,72 @@ const AdminPortal = () => {
                             onClick={() => { if (window.confirm(`Delete "${c.title}"?`)) deleteContestMutation.mutate(c.id); }}
                             className="flex items-center gap-1"
                             data-testid={`delete-contest-${c.id}`}>
-                            <Trash2 size={14} /> Delete
+                            <Trash2 size={14} />
                           </BrutalButton>
                         </div>
                       </div>
                     </BrutalCard>
                   );
                 })}
+              </div>
+            )}
+            {/* Edit Contest Modal */}
+            {editingContest && (
+              <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" data-testid="edit-contest-modal">
+                <BrutalCard shadow="xl" className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                  <h3 className="text-2xl font-black uppercase mb-4 flex items-center gap-2">
+                    <Trophy size={24} className="text-yellow-500" /> Edit Contest
+                  </h3>
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    const runner_up_prizes = [];
+                    if (editContestForm.runner_up_2nd) runner_up_prizes.push({ place: 2, prize: editContestForm.runner_up_2nd });
+                    if (editContestForm.runner_up_3rd) runner_up_prizes.push({ place: 3, prize: editContestForm.runner_up_3rd });
+                    editContestMutation.mutate({
+                      id: editingContest.id,
+                      data: {
+                        title: editContestForm.title,
+                        description: editContestForm.description,
+                        prize_description: editContestForm.prize_description,
+                        prize_value: parseFloat(editContestForm.prize_value) || null,
+                        start_date: new Date(editContestForm.start_date).toISOString(),
+                        end_date: new Date(editContestForm.end_date).toISOString(),
+                        runner_up_prizes,
+                      }
+                    });
+                  }} className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <BrutalInput label="Contest Title *" required value={editContestForm.title}
+                        onChange={(e) => setEditContestForm({ ...editContestForm, title: e.target.value })} data-testid="edit-contest-title" />
+                      <BrutalInput label="Grand Prize *" required value={editContestForm.prize_description}
+                        onChange={(e) => setEditContestForm({ ...editContestForm, prize_description: e.target.value })} data-testid="edit-contest-prize" />
+                    </div>
+                    <BrutalInput label="Description" value={editContestForm.description}
+                      onChange={(e) => setEditContestForm({ ...editContestForm, description: e.target.value })} data-testid="edit-contest-desc" />
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <BrutalInput label="Prize Value (USD)" type="number" step="0.01" value={editContestForm.prize_value}
+                        onChange={(e) => setEditContestForm({ ...editContestForm, prize_value: e.target.value })} data-testid="edit-contest-value" />
+                      <BrutalInput label="Start Date *" type="datetime-local" required value={editContestForm.start_date}
+                        onChange={(e) => setEditContestForm({ ...editContestForm, start_date: e.target.value })} data-testid="edit-contest-start" />
+                      <BrutalInput label="End Date *" type="datetime-local" required value={editContestForm.end_date}
+                        onChange={(e) => setEditContestForm({ ...editContestForm, end_date: e.target.value })} data-testid="edit-contest-end" />
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <BrutalInput label="2nd Place Prize" value={editContestForm.runner_up_2nd}
+                        onChange={(e) => setEditContestForm({ ...editContestForm, runner_up_2nd: e.target.value })} data-testid="edit-contest-2nd" />
+                      <BrutalInput label="3rd Place Prize" value={editContestForm.runner_up_3rd}
+                        onChange={(e) => setEditContestForm({ ...editContestForm, runner_up_3rd: e.target.value })} data-testid="edit-contest-3rd" />
+                    </div>
+                    <div className="flex gap-3">
+                      <BrutalButton type="submit" variant="emerald" size="lg" fullWidth disabled={editContestMutation.isPending} data-testid="edit-contest-save">
+                        {editContestMutation.isPending ? 'Saving...' : 'Save Changes'}
+                      </BrutalButton>
+                      <BrutalButton variant="dark" size="lg" fullWidth onClick={() => setEditingContest(null)} data-testid="edit-contest-cancel">
+                        Cancel
+                      </BrutalButton>
+                    </div>
+                  </form>
+                </BrutalCard>
               </div>
             )}
           </div>

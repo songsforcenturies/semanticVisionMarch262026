@@ -93,7 +93,7 @@ const StudentAcademy = () => {
                 <Home size={24} />
               </button>
               <div>
-                <h1 className="text-4xl font-black uppercase">LexiMaster Academy</h1>
+                <h1 className="text-4xl font-black uppercase">Semantic Vision Academy</h1>
                 <p className="text-xl font-bold mt-1">Welcome, {studentData?.full_name}!</p>
               </div>
             </div>

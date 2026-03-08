@@ -28,11 +28,11 @@
     "registerHere": "Dang ky tai day",
     "loginHere": "Dang nhap tai day",
     "securePayment": "Thanh toan an toan qua Stripe",
-    "copyright": "2026 LexiMaster - Xay dung tu vung qua tung cau chuyen",
+    "copyright": "2026 Semantic Vision - Xay dung tu vung qua tung cau chuyen",
     "language": "Ngon ngu"
   },
   "landing": {
-    "title": "LexiMaster",
+    "title": "Semantic Vision",
     "subtitle": "Hoc tu vung bang AI qua cac cau chuyen ca nhan hoa",
     "getStarted": "Bat dau mien phi",
     "guardianLogin": "Dang nhap Phu huynh",
@@ -74,7 +74,7 @@
     "guardianLoginLink": "Dang nhap Phu huynh",
     "createAccount": "Tao tai khoan",
     "brandPartnerReg": "Dang ky Doi tac Thuong hieu",
-    "brandPartnerDesc": "Hop tac voi LexiMaster",
+    "brandPartnerDesc": "Hop tac voi Semantic Vision",
     "startVocabJourney": "Bat dau hanh trinh tu vung",
     "referralCode": "Ma gioi thieu",
     "referralBonus": "Ca hai se nhan thuong vao vi!",

@@ -28,11 +28,11 @@
     "registerHere": "Registreer hier",
     "loginHere": "Log hier in",
     "securePayment": "Veilige betaling via Stripe",
-    "copyright": "2026 LexiMaster - Woordenschat opbouwen, Verhaal voor Verhaal",
+    "copyright": "2026 Semantic Vision - Woordenschat opbouwen, Verhaal voor Verhaal",
     "language": "Taal"
   },
   "landing": {
-    "title": "LexiMaster",
+    "title": "Semantic Vision",
     "subtitle": "AI-gestuurd woordenschat leren via gepersonaliseerde verhalen",
     "getStarted": "Gratis beginnen",
     "guardianLogin": "Ouder Login",
@@ -74,7 +74,7 @@
     "guardianLoginLink": "Ouder Login",
     "createAccount": "Account aanmaken",
     "brandPartnerReg": "Merkpartner Registratie",
-    "brandPartnerDesc": "Word partner van LexiMaster",
+    "brandPartnerDesc": "Word partner van Semantic Vision",
     "startVocabJourney": "Start je woordenschatreis",
     "referralCode": "Verwijzingscode",
     "referralBonus": "Jullie beiden ontvangen een portemonnee-bonus!",

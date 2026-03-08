@@ -28,11 +28,11 @@
     "registerHere": "ลงทะเบียนที่นี่",
     "loginHere": "เข้าสู่ระบบที่นี่",
     "securePayment": "ชำระเงินปลอดภัยผ่าน Stripe",
-    "copyright": "2026 LexiMaster - สร้างคำศัพท์ผ่านเรื่องราว",
+    "copyright": "2026 Semantic Vision - สร้างคำศัพท์ผ่านเรื่องราว",
     "language": "ภาษา"
   },
   "landing": {
-    "title": "LexiMaster",
+    "title": "Semantic Vision",
     "subtitle": "เรียนรู้คำศัพท์ด้วย AI ผ่านเรื่องราวเฉพาะบุคคล",
     "getStarted": "เริ่มต้นฟรี",
     "guardianLogin": "ผู้ปกครองเข้าสู่ระบบ",
@@ -74,7 +74,7 @@
     "guardianLoginLink": "ผู้ปกครองเข้าสู่ระบบ",
     "createAccount": "สร้างบัญชี",
     "brandPartnerReg": "ลงทะเบียนพาร์ทเนอร์แบรนด์",
-    "brandPartnerDesc": "ร่วมเป็นพาร์ทเนอร์กับ LexiMaster",
+    "brandPartnerDesc": "ร่วมเป็นพาร์ทเนอร์กับ Semantic Vision",
     "startVocabJourney": "เริ่มการเดินทางคำศัพท์",
     "referralCode": "รหัสแนะนำ",
     "referralBonus": "ทั้งคู่จะได้รับโบนัสกระเป๋าเงิน!",

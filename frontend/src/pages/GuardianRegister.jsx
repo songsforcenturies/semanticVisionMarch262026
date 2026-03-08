@@ -61,7 +61,7 @@ const GuardianRegister = () => {
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-3 mb-4">
               <BookOpen size={48} className="text-indigo-600" />
-              <h1 className="text-4xl font-black uppercase">LexiMaster</h1>
+              <h1 className="text-4xl font-black uppercase">Semantic Vision</h1>
             </div>
             <h2 className="text-2xl font-black uppercase" data-testid="register-title">
               {isBrandPartner ? t('auth.brandPartnerReg') : t('auth.createAccount')}

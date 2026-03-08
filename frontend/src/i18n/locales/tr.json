@@ -28,11 +28,11 @@
     "registerHere": "Buradan kayit olun",
     "loginHere": "Buradan giris yapin",
     "securePayment": "Stripe ile guvenli odeme",
-    "copyright": "2026 LexiMaster - Hikayelerle Kelime Hazinesi Olusturun",
+    "copyright": "2026 Semantic Vision - Hikayelerle Kelime Hazinesi Olusturun",
     "language": "Dil"
   },
   "landing": {
-    "title": "LexiMaster",
+    "title": "Semantic Vision",
     "subtitle": "Kisisellestirilmis Hikayelerle Yapay Zeka Destekli Kelime Ogrenme",
     "getStarted": "Ucretsiz Basla",
     "guardianLogin": "Veli Girisi",
@@ -74,7 +74,7 @@
     "guardianLoginLink": "Veli Girisi",
     "createAccount": "Hesap Olustur",
     "brandPartnerReg": "Marka Ortagi Kaydi",
-    "brandPartnerDesc": "LexiMaster ile ortak olun",
+    "brandPartnerDesc": "Semantic Vision ile ortak olun",
     "startVocabJourney": "Kelime yolculugunuzu baslatin",
     "referralCode": "Davet Kodu",
     "referralBonus": "Ikiniz de cuzdan bonusu kazanirsiniz!",

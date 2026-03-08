@@ -28,11 +28,11 @@
     "registerHere": "Зарегистрируйтесь",
     "loginHere": "Войдите",
     "securePayment": "Безопасная оплата через Stripe",
-    "copyright": "2026 LexiMaster - Создаем словарный запас с каждой историей",
+    "copyright": "2026 Semantic Vision - Создаем словарный запас с каждой историей",
     "language": "Язык"
   },
   "landing": {
-    "title": "LexiMaster",
+    "title": "Semantic Vision",
     "subtitle": "Изучение словарного запаса с ИИ через персонализированные истории",
     "getStarted": "Начать бесплатно",
     "guardianLogin": "Вход родителя",
@@ -74,7 +74,7 @@
     "guardianLoginLink": "Вход родителя",
     "createAccount": "Создать аккаунт",
     "brandPartnerReg": "Регистрация партнера",
-    "brandPartnerDesc": "Станьте партнером LexiMaster",
+    "brandPartnerDesc": "Станьте партнером Semantic Vision",
     "startVocabJourney": "Начните изучение слов",
     "referralCode": "Код приглашения",
     "referralBonus": "Вы оба получите бонус на кошелек!",

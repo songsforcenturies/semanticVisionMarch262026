@@ -28,11 +28,11 @@
     "registerHere": "Inscrivez-vous ici",
     "loginHere": "Connectez-vous ici",
     "securePayment": "Paiement securise par Stripe",
-    "copyright": "2026 LexiMaster - Construire le Vocabulaire, Une Histoire a la Fois",
+    "copyright": "2026 Semantic Vision - Construire le Vocabulaire, Une Histoire a la Fois",
     "language": "Langue"
   },
   "landing": {
-    "title": "LexiMaster",
+    "title": "Semantic Vision",
     "subtitle": "Apprentissage du Vocabulaire par IA a Travers des Histoires Personnalisees",
     "getStarted": "Commencer Gratuitement",
     "guardianLogin": "Connexion Tuteur",
@@ -74,7 +74,7 @@
     "guardianLoginLink": "Connexion Tuteur",
     "createAccount": "Creer un Compte",
     "brandPartnerReg": "Inscription Partenaire de Marque",
-    "brandPartnerDesc": "Associez-vous a LexiMaster pour atteindre les jeunes apprenants",
+    "brandPartnerDesc": "Associez-vous a Semantic Vision pour atteindre les jeunes apprenants",
     "startVocabJourney": "Commencez votre voyage vocabulaire",
     "referralCode": "Code de Parrainage",
     "referralBonus": "Vous et votre parrain recevrez un bonus portefeuille !",

@@ -1,5 +1,5 @@
 """
-AI Story Generation Service for LexiMaster
+AI Story Generation Service for Semantic Vision
 Supports Emergent LLM Key and OpenRouter for flexible model selection
 """
 import os
@@ -168,7 +168,7 @@ Make brand mentions feel organic and educational, not like advertisements.
 Include 1-2 natural brand mentions across the story where they solve a problem or help the character learn."""
 
         # Create the story generation prompt
-        system_message = f"""You are an expert educational story writer for LexiMaster. 
+        system_message = f"""You are an expert educational story writer for Semantic Vision. 
 Generate engaging, age-appropriate stories that naturally embed vocabulary words for learning.
 
 Student Profile:

@@ -28,11 +28,11 @@
     "registerHere": "سجل هنا",
     "loginHere": "سجل الدخول هنا",
     "securePayment": "دفع آمن عبر Stripe",
-    "copyright": "2026 LexiMaster - بناء المفردات قصة تلو الأخرى",
+    "copyright": "2026 Semantic Vision - بناء المفردات قصة تلو الأخرى",
     "language": "اللغة"
   },
   "landing": {
-    "title": "LexiMaster",
+    "title": "Semantic Vision",
     "subtitle": "تعلم المفردات بالذكاء الاصطناعي من خلال قصص مخصصة",
     "getStarted": "ابدأ مجاناً",
     "guardianLogin": "دخول ولي الأمر",
@@ -74,7 +74,7 @@
     "guardianLoginLink": "دخول ولي الأمر",
     "createAccount": "إنشاء حساب",
     "brandPartnerReg": "تسجيل شريك العلامة التجارية",
-    "brandPartnerDesc": "شارك LexiMaster للوصول للمتعلمين الشباب",
+    "brandPartnerDesc": "شارك Semantic Vision للوصول للمتعلمين الشباب",
     "startVocabJourney": "ابدأ رحلة المفردات",
     "referralCode": "رمز الإحالة",
     "referralBonus": "ستحصلان على مكافأة في المحفظة!",

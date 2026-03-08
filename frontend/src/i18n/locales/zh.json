@@ -28,11 +28,11 @@
     "registerHere": "在此注册",
     "loginHere": "在此登录",
     "securePayment": "由Stripe提供安全支付",
-    "copyright": "2026 LexiMaster - 用故事构建词汇",
+    "copyright": "2026 Semantic Vision - 用故事构建词汇",
     "language": "语言"
   },
   "landing": {
-    "title": "LexiMaster",
+    "title": "Semantic Vision",
     "subtitle": "AI驱动的个性化故事词汇学习",
     "getStarted": "免费开始",
     "guardianLogin": "家长登录",
@@ -74,7 +74,7 @@
     "guardianLoginLink": "家长登录",
     "createAccount": "创建账户",
     "brandPartnerReg": "品牌合作伙伴注册",
-    "brandPartnerDesc": "与LexiMaster合作，触达年轻学习者",
+    "brandPartnerDesc": "与Semantic Vision合作，触达年轻学习者",
     "startVocabJourney": "开始您的词汇之旅",
     "referralCode": "推荐代码",
     "referralBonus": "您和推荐人都将获得钱包奖励！",

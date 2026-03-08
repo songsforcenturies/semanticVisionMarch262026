@@ -28,11 +28,11 @@
     "registerHere": "Hier registrieren",
     "loginHere": "Hier anmelden",
     "securePayment": "Sichere Zahlung uber Stripe",
-    "copyright": "2026 LexiMaster - Vokabeln aufbauen, Geschichte fur Geschichte",
+    "copyright": "2026 Semantic Vision - Vokabeln aufbauen, Geschichte fur Geschichte",
     "language": "Sprache"
   },
   "landing": {
-    "title": "LexiMaster",
+    "title": "Semantic Vision",
     "subtitle": "KI-gesteuertes Vokabellernen durch personalisierte Geschichten",
     "getStarted": "Kostenlos starten",
     "guardianLogin": "Eltern-Login",
@@ -74,7 +74,7 @@
     "guardianLoginLink": "Eltern-Login",
     "createAccount": "Konto erstellen",
     "brandPartnerReg": "Markenpartner-Registrierung",
-    "brandPartnerDesc": "Werden Sie Partner von LexiMaster",
+    "brandPartnerDesc": "Werden Sie Partner von Semantic Vision",
     "startVocabJourney": "Starten Sie Ihre Vokabelreise",
     "referralCode": "Empfehlungscode",
     "referralBonus": "Beide erhalten einen Wallet-Bonus!",

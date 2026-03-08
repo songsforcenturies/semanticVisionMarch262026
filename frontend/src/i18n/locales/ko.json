@@ -28,11 +28,11 @@
     "registerHere": "여기서 가입",
     "loginHere": "여기서 로그인",
     "securePayment": "Stripe 안전 결제",
-    "copyright": "2026 LexiMaster - 이야기로 어휘력 키우기",
+    "copyright": "2026 Semantic Vision - 이야기로 어휘력 키우기",
     "language": "언어"
   },
   "landing": {
-    "title": "LexiMaster",
+    "title": "Semantic Vision",
     "subtitle": "AI 기반 맞춤형 이야기로 어휘 학습",
     "getStarted": "무료로 시작",
     "guardianLogin": "보호자 로그인",
@@ -74,7 +74,7 @@
     "guardianLoginLink": "보호자 로그인",
     "createAccount": "계정 생성",
     "brandPartnerReg": "브랜드 파트너 등록",
-    "brandPartnerDesc": "LexiMaster와 파트너십 체결",
+    "brandPartnerDesc": "Semantic Vision와 파트너십 체결",
     "startVocabJourney": "어휘 여행 시작",
     "referralCode": "추천 코드",
     "referralBonus": "둘 다 지갑 보너스를 받습니다!",

@@ -1,5 +1,5 @@
 """
-LexiMaster Data Models
+Semantic Vision Data Models
 MongoDB document models using Pydantic with UUID-based IDs
 """
 from pydantic import BaseModel, Field, ConfigDict

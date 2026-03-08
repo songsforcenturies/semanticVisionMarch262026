@@ -1,5 +1,5 @@
 """
-Authentication utilities for LexiMaster
+Authentication utilities for Semantic Vision
 JWT tokens for guardians/teachers/admin, PIN for students
 """
 from datetime import datetime, timedelta, timezone

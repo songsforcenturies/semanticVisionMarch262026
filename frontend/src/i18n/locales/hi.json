@@ -28,11 +28,11 @@
     "registerHere": "यहां पंजीकरण करें",
     "loginHere": "यहां लॉग इन करें",
     "securePayment": "Stripe द्वारा सुरक्षित भुगतान",
-    "copyright": "2026 LexiMaster - कहानियों से शब्दावली बनाएं",
+    "copyright": "2026 Semantic Vision - कहानियों से शब्दावली बनाएं",
     "language": "भाषा"
   },
   "landing": {
-    "title": "LexiMaster",
+    "title": "Semantic Vision",
     "subtitle": "AI-संचालित व्यक्तिगत कहानियों से शब्दावली सीखें",
     "getStarted": "मुफ्त शुरू करें",
     "guardianLogin": "अभिभावक लॉगिन",
@@ -74,7 +74,7 @@
     "guardianLoginLink": "अभिभावक लॉगिन",
     "createAccount": "खाता बनाएं",
     "brandPartnerReg": "ब्रांड पार्टनर पंजीकरण",
-    "brandPartnerDesc": "LexiMaster के साथ भागीदारी करें",
+    "brandPartnerDesc": "Semantic Vision के साथ भागीदारी करें",
     "startVocabJourney": "अपनी शब्दावली यात्रा शुरू करें",
     "referralCode": "रेफरल कोड",
     "referralBonus": "आप और रेफर करने वाले दोनों को वॉलेट बोनस मिलेगा!",

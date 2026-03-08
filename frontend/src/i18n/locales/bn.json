@@ -28,11 +28,11 @@
     "registerHere": "এখানে নিবন্ধন করুন",
     "loginHere": "এখানে লগ ইন করুন",
     "securePayment": "Stripe দ্বারা নিরাপদ পেমেন্ট",
-    "copyright": "2026 LexiMaster - গল্পে গল্পে শব্দভাণ্ডার গঠন",
+    "copyright": "2026 Semantic Vision - গল্পে গল্পে শব্দভাণ্ডার গঠন",
     "language": "ভাষা"
   },
   "landing": {
-    "title": "LexiMaster",
+    "title": "Semantic Vision",
     "subtitle": "AI-চালিত ব্যক্তিগত গল্পে শব্দভাণ্ডার শেখা",
     "getStarted": "বিনামূল্যে শুরু করুন",
     "guardianLogin": "অভিভাবক লগইন",
@@ -74,7 +74,7 @@
     "guardianLoginLink": "অভিভাবক লগইন",
     "createAccount": "অ্যাকাউন্ট তৈরি",
     "brandPartnerReg": "ব্র্যান্ড পার্টনার নিবন্ধন",
-    "brandPartnerDesc": "LexiMaster-এর সাথে যোগ দিন",
+    "brandPartnerDesc": "Semantic Vision-এর সাথে যোগ দিন",
     "startVocabJourney": "আপনার শব্দভাণ্ডার যাত্রা শুরু করুন",
     "referralCode": "রেফারেল কোড",
     "referralBonus": "আপনি এবং রেফারার উভয়েই ওয়ালেট বোনাস পাবেন!",

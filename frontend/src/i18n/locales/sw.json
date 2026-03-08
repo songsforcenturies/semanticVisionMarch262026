@@ -28,11 +28,11 @@
     "registerHere": "Jisajili hapa",
     "loginHere": "Ingia hapa",
     "securePayment": "Malipo salama kupitia Stripe",
-    "copyright": "2026 LexiMaster - Kujenga Msamiati, Hadithi kwa Hadithi",
+    "copyright": "2026 Semantic Vision - Kujenga Msamiati, Hadithi kwa Hadithi",
     "language": "Lugha"
   },
   "landing": {
-    "title": "LexiMaster",
+    "title": "Semantic Vision",
     "subtitle": "Kujifunza Msamiati kwa AI kupitia Hadithi za Kibinafsi",
     "getStarted": "Anza Bure",
     "guardianLogin": "Kuingia kwa Mlezi",
@@ -74,7 +74,7 @@
     "guardianLoginLink": "Kuingia kwa Mlezi",
     "createAccount": "Tengeneza Akaunti",
     "brandPartnerReg": "Usajili wa Mshirika wa Chapa",
-    "brandPartnerDesc": "Shirikiana na LexiMaster",
+    "brandPartnerDesc": "Shirikiana na Semantic Vision",
     "startVocabJourney": "Anza safari ya msamiati",
     "referralCode": "Nambari ya Rufaa",
     "referralBonus": "Nyinyi wote mtapata bonasi ya mkoba!",

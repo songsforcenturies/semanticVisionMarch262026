@@ -28,11 +28,11 @@
     "registerHere": "Zarejestruj sie tutaj",
     "loginHere": "Zaloguj sie tutaj",
     "securePayment": "Bezpieczna platnosc przez Stripe",
-    "copyright": "2026 LexiMaster - Budowanie Slownictwa, Historia po Historii",
+    "copyright": "2026 Semantic Vision - Budowanie Slownictwa, Historia po Historii",
     "language": "Jezyk"
   },
   "landing": {
-    "title": "LexiMaster",
+    "title": "Semantic Vision",
     "subtitle": "Nauka slownictwa z AI przez spersonalizowane opowiesci",
     "getStarted": "Zacznij za darmo",
     "guardianLogin": "Logowanie opiekuna",
@@ -74,7 +74,7 @@
     "guardianLoginLink": "Logowanie opiekuna",
     "createAccount": "Utworz konto",
     "brandPartnerReg": "Rejestracja partnera marki",
-    "brandPartnerDesc": "Zostac partnerem LexiMaster",
+    "brandPartnerDesc": "Zostac partnerem Semantic Vision",
     "startVocabJourney": "Rozpocznij podroz ze slownictwem",
     "referralCode": "Kod polecenia",
     "referralBonus": "Oboje otrzymacie bonus portfelowy!",

@@ -20,7 +20,7 @@ const HomeHeader = ({ showAuth = true }) => {
               <BookOpen size={32} className="text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-black uppercase leading-none">LexiMaster</h1>
+              <h1 className="text-3xl font-black uppercase leading-none">Semantic Vision</h1>
               <p className="text-xs font-bold text-gray-600">{t('common.platform')}</p>
             </div>
           </button>
