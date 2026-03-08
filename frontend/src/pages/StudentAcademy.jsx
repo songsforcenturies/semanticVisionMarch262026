@@ -2,12 +2,33 @@ import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { studentAPI, narrativeAPI, classroomAPI } from '@/lib/api';
-import { BrutalButton, BrutalCard, BrutalBadge, BrutalProgress, BrutalInput } from '@/components/brutal';
-import { BookOpen, Plus, LogOut, TrendingUp, Clock, BookMarked, Home, Users } from 'lucide-react';
+import { BookOpen, Plus, TrendingUp, Clock, BookMarked, Users, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import AppShell from '@/components/AppShell';
 import StoryGenerationDialog from '@/components/student/StoryGenerationDialog';
 import NarrativeReader from '@/components/student/NarrativeReader';
+
+const C = {
+  bg: '#0A0F1E', card: '#1A2236', surface: '#111827',
+  gold: '#D4A853', goldLight: '#F5D799', teal: '#38BDF8',
+  cream: '#F8F5EE', muted: '#94A3B8',
+};
+
+const StatCard = ({ icon: Icon, label, value, sub, accent }) => (
+  <div className="p-5 rounded-2xl" style={{ background: C.card, border: '1px solid rgba(255,255,255,0.08)' }}>
+    <div className="flex items-center gap-4">
+      <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: `${accent}18` }}>
+        <Icon size={24} style={{ color: accent }} />
+      </div>
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: C.muted }}>{label}</p>
+        <p className="text-3xl font-bold mt-0.5" style={{ color: C.cream }}>{value}</p>
+        {sub && <p className="text-xs mt-1" style={{ color: C.muted }}>{sub}</p>}
+      </div>
+    </div>
+  </div>
+);
 
 const StudentAcademy = () => {
   const { student, studentLogout } = useAuth();
@@ -18,30 +39,19 @@ const StudentAcademy = () => {
   const [joiningSession, setJoiningSession] = useState(false);
   const [joinedSession, setJoinedSession] = useState(null);
 
-  // Fetch full student data
   const { data: studentData, isLoading: studentLoading } = useQuery({
     queryKey: ['student-detail', student?.id],
-    queryFn: async () => {
-      const response = await studentAPI.getById(student?.id);
-      return response.data;
-    },
-    enabled: !!student?.id
+    queryFn: async () => (await studentAPI.getById(student?.id)).data,
+    enabled: !!student?.id,
   });
 
-  // Fetch narratives
-  const { data: narratives = [], isLoading: narrativesLoading } = useQuery({
+  const { data: narratives = [] } = useQuery({
     queryKey: ['student-narratives', student?.id],
-    queryFn: async () => {
-      const response = await narrativeAPI.getAll(student?.id);
-      return response.data;
-    },
-    enabled: !!student?.id
+    queryFn: async () => (await narrativeAPI.getAll(student?.id)).data,
+    enabled: !!student?.id,
   });
 
-  const handleLogout = () => {
-    studentLogout();
-    navigate('/student-login');
-  };
+  const handleLogout = () => { studentLogout(); navigate('/student-login'); };
 
   const handleJoinSession = async (e) => {
     e.preventDefault();
@@ -53,260 +63,138 @@ const StudentAcademy = () => {
       toast.success(`Joined session: ${res.data.title}`);
       setSessionCode('');
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Could not join session. Check the code and try again.');
+      toast.error(err.response?.data?.detail || 'Could not join session.');
     }
     setJoiningSession(false);
   };
 
   if (studentLoading) {
-    return <div className="min-h-screen flex items-center justify-center text-2xl font-bold">Loading...</div>;
-  }
-
-  // If reading a narrative
-  if (selectedNarrative) {
     return (
-      <NarrativeReader
-        narrative={selectedNarrative}
-        student={studentData}
-        onClose={() => setSelectedNarrative(null)}
-      />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: C.bg }}>
+        <div className="text-xl font-bold" style={{ color: C.cream }}>Loading...</div>
+      </div>
     );
   }
 
-  const canGenerateStory = studentData?.assigned_banks && studentData.assigned_banks.length > 0;
+  if (selectedNarrative) {
+    return <NarrativeReader narrative={selectedNarrative} student={studentData} onClose={() => setSelectedNarrative(null)} />;
+  }
+
+  const canGenerateStory = studentData?.assigned_banks?.length > 0;
   const masteredCount = studentData?.mastered_tokens?.length || 0;
   const biologicalTarget = studentData?.biological_target || 1000;
   const agenticScore = studentData?.agentic_reach_score || 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-yellow-50">
-      {/* Header */}
-      <header className="bg-white border-b-6 border-black brutal-shadow-md">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate('/')}
-                className="p-3 border-4 border-black bg-amber-100 brutal-shadow-sm hover:brutal-shadow-md transition-all brutal-active"
-                title="Home"
-              >
-                <Home size={24} />
+    <AppShell title="Semantic Vision Academy" subtitle={`Welcome, ${studentData?.full_name}!`} onLogout={handleLogout}>
+      <div className="container mx-auto px-4 py-6">
+        {/* Stats */}
+        <div className="grid md:grid-cols-3 gap-4 mb-6">
+          <StatCard icon={BookMarked} label="Vocabulary Mastered" value={masteredCount} sub={`Target: ${biologicalTarget} words`} accent="#818CF8" />
+          <StatCard icon={TrendingUp} label="Agentic Reach Score" value={Math.round(agenticScore)} sub={agenticScore >= 600 ? 'Expert' : agenticScore >= 300 ? 'Adept' : agenticScore >= 100 ? 'Apprentice' : 'Initiate'} accent="#34D399" />
+          <StatCard icon={Clock} label="Reading Time" value={`${Math.floor((studentData?.total_reading_seconds || 0) / 60)}m`} sub={`${studentData?.average_wpm || 0} WPM average`} accent="#FBBF24" />
+        </div>
+
+        {/* Join Classroom */}
+        <div className="p-5 rounded-2xl mb-6" style={{ background: C.card, border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(56,189,248,0.12)' }}>
+                <Users size={20} style={{ color: C.teal }} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold" style={{ color: C.cream }}>Join Classroom Session</h3>
+                <p className="text-xs" style={{ color: C.muted }}>Enter the code from your teacher</p>
+              </div>
+            </div>
+            <form onSubmit={handleJoinSession} className="flex items-center gap-2 ml-auto">
+              <input type="text" value={sessionCode} onChange={(e) => setSessionCode(e.target.value)}
+                placeholder="6-digit code" maxLength={6}
+                className="px-4 py-2 rounded-xl font-mono font-bold text-center w-36 text-sm outline-none"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: C.cream }}
+                data-testid="session-code-input" />
+              <button type="submit" disabled={joiningSession || sessionCode.length < 6}
+                className="px-5 py-2 rounded-xl text-sm font-bold text-black disabled:opacity-50"
+                style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` }}
+                data-testid="join-session-btn">
+                {joiningSession ? 'Joining...' : 'Join'}
               </button>
-              <div>
-                <h1 className="text-4xl font-black uppercase">Semantic Vision Academy</h1>
-                <p className="text-xl font-bold mt-1">Welcome, {studentData?.full_name}!</p>
-              </div>
-            </div>
-            <BrutalButton
-              variant="rose"
-              onClick={handleLogout}
-              className="flex items-center gap-2"
-            >
-              <LogOut size={20} />
-              Logout
-            </BrutalButton>
+            </form>
           </div>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-8">
-        {/* Stats Dashboard */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          {/* Mastered Vocabulary */}
-          <BrutalCard variant="indigo" shadow="xl">
-            <div className="flex items-center gap-4 mb-4">
-              <BookMarked size={48} className="text-indigo-600" />
-              <div>
-                <p className="text-xs font-bold uppercase text-gray-600">Vocabulary Mastered</p>
-                <p className="text-4xl font-black">{masteredCount}</p>
-              </div>
+          {joinedSession && (
+            <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} data-testid="joined-session-info">
+              <p className="text-sm font-bold" style={{ color: '#34D399' }}>Joined: {joinedSession.title}</p>
             </div>
-            <BrutalProgress
-              value={masteredCount}
-              max={biologicalTarget}
-              variant="indigo"
-              showLabel
-            />
-            <p className="mt-2 text-sm font-medium">
-              Target: {biologicalTarget} words (age {studentData?.age})
-            </p>
-          </BrutalCard>
-
-          {/* Agentic Reach Score */}
-          <BrutalCard variant="emerald" shadow="xl">
-            <div className="flex items-center gap-4">
-              <TrendingUp size={48} className="text-emerald-600" />
-              <div>
-                <p className="text-xs font-bold uppercase text-gray-600">Agentic Reach Score</p>
-                <p className="text-4xl font-black">{Math.round(agenticScore)}</p>
-                <p className="text-sm font-medium mt-1">
-                  {agenticScore < 100 && 'Initiate'}
-                  {agenticScore >= 100 && agenticScore < 300 && 'Apprentice'}
-                  {agenticScore >= 300 && agenticScore < 600 && 'Adept'}
-                  {agenticScore >= 600 && agenticScore < 1000 && 'Expert'}
-                  {agenticScore >= 1000 && agenticScore < 1500 && 'Master'}
-                  {agenticScore >= 1500 && 'Grandmaster'}
-                </p>
-              </div>
-            </div>
-          </BrutalCard>
-
-          {/* Reading Stats */}
-          <BrutalCard variant="amber" shadow="xl">
-            <div className="flex items-center gap-4">
-              <Clock size={48} className="text-amber-600" />
-              <div>
-                <p className="text-xs font-bold uppercase text-gray-600">Reading Time</p>
-                <p className="text-4xl font-black">
-                  {Math.floor((studentData?.total_reading_seconds || 0) / 60)}
-                </p>
-                <p className="text-sm font-medium mt-1">minutes</p>
-                <p className="text-xs font-medium">
-                  {studentData?.average_wpm || 0} WPM average
-                </p>
-              </div>
-            </div>
-          </BrutalCard>
+          )}
         </div>
 
-        {/* Join Classroom Session */}
-        <div className="mb-8">
-          <BrutalCard shadow="lg" variant="emerald">
-            <div className="flex items-center gap-4 flex-wrap">
-              <div className="flex items-center gap-3">
-                <Users size={32} className="text-teal-600" />
-                <div>
-                  <h3 className="text-xl font-black uppercase">Join Classroom Session</h3>
-                  <p className="text-sm font-medium text-gray-600">Enter the code from your teacher</p>
-                </div>
-              </div>
-              <form onSubmit={handleJoinSession} className="flex items-center gap-2 ml-auto">
-                <input
-                  type="text"
-                  value={sessionCode}
-                  onChange={(e) => setSessionCode(e.target.value)}
-                  placeholder="Enter 6-digit code"
-                  maxLength={6}
-                  className="border-4 border-black px-4 py-2 font-mono font-bold text-lg text-center w-44 brutal-shadow-sm"
-                  data-testid="session-code-input"
-                />
-                <BrutalButton
-                  type="submit"
-                  variant="dark"
-                  disabled={joiningSession || sessionCode.length < 6}
-                  data-testid="join-session-btn"
-                >
-                  {joiningSession ? 'Joining...' : 'Join'}
-                </BrutalButton>
-              </form>
-            </div>
-            {joinedSession && (
-              <div className="mt-4 pt-4 border-t-4 border-black" data-testid="joined-session-info">
-                <p className="font-bold text-lg text-emerald-700">
-                  Joined: {joinedSession.title}
-                </p>
-              </div>
-            )}
-          </BrutalCard>
-        </div>
-
-        {/* Story Generation */}
+        {/* Stories */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-3xl font-black uppercase">Your Stories</h2>
-            <BrutalButton
-              variant="indigo"
-              size="lg"
-              onClick={() => setShowStoryDialog(true)}
-              disabled={!canGenerateStory}
-              className="flex items-center gap-2"
-            >
-              <Plus size={24} />
-              Create New Story
-            </BrutalButton>
+            <h2 className="text-2xl font-bold" style={{ fontFamily: "'Sora', sans-serif", color: C.cream }}>Your Stories</h2>
+            <button onClick={() => setShowStoryDialog(true)} disabled={!canGenerateStory}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-black transition-all hover:scale-105 disabled:opacity-50"
+              style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` }}>
+              <Plus size={18} /> Create New Story
+            </button>
           </div>
 
           {!canGenerateStory && (
-            <BrutalCard variant="amber" className="mb-6">
-              <p className="font-bold text-lg">
-                ⚠️ No word banks assigned! Ask your guardian to assign word banks to your account before generating stories.
+            <div className="p-4 rounded-xl mb-4" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)' }}>
+              <p className="text-sm font-semibold" style={{ color: '#FBBF24' }}>
+                No word banks assigned! Ask your guardian to assign word banks before generating stories.
               </p>
-            </BrutalCard>
+            </div>
           )}
 
-          {/* Narratives Grid */}
           {narratives.length === 0 ? (
-            <BrutalCard shadow="xl" className="text-center py-16">
-              <BookOpen size={64} className="mx-auto mb-6 text-indigo-600" />
-              <p className="text-2xl font-bold mb-4">No stories yet</p>
-              <p className="text-lg font-medium mb-6">
-                Create your first AI-generated story and start learning!
-              </p>
+            <div className="text-center py-16 rounded-2xl" style={{ background: C.card, border: '1px solid rgba(255,255,255,0.08)' }}>
+              <BookOpen size={48} className="mx-auto mb-4" style={{ color: C.gold }} />
+              <p className="text-xl font-bold mb-2" style={{ color: C.cream }}>No stories yet</p>
+              <p className="text-sm mb-6" style={{ color: C.muted }}>Create your first AI-generated story and start learning!</p>
               {canGenerateStory && (
-                <BrutalButton
-                  variant="indigo"
-                  size="lg"
-                  onClick={() => setShowStoryDialog(true)}
-                  className="flex items-center gap-2 mx-auto"
-                >
-                  <Plus size={24} />
-                  Create Your First Story
-                </BrutalButton>
+                <button onClick={() => setShowStoryDialog(true)}
+                  className="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-black mx-auto hover:scale-105 transition-all"
+                  style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` }}>
+                  <Plus size={18} /> Create Your First Story
+                </button>
               )}
-            </BrutalCard>
+            </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {narratives.map((narrative) => {
-                const progress = (narrative.chapters_completed?.length || 0) / 5 * 100;
+                const chaptersCompleted = narrative.chapters_completed?.length || 0;
                 const isCompleted = narrative.status === 'completed';
-
                 return (
-                  <BrutalCard
-                    key={narrative.id}
-                    shadow="lg"
-                    hover
-                    className="cursor-pointer"
-                    onClick={() => setSelectedNarrative(narrative)}
-                  >
-                    <div className="mb-4">
-                      <h3 className="text-xl font-black uppercase mb-2">{narrative.title}</h3>
-                      <p className="text-sm font-medium text-gray-600 line-clamp-2">
-                        {narrative.theme}
-                      </p>
+                  <div key={narrative.id}
+                    className="p-5 rounded-2xl cursor-pointer transition-all hover:scale-[1.02]"
+                    style={{ background: C.card, border: '1px solid rgba(255,255,255,0.08)' }}
+                    onClick={() => setSelectedNarrative(narrative)}>
+                    <h3 className="text-base font-bold mb-1" style={{ color: C.cream }}>{narrative.title}</h3>
+                    <p className="text-xs mb-4 line-clamp-2" style={{ color: C.muted }}>{narrative.theme}</p>
+                    {/* Progress bar */}
+                    <div className="mb-3">
+                      <div className="flex justify-between text-xs mb-1" style={{ color: C.muted }}>
+                        <span>Progress</span>
+                        <span>{chaptersCompleted}/5</span>
+                      </div>
+                      <div className="w-full h-2 rounded-full" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                        <div className="h-2 rounded-full transition-all" style={{ width: `${(chaptersCompleted / 5) * 100}%`, background: isCompleted ? '#34D399' : `linear-gradient(90deg, ${C.gold}, ${C.teal})` }} />
+                      </div>
                     </div>
-
-                    <div className="mb-4">
-                      <p className="text-xs font-bold uppercase text-gray-600 mb-1">Progress</p>
-                      <BrutalProgress
-                        value={narrative.chapters_completed?.length || 0}
-                        max={5}
-                        variant="indigo"
-                        showLabel
-                        size="sm"
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between mb-4">
-                      <BrutalBadge variant={isCompleted ? 'emerald' : 'amber'} size="sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold px-3 py-1 rounded-full"
+                        style={{ background: isCompleted ? 'rgba(52,211,153,0.15)' : 'rgba(245,158,11,0.15)', color: isCompleted ? '#34D399' : '#FBBF24' }}>
                         {isCompleted ? 'Completed' : 'In Progress'}
-                      </BrutalBadge>
-                      <p className="text-sm font-bold">
-                        {narrative.total_word_count} words
-                      </p>
+                      </span>
+                      <span className="text-xs" style={{ color: C.muted }}>{narrative.total_word_count} words</span>
                     </div>
-
-                    <BrutalButton
-                      variant="indigo"
-                      size="sm"
-                      fullWidth
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedNarrative(narrative);
-                      }}
-                    >
-                      {isCompleted ? 'Read Again' : 'Continue Reading'}
-                    </BrutalButton>
-                  </BrutalCard>
+                    <button onClick={(e) => { e.stopPropagation(); setSelectedNarrative(narrative); }}
+                      className="w-full mt-4 py-2 rounded-xl text-sm font-bold text-black transition-all hover:scale-[1.02]"
+                      style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` }}>
+                      {isCompleted ? 'Read Again' : 'Continue Reading'} <ArrowRight size={14} className="inline ml-1" />
+                    </button>
+                  </div>
                 );
               })}
             </div>
@@ -314,15 +202,10 @@ const StudentAcademy = () => {
         </div>
       </div>
 
-      {/* Story Generation Dialog */}
       {showStoryDialog && (
-        <StoryGenerationDialog
-          isOpen={showStoryDialog}
-          onClose={() => setShowStoryDialog(false)}
-          student={studentData}
-        />
+        <StoryGenerationDialog isOpen={showStoryDialog} onClose={() => setShowStoryDialog(false)} student={studentData} />
       )}
-    </div>
+    </AppShell>
   );
 };
 

@@ -6,16 +6,17 @@ import { adminAPI, wordBankAPI } from '@/lib/api';
 import apiClient from '@/lib/api';
 import { BrutalCard, BrutalButton, BrutalBadge, BrutalInput } from '@/components/brutal';
 import {
-  Home, LogOut, DollarSign, Cpu, Users, BarChart3, Settings, Shield,
+  DollarSign, Cpu, Users, BarChart3, Settings, Shield,
   Ticket, Crown, PlusCircle, Trash2, UserCheck, BookOpen, Clock, Zap, Sliders, ToggleLeft,
   Megaphone, Building2, Edit, Trophy, Wallet,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import AppShell from '@/components/AppShell';
+
+const COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899'];
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from 'recharts';
-
-const COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899'];
 
 const AdminPortal = () => {
   const { user, logout } = useAuth();
@@ -409,43 +410,29 @@ const AdminPortal = () => {
     { id: 'settings', label: 'App Settings', icon: Shield },
   ];
 
-  return (
-    <div className="min-h-screen bg-gray-50" data-testid="admin-portal">
-      <header className="bg-white border-b-6 border-black brutal-shadow-md">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button onClick={() => navigate('/')} className="p-3 border-4 border-black bg-rose-100 brutal-shadow-sm hover:brutal-shadow-md brutal-active">
-                <Home size={24} />
-              </button>
-              <div>
-                <h1 className="text-4xl font-black uppercase flex items-center gap-2">
-                  <Cpu size={32} className="text-rose-600" /> Admin Dashboard
-                </h1>
-                <p className="text-lg font-medium mt-1">{user?.full_name} — Master Admin</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <BrutalButton variant="emerald" onClick={() => navigate('/portal')} className="flex items-center gap-2" data-testid="go-to-parent-portal">
-                <Users size={20} /> Parent Portal
-              </BrutalButton>
-              <BrutalButton variant="dark" onClick={handleLogout} className="flex items-center gap-2">
-                <LogOut size={20} /> Logout
-              </BrutalButton>
-            </div>
-          </div>
-        </div>
-      </header>
+  const parentPortalBtn = (
+    <button onClick={() => navigate('/portal')}
+      className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:scale-105"
+      style={{ color: '#38BDF8', border: '1px solid rgba(56,189,248,0.3)', background: 'rgba(56,189,248,0.08)' }}
+      data-testid="go-to-parent-portal">
+      <Users size={16} /> Parent Portal
+    </button>
+  );
 
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex gap-3 mb-8 flex-wrap">
+  return (
+    <AppShell title="Admin Dashboard" subtitle={`${user?.full_name} — Master Admin`} onLogout={handleLogout} rightContent={parentPortalBtn}>
+      <div className="container mx-auto px-4 py-6" data-testid="admin-portal">
+        <div className="flex gap-2 mb-6 flex-wrap">
           {tabs.map((tab) => {
             const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
             return (
-              <BrutalButton key={tab.id} variant={activeTab === tab.id ? 'rose' : 'default'} size="md"
-                onClick={() => setActiveTab(tab.id)} className="flex items-center gap-2" data-testid={`tab-${tab.id}`}>
-                <Icon size={18} /> {tab.label}
-              </BrutalButton>
+              <button key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`sv-tab flex items-center gap-2 px-4 py-2 text-xs font-semibold transition-all ${isActive ? 'sv-tab-active' : ''}`}
+                data-testid={`tab-${tab.id}`}>
+                <Icon size={16} /> {tab.label}
+              </button>
             );
           })}
         </div>
@@ -1766,7 +1753,7 @@ const AdminPortal = () => {
           </div>
         )}
       </div>
-    </div>
+    </AppShell>
   );
 };
 

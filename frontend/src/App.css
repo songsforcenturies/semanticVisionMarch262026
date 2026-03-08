@@ -32,3 +32,133 @@
         transform: rotate(360deg);
     }
 }
+
+/* === Semantic Vision Dark Theme Overrides === */
+.sv-dark {
+    color: #F8F5EE;
+}
+.sv-dark .bg-white,
+.sv-dark .bg-gray-50 {
+    background-color: #1A2236 !important;
+    color: #F8F5EE !important;
+}
+.sv-dark .bg-gradient-to-br {
+    background: #0A0F1E !important;
+}
+.sv-dark .border-black {
+    border-color: rgba(212, 168, 83, 0.25) !important;
+}
+.sv-dark .border-b-6 {
+    border-bottom-width: 2px !important;
+}
+.sv-dark .border-4 {
+    border-width: 2px !important;
+}
+.sv-dark .border-6 {
+    border-width: 2px !important;
+}
+.sv-dark .border-2 {
+    border-width: 1px !important;
+}
+.sv-dark .bg-indigo-100,
+.sv-dark .bg-indigo-50 {
+    background-color: rgba(99, 102, 241, 0.12) !important;
+    color: #F8F5EE !important;
+}
+.sv-dark .bg-emerald-100,
+.sv-dark .bg-emerald-50 {
+    background-color: rgba(16, 185, 129, 0.12) !important;
+    color: #F8F5EE !important;
+}
+.sv-dark .bg-rose-100,
+.sv-dark .bg-rose-50 {
+    background-color: rgba(244, 63, 94, 0.12) !important;
+    color: #F8F5EE !important;
+}
+.sv-dark .bg-amber-100,
+.sv-dark .bg-amber-50 {
+    background-color: rgba(245, 158, 11, 0.12) !important;
+    color: #F8F5EE !important;
+}
+.sv-dark .bg-teal-100,
+.sv-dark .bg-teal-50 {
+    background-color: rgba(56, 189, 248, 0.12) !important;
+    color: #F8F5EE !important;
+}
+.sv-dark .bg-purple-50,
+.sv-dark .bg-purple-100 {
+    background-color: rgba(139, 92, 246, 0.12) !important;
+    color: #F8F5EE !important;
+}
+.sv-dark .bg-gray-900 {
+    background-color: #0E1525 !important;
+}
+.sv-dark .text-black {
+    color: #F8F5EE !important;
+}
+.sv-dark .text-gray-600,
+.sv-dark .text-gray-500,
+.sv-dark .text-gray-400 {
+    color: #94A3B8 !important;
+}
+.sv-dark .text-gray-700,
+.sv-dark .text-gray-800 {
+    color: #CBD5E1 !important;
+}
+.sv-dark .text-indigo-600 { color: #818CF8 !important; }
+.sv-dark .text-emerald-600,
+.sv-dark .text-emerald-700 { color: #34D399 !important; }
+.sv-dark .text-rose-600,
+.sv-dark .text-rose-500 { color: #FB7185 !important; }
+.sv-dark .text-amber-600 { color: #FBBF24 !important; }
+.sv-dark .text-teal-600 { color: #38BDF8 !important; }
+.sv-dark input,
+.sv-dark textarea,
+.sv-dark select {
+    background-color: rgba(255, 255, 255, 0.06) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    color: #F8F5EE !important;
+}
+.sv-dark input::placeholder,
+.sv-dark textarea::placeholder {
+    color: #64748B !important;
+}
+/* Keep specific button text colors */
+.sv-dark .bg-indigo-500,
+.sv-dark .bg-emerald-500,
+.sv-dark .bg-rose-400,
+.sv-dark .bg-amber-400 {
+    color: white !important;
+}
+.sv-dark .bg-amber-400 {
+    color: black !important;
+}
+/* brutal shadows => subtle glows */
+.sv-dark .brutal-shadow-sm,
+.sv-dark .brutal-shadow-md,
+.sv-dark .brutal-shadow-lg,
+.sv-dark .brutal-shadow-xl {
+    box-shadow: 0 2px 12px rgba(212, 168, 83, 0.06) !important;
+}
+/* Tabs active style */
+.sv-dark .sv-tab-active {
+    background: linear-gradient(135deg, #D4A853, #F5D799) !important;
+    color: #000 !important;
+    border-color: rgba(212, 168, 83, 0.4) !important;
+}
+.sv-dark .sv-tab {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #94A3B8;
+    border-radius: 10px;
+}
+.sv-dark .sv-tab:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #F8F5EE;
+}
+/* prose dark override for reading */
+.sv-dark .prose { color: #E2E8F0 !important; }
+.sv-dark .prose h1, .sv-dark .prose h2, .sv-dark .prose h3 { color: #F8F5EE !important; }
+/* recharts dark */
+.sv-dark .recharts-text { fill: #94A3B8 !important; }
+.sv-dark .recharts-cartesian-grid line { stroke: rgba(255,255,255,0.06) !important; }

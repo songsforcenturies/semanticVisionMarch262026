@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { brandPortalAPI } from '@/lib/api';
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput } from '@/components/brutal';
 import {
-  Home, LogOut, BarChart3, Megaphone, DollarSign, PlusCircle, Trash2,
+  BarChart3, Megaphone, DollarSign, PlusCircle, Trash2,
   Play, Pause, CreditCard, TrendingUp, Eye, Upload, Package,
   Globe, FileText, ChevronRight, ChevronLeft, Check, Pencil, X, Building2,
   BookOpen, Sparkles, RefreshCw, Loader2,
@@ -16,6 +16,7 @@ import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import AppShell from '@/components/AppShell';
 
 const AD_CATEGORIES = [
   'technology', 'education', 'food', 'sports', 'arts', 'health',
@@ -88,65 +89,42 @@ const BrandPortal = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50" data-testid="brand-portal">
-      <header className="bg-white border-b-6 border-black brutal-shadow-md">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button onClick={() => navigate('/')} className="p-3 border-4 border-black bg-amber-100 brutal-shadow-sm hover:brutal-shadow-md brutal-active" data-testid="home-btn">
-                <Home size={24} />
-              </button>
-              <div>
-                <h1 className="text-4xl font-black uppercase flex items-center gap-2">
-                  <Megaphone size={32} className="text-amber-600" /> Brand Portal
-                </h1>
-                <p className="text-lg font-medium mt-1">
-                  {brand?.name || user?.full_name}
-                  {notApproved && <BrutalBadge variant="amber" size="sm" className="ml-2">PENDING APPROVAL</BrutalBadge>}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <LanguageSwitcher />
-              <BrutalButton variant="dark" onClick={() => { logout(); navigate('/login'); }} className="flex items-center gap-2" data-testid="logout-btn">
-                <LogOut size={20} /> Logout
-              </BrutalButton>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-6">
+    <AppShell title="Brand Portal" subtitle={brand?.name || user?.full_name} onLogout={() => { logout(); navigate('/login'); }}>
+      <div className="container mx-auto px-4 py-6" data-testid="brand-portal">
         {notApproved && (
-          <BrutalCard shadow="lg" className="bg-amber-50 border-amber-400 mb-6">
-            <p className="font-bold text-lg">Your brand partner account is pending admin approval.</p>
-            <p className="text-sm text-gray-600 mt-1">You can still set up your brand profile while waiting for approval.</p>
-          </BrutalCard>
+          <div className="p-4 rounded-xl mb-6" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)' }}>
+            <p className="font-bold text-base" style={{ color: '#FBBF24' }}>Your brand partner account is pending admin approval.</p>
+            <p className="text-sm mt-1" style={{ color: '#94A3B8' }}>You can still set up your brand profile while waiting for approval.</p>
+          </div>
         )}
 
-        {/* Show onboarding prompt if not completed */}
         {brand && !brand.onboarding_completed && activeTab === 'dashboard' && (
-          <BrutalCard shadow="lg" className="bg-indigo-50 border-indigo-400 mb-6">
+          <div className="p-4 rounded-xl mb-6" style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-bold text-lg">Complete Your Brand Setup</p>
-                <p className="text-sm text-gray-600 mt-1">Set up your brand profile, add products, and upload your logo to start appearing in stories.</p>
+                <p className="font-bold text-base" style={{ color: '#818CF8' }}>Complete Your Brand Setup</p>
+                <p className="text-sm mt-1" style={{ color: '#94A3B8' }}>Set up your brand profile, add products, and upload your logo to start appearing in stories.</p>
               </div>
-              <BrutalButton variant="amber" onClick={() => setActiveTab('brand-profile')} className="flex items-center gap-2" data-testid="start-onboarding-btn">
+              <button onClick={() => setActiveTab('brand-profile')}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-black"
+                style={{ background: 'linear-gradient(135deg, #D4A853, #F5D799)' }} data-testid="start-onboarding-btn">
                 Get Started <ChevronRight size={18} />
-              </BrutalButton>
+              </button>
             </div>
-          </BrutalCard>
+          </div>
         )}
 
-        <div className="flex gap-3 mb-8 flex-wrap">
+        <div className="flex gap-2 mb-6 flex-wrap">
           {tabs.map((tab) => {
             const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
             return (
-              <BrutalButton key={tab.id} variant={activeTab === tab.id ? 'amber' : 'default'} size="md"
-                onClick={() => setActiveTab(tab.id)} className="flex items-center gap-2" data-testid={`tab-${tab.id}`}>
-                <Icon size={18} /> {tab.label}
-              </BrutalButton>
+              <button key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`sv-tab flex items-center gap-2 px-4 py-2 text-xs font-semibold transition-all ${isActive ? 'sv-tab-active' : ''}`}
+                data-testid={`tab-${tab.id}`}>
+                <Icon size={16} /> {tab.label}
+              </button>
             );
           })}
         </div>
@@ -159,7 +137,7 @@ const BrandPortal = () => {
         {activeTab === 'budget' && <BudgetTab stats={stats} />}
         {activeTab === 'impressions' && <AnalyticsTab brand={brand} stats={stats} dashboard={dashboard} />}
       </div>
-    </div>
+    </AppShell>
   );
 };
 

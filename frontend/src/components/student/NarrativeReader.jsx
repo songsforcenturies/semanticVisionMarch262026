@@ -1,17 +1,22 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { readLogAPI } from '@/lib/api';
-import { BrutalButton, BrutalCard, BrutalBadge, BrutalProgress } from '@/components/brutal';
-import { ArrowLeft, ArrowRight, Clock, BookOpen, CheckCircle, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Clock, BookOpen, CheckCircle, AlertTriangle, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import WrittenAnswerModal from './WrittenAnswerModal';
 import VocabularyAssessment from './VocabularyAssessment';
 import WordDefinitionModal from './WordDefinitionModal';
 
+const C = {
+  bg: '#0A0F1E', surface: '#111827', card: '#1A2236',
+  gold: '#D4A853', goldLight: '#F5D799', teal: '#38BDF8',
+  cream: '#F8F5EE', muted: '#94A3B8', reading: '#E8E0D0',
+};
+
 const NarrativeReader = ({ narrative, student, onClose }) => {
   const queryClient = useQueryClient();
   const [currentChapter, setCurrentChapter] = useState(narrative.current_chapter || 1);
-  const [sessionStart] = useState(new Date()); // Auto-start, no control
+  const [sessionStart] = useState(new Date());
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [showWrittenCheck, setShowWrittenCheck] = useState(false);
   const [showAssessment, setShowAssessment] = useState(false);
@@ -24,7 +29,6 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
   const isChapterCompleted = completedChapters.includes(currentChapter);
   const allChaptersCompleted = completedChapters.length === 5;
 
-  // Auto-start timer — runs continuously, student CANNOT stop it
   useEffect(() => {
     const interval = setInterval(() => {
       setElapsedSeconds(Math.floor((new Date() - sessionStart) / 1000));
@@ -32,225 +36,204 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
     return () => clearInterval(interval);
   }, [sessionStart]);
 
-  // Create read log mutation
   const createReadLogMutation = useMutation({
     mutationFn: (data) => readLogAPI.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries(['student-detail']);
       queryClient.invalidateQueries(['read-logs']);
-    }
+    },
   });
 
   const handleFinishChapter = () => {
-    // Log reading time
     createReadLogMutation.mutate({
-      student_id: student.id,
-      narrative_id: narrative.id,
-      chapter_number: currentChapter,
-      session_start: sessionStart.toISOString(),
-      session_end: new Date().toISOString(),
-      words_read: chapter.word_count
+      student_id: student.id, narrative_id: narrative.id,
+      chapter_number: currentChapter, session_start: sessionStart.toISOString(),
+      session_end: new Date().toISOString(), words_read: chapter.word_count,
     });
-    // Show written comprehension check — result will be sent separately
     setShowWrittenCheck(true);
   };
 
   const handleWrittenCheckComplete = (passed) => {
     setShowWrittenCheck(false);
-    // Send vision check result to backend
     readLogAPI.create({
-      student_id: student.id,
-      narrative_id: narrative.id,
-      chapter_number: currentChapter,
-      session_start: sessionStart.toISOString(),
-      session_end: new Date().toISOString(),
-      words_read: 0,
-      vision_check_passed: passed,
+      student_id: student.id, narrative_id: narrative.id,
+      chapter_number: currentChapter, session_start: sessionStart.toISOString(),
+      session_end: new Date().toISOString(), words_read: 0, vision_check_passed: passed,
     }).catch(() => {});
 
     if (passed) {
-      const newCompletedChapters = [...new Set([...completedChapters, currentChapter])];
-      setCompletedChapters(newCompletedChapters);
-      if (newCompletedChapters.length === 5) {
+      const newCompleted = [...new Set([...completedChapters, currentChapter])];
+      setCompletedChapters(newCompleted);
+      if (newCompleted.length === 5) {
         toast.success('Story completed! Time for vocabulary assessment!');
         setTimeout(() => setShowAssessment(true), 1500);
       } else if (!isLastChapter) {
         toast.success('Great job! Moving to next chapter...');
-        setTimeout(() => setCurrentChapter(prev => prev + 1), 1000);
+        setTimeout(() => setCurrentChapter((prev) => prev + 1), 1000);
       }
     } else {
       toast.error('Try reading the chapter again more carefully!');
     }
   };
 
-  const calculateWPM = () => {
-    if (elapsedSeconds === 0) return 0;
-    return Math.round((chapter.word_count / (elapsedSeconds / 60)));
-  };
-
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  const calculateWPM = () => (elapsedSeconds === 0 ? 0 : Math.round(chapter.word_count / (elapsedSeconds / 60)));
+  const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
   if (showAssessment) {
     return <VocabularyAssessment narrative={narrative} student={student} onClose={onClose} />;
   }
 
-  // Determine if spellcheck should be disabled
-  const disableSpellcheck = student.spellcheck_disabled || false;
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-50">
-      {/* Header */}
-      <header className="bg-white border-b-6 border-black brutal-shadow-md sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
+    <div className="min-h-screen sv-dark" style={{ background: C.bg, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-50" style={{ background: C.surface, borderBottom: '1px solid rgba(212,168,83,0.15)' }}>
+        <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <BrutalButton variant="ghost" onClick={onClose} className="flex items-center gap-2" data-testid="reader-back-btn">
-                <ArrowLeft size={20} /> Back
-              </BrutalButton>
-              <div>
-                <h1 className="text-2xl font-black uppercase" data-testid="story-title">{narrative.title}</h1>
-                <p className="text-sm font-medium text-gray-600">Chapter {currentChapter} of 5</p>
+            <div className="flex items-center gap-3">
+              <button onClick={onClose} className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all hover:scale-105"
+                style={{ color: C.muted, border: '1px solid rgba(255,255,255,0.1)' }} data-testid="reader-back-btn">
+                <ArrowLeft size={16} /> Back
+              </button>
+              <div className="flex items-center gap-2" style={{ borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '12px' }}>
+                <Eye size={18} style={{ color: C.gold }} />
+                <div>
+                  <h1 className="text-sm font-bold" style={{ color: C.cream }} data-testid="story-title">{narrative.title}</h1>
+                  <p className="text-xs" style={{ color: C.muted }}>Chapter {currentChapter} of 5</p>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              {/* Always-running timer */}
-              <BrutalCard shadow="sm" className="px-4 py-2" data-testid="reading-timer">
-                <div className="flex items-center gap-2">
-                  <Clock size={20} className="text-emerald-600 animate-pulse" />
-                  <span className="font-black text-lg font-mono">{formatTime(elapsedSeconds)}</span>
-                  {elapsedSeconds > 0 && (
-                    <BrutalBadge variant="emerald" size="sm">{calculateWPM()} WPM</BrutalBadge>
-                  )}
-                </div>
-              </BrutalCard>
-              {disableSpellcheck && (
-                <BrutalBadge variant="amber" size="sm" data-testid="spellcheck-off-badge">
-                  <AlertTriangle size={12} className="inline mr-1" /> Spellcheck OFF
-                </BrutalBadge>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }} data-testid="reading-timer">
+                <Clock size={14} style={{ color: '#34D399' }} className="animate-pulse" />
+                <span className="font-mono font-bold text-sm" style={{ color: C.cream }}>{formatTime(elapsedSeconds)}</span>
+                {elapsedSeconds > 0 && (
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(52,211,153,0.12)', color: '#34D399' }}>
+                    {calculateWPM()} WPM
+                  </span>
+                )}
+              </div>
+              {student.spellcheck_disabled && (
+                <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{ background: 'rgba(245,158,11,0.12)', color: '#FBBF24' }} data-testid="spellcheck-off-badge">
+                  <AlertTriangle size={10} className="inline mr-1" /> Spellcheck OFF
+                </span>
               )}
             </div>
           </div>
-          <div className="mt-4">
-            <BrutalProgress value={currentChapter} max={5} variant="indigo" showLabel />
+          {/* Progress bar */}
+          <div className="mt-3 w-full h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <div className="h-1.5 rounded-full transition-all duration-500" style={{ width: `${(currentChapter / 5) * 100}%`, background: `linear-gradient(90deg, ${C.gold}, ${C.teal})` }} />
           </div>
         </div>
       </header>
 
-      {/* Content */}
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <BrutalCard shadow="xl" className="mb-6">
-          <div className="mb-6 pb-6 border-b-4 border-black">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-3xl font-black uppercase">{chapter.title}</h2>
+      {/* Reading Content */}
+      <div className="container mx-auto px-4 py-8 max-w-3xl">
+        <div className="p-8 rounded-2xl" style={{ background: C.card, border: '1px solid rgba(255,255,255,0.06)' }}>
+          {/* Chapter Title */}
+          <div className="mb-8 pb-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-2xl font-bold" style={{ fontFamily: "'Sora', sans-serif", color: C.cream }}>{chapter.title}</h2>
               {isChapterCompleted && (
-                <BrutalBadge variant="emerald" size="lg" className="flex items-center gap-1">
-                  <CheckCircle size={18} /> Completed
-                </BrutalBadge>
+                <span className="flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full" style={{ background: 'rgba(52,211,153,0.12)', color: '#34D399' }}>
+                  <CheckCircle size={14} /> Completed
+                </span>
               )}
             </div>
-            <div className="flex items-center gap-4 text-sm font-medium text-gray-600">
+            <div className="flex items-center gap-4 text-xs" style={{ color: C.muted }}>
               <span>{chapter.word_count} words</span>
               <span>~{Math.ceil(chapter.word_count / 200)} min read</span>
             </div>
           </div>
 
-          {/* Chapter Content — Click any word to define */}
-          <div className="prose prose-lg max-w-none mb-8">
-            <div className="text-lg leading-relaxed font-medium">
+          {/* Story Text — warm reading color */}
+          <div className="mb-8">
+            <div className="text-lg leading-[1.9] font-medium" style={{ color: C.reading }}>
               {chapter.content.split(/(\s+)/).map((segment, idx) => {
                 const cleanWord = segment.replace(/[^a-zA-Z'-]/g, '');
-                if (!cleanWord || cleanWord.length < 2) {
-                  return <span key={idx}>{segment}</span>;
-                }
+                if (!cleanWord || cleanWord.length < 2) return <span key={idx}>{segment}</span>;
                 return (
-                  <span
-                    key={idx}
-                    className="cursor-pointer hover:bg-indigo-100 hover:border-b-2 hover:border-indigo-400 transition-colors rounded px-[1px]"
+                  <span key={idx}
+                    className="cursor-pointer transition-colors rounded px-[1px]"
+                    style={{ borderBottom: '1px solid transparent' }}
+                    onMouseEnter={(e) => { e.target.style.borderBottomColor = C.gold; e.target.style.color = C.gold; }}
+                    onMouseLeave={(e) => { e.target.style.borderBottomColor = 'transparent'; e.target.style.color = C.reading; }}
                     onClick={() => {
                       setSelectedWord(cleanWord);
-                      // Get surrounding context
                       const words = chapter.content.split(/\s+/);
-                      const wIdx = words.findIndex(w => w.includes(cleanWord));
+                      const wIdx = words.findIndex((w) => w.includes(cleanWord));
                       const start = Math.max(0, wIdx - 5);
                       const end = Math.min(words.length, wIdx + 6);
                       setWordContext(words.slice(start, end).join(' '));
                     }}
-                    data-testid={`word-${idx}`}
-                  >
+                    data-testid={`word-${idx}`}>
                     {segment}
                   </span>
                 );
               })}
             </div>
-            <p className="text-xs text-gray-400 mt-2 italic">Tap any word to see its definition</p>
+            <p className="text-xs mt-4 italic" style={{ color: C.muted }}>Tap any word to see its definition</p>
           </div>
 
-          {/* Embedded Vocabulary */}
-          {chapter.embedded_tokens && chapter.embedded_tokens.length > 0 && (
-            <BrutalCard className="bg-indigo-50 mb-6">
-              <p className="font-bold text-sm uppercase mb-3">Vocabulary in this chapter:</p>
+          {/* Vocabulary Tokens */}
+          {chapter.embedded_tokens?.length > 0 && (
+            <div className="p-4 rounded-xl mb-6" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)' }}>
+              <p className="text-xs font-bold uppercase mb-2" style={{ color: '#818CF8' }}>Vocabulary in this chapter</p>
               <div className="flex flex-wrap gap-2">
                 {chapter.embedded_tokens.map((token, idx) => (
-                  <BrutalBadge key={idx} variant={token.tier} size="sm">{token.word}</BrutalBadge>
+                  <span key={idx} className="text-xs font-semibold px-3 py-1 rounded-full"
+                    style={{ background: token.tier === 'stretch' ? 'rgba(244,63,94,0.12)' : token.tier === 'target' ? 'rgba(245,158,11,0.12)' : 'rgba(52,211,153,0.12)', color: token.tier === 'stretch' ? '#FB7185' : token.tier === 'target' ? '#FBBF24' : '#34D399' }}>
+                    {token.word}
+                  </span>
                 ))}
               </div>
-            </BrutalCard>
+            </div>
           )}
 
-          {/* Reading Controls */}
-          <div className="space-y-4">
+          {/* Controls */}
+          <div className="space-y-3">
             {!isChapterCompleted && (
-              <BrutalButton variant="indigo" size="lg" fullWidth onClick={handleFinishChapter}
-                className="flex items-center justify-center gap-2" data-testid="finish-chapter-btn">
-                <CheckCircle size={24} /> Finish Chapter & Answer Question
-              </BrutalButton>
+              <button onClick={handleFinishChapter}
+                className="w-full py-3.5 rounded-xl text-base font-bold text-black transition-all hover:scale-[1.01]"
+                style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` }} data-testid="finish-chapter-btn">
+                <CheckCircle size={18} className="inline mr-2" /> Finish Chapter & Answer Question
+              </button>
             )}
-
             {isChapterCompleted && (
-              <div className="flex gap-4">
+              <div className="flex gap-3">
                 {currentChapter > 1 && (
-                  <BrutalButton variant="ghost" size="lg" onClick={() => setCurrentChapter(prev => prev - 1)} className="flex items-center gap-2">
-                    <ArrowLeft size={20} /> Previous
-                  </BrutalButton>
+                  <button onClick={() => setCurrentChapter((p) => p - 1)}
+                    className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-all"
+                    style={{ color: C.muted, border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <ArrowLeft size={16} /> Previous
+                  </button>
                 )}
-                {!isLastChapter && (
-                  <BrutalButton variant="indigo" size="lg" fullWidth onClick={() => setCurrentChapter(prev => prev + 1)} className="flex items-center gap-2">
-                    Next Chapter <ArrowRight size={20} />
-                  </BrutalButton>
-                )}
-                {isLastChapter && (
-                  <BrutalButton variant="emerald" size="lg" fullWidth onClick={onClose} className="flex items-center gap-2">
-                    <CheckCircle size={24} /> Complete Story
-                  </BrutalButton>
+                {!isLastChapter ? (
+                  <button onClick={() => setCurrentChapter((p) => p + 1)}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-base font-bold text-black transition-all hover:scale-[1.01]"
+                    style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` }}>
+                    Next Chapter <ArrowRight size={16} />
+                  </button>
+                ) : (
+                  <button onClick={onClose}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-base font-bold text-black transition-all hover:scale-[1.01]"
+                    style={{ background: `linear-gradient(135deg, #34D399, #6EE7B7)` }}>
+                    <CheckCircle size={18} /> Complete Story
+                  </button>
                 )}
               </div>
             )}
           </div>
-        </BrutalCard>
+        </div>
       </div>
 
-      {/* Written Answer Modal (replaces multiple choice) */}
       {showWrittenCheck && (
-        <WrittenAnswerModal
-          question={chapter.vision_check?.question || `What was the main idea of ${chapter.title}?`}
-          chapterNumber={currentChapter}
-          chapterContent={chapter.content}
-          student={student}
-          onComplete={handleWrittenCheckComplete}
-        />
+        <WrittenAnswerModal question={chapter.vision_check?.question || `What was the main idea of ${chapter.title}?`}
+          chapterNumber={currentChapter} chapterContent={chapter.content} student={student}
+          onComplete={handleWrittenCheckComplete} />
       )}
-
-      {/* Word Definition Modal */}
       {selectedWord && (
-        <WordDefinitionModal
-          word={selectedWord}
-          context={wordContext}
-          onClose={() => { setSelectedWord(null); setWordContext(''); }}
-        />
+        <WordDefinitionModal word={selectedWord} context={wordContext}
+          onClose={() => { setSelectedWord(null); setWordContext(''); }} />
       )}
     </div>
   );
