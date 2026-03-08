@@ -6,7 +6,7 @@ Build "LexiMaster," a high-quality educational platform for students, guardians,
 ## Architecture
 - **Backend:** FastAPI + MongoDB (Motor async), JWT Auth, WebSockets
 - **Frontend:** React 18, TypeScript, Tailwind CSS, Shadcn/UI, React Router, React Query
-- **AI:** OpenAI (Emergent LLM Key), OpenRouter
+- **AI:** OpenAI GPT-5.2 (Emergent LLM Key), OpenRouter
 - **Payments:** Stripe
 - **Email:** Resend (transactional emails)
 - **i18n:** react-i18next with 20 languages
@@ -15,78 +15,71 @@ Build "LexiMaster," a high-quality educational platform for students, guardians,
 
 ### Core Platform (Complete)
 - [x] Multi-role auth: Parent/School, Teacher, Student, Admin, Brand Partner
-- [x] AI-powered story generation (personalized with virtues, belief, culture, language)
+- [x] AI-powered story generation with brand integration (GPT-5.2)
 - [x] AI-evaluated written assessments
 - [x] Story reader with click-to-define words
 - [x] Automated reading timer
 - [x] 60/30/10 vocabulary learning system
 
 ### Parent / School Portal (Complete)
-- [x] Full CRUD student management
-- [x] Spelling controls & ad preferences
-- [x] Marketplace for word banks
+- [x] Full CRUD student management (name, age, grade, interests, virtues, belief, culture, language)
+- [x] Spelling controls & ad preferences (brand stories toggle)
+- [x] Word Bank Marketplace (browse, preview, purchase, add to library)
+- [x] Word bank assignment to students
+- [x] Parent word bank creation (admin-controlled toggle)
 - [x] Wallet system with Stripe
 - [x] Referral program
-- [x] Parent word bank creation (admin-controlled toggle) - Mar 7, 2026
 
 ### Teacher Portal (Complete)
 - [x] Classroom session management
 - [x] Real-time student tracking
 
 ### Admin Portal (Complete)
-- [x] System-wide settings & feature flags
-- [x] AI provider config (Emergent vs OpenRouter)
-- [x] Cost tracking, coupons, subscription plans
+- [x] Statistics dashboard (parents, teachers, students, word banks, stories, revenue, AI cost)
+- [x] Word Banks tab - create/delete/list word banks with baseline/target/stretch words
+- [x] AI Costs tracking
+- [x] Brands management with analytics (impressions, revenue, active brands)
+- [x] User management (CRUD, password reset, deactivate, credits)
+- [x] Coupon management (create/delete, wallet credit type)
+- [x] Plans management
 - [x] Billing/ROI configuration
-- [x] Brand sponsorship management
-- [x] User role management
-- [x] Full user CRUD: create (with temp password), edit, reset password, deactivate/reactivate, delete
-- [x] Delegated admin privileges
-- [x] Parent Word Bank Creation toggle (feature flag) - Mar 7, 2026
+- [x] Feature flags (10 toggles including parent word bank creation, brand sponsorship)
+- [x] LLM Config (Emergent vs OpenRouter)
+- [x] App Settings (spellcheck, story/assessment limits)
 
-### UI Naming (Updated - Mar 2026)
-- [x] "Guardian" renamed to "Parent / School" across all UI, translations (20 languages)
-- [x] Role-based login routing: admin->/admin, teacher->/teacher-portal, brand->/brand-portal, parent->/portal
-
-### Brand Partner Portal (Enhanced - Mar 2026)
+### Brand Partner Portal (Complete)
 - [x] Self-service registration & auto-brand creation
-- [x] 3-step onboarding wizard: Brand Info -> Logo & Media -> Targeting
+- [x] 3-step onboarding wizard
 - [x] Problem statement definition (woven into AI-generated stories)
-- [x] Logo upload (max 10MB, PNG/JPG/WebP/SVG)
-- [x] Product CRUD management (add/edit/delete products)
-- [x] Geo-targeting with regions (country, state, city, zip)
-- [x] Target language selection (20 languages)
-- [x] AI Story Preview (cached short story snippet showing brand integration)
-- [x] Analytics Dashboard (impression trends, campaign/product breakdown, velocity metrics)
-- [x] Campaign management & analytics dashboard
-- [x] Budget management with Stripe integration
-- [x] Impression tracking & reporting
-- [x] Brand coupon creation (percentage-based, unlimited redemptions)
+- [x] Logo upload, product management, geo-targeting
+- [x] AI Story Preview (cached snippet)
+- [x] Analytics Dashboard (impressions, revenue, campaigns)
+- [x] Campaign management
+- [x] Coupon creation (percentage-based)
+- [x] Budget management with Stripe
 
-### Authentication & Email (Mar 2026)
-- [x] Forgot Password with 6-digit code via Resend email (15-min expiry)
-- [x] Email verification on registration (30-min expiry)
-- [x] "Forgot Password?" link on login page with 3-step wizard
-- [x] Resend email integration (test mode - needs domain verification for production)
+### Brand Story Integration (Verified Working)
+- [x] Active brands with products are automatically integrated into student stories
+- [x] Brand problem statements are used to make product mentions organic
+- [x] Impressions tracked per brand per story generation
+- [x] Controlled by: feature flag (admin), ad_preferences (parent per-student)
+
+### Authentication & Email (Complete)
+- [x] JWT auth with role-based routing
+- [x] Forgot Password with 6-digit code via Resend
+- [x] Email verification
 
 ### Wallet & Payment System (Complete)
 - [x] Wallet with Stripe top-up
 - [x] Coupon redemption (fixed amount & percentage)
-- [x] Admin coupon/plan management
-- [x] Admin credit addition to any user's wallet
+- [x] Admin coupon/plan management, credit addition
 
-### Multi-lingual UI Support (Complete - Mar 2026)
-- [x] 20 languages with language switcher
-- [x] localStorage persistence
-- [x] RTL support for Arabic
+### Multi-lingual UI (Complete)
+- [x] 20 languages, localStorage persistence, RTL Arabic support
 
-### Other Features (Complete)
-- [x] Referral system with wallet rewards
-- [x] Public donation page ("Sponsor a Reader")
-- [x] Brand sponsorship in-story ads with parental controls
-
-## Bug Fixes (Mar 7, 2026)
-- [x] P0: Fixed critical backend crash - `get_current_brand_partner` function used before definition causing NameError, crashing entire FastAPI server with 502 on all requests. This was the root cause of the Parent/School login loop bug.
+## Bug Fixes
+- [x] P0: Fixed backend crash - `get_current_brand_partner` NameError (used before defined) - Mar 7, 2026
+- [x] Admin Word Banks tab missing - added full CRUD UI - Mar 7, 2026
 
 ## Prioritized Backlog
 
@@ -103,7 +96,6 @@ Build "LexiMaster," a high-quality educational platform for students, guardians,
 - [ ] Student gamification (XP, badges, leaderboard)
 - [ ] COPPA/FERPA compliance review
 - [ ] Automated recurring subscription billing
-- [ ] Regional feature delegation
 
 ## Credentials
 - Admin: allen@songsforcenturies.com / LexiAdmin2026!
