@@ -22,8 +22,8 @@ const VocabularyAssessment = ({ narrative, student, onClose }) => {
   // Create assessment mutation
   const createAssessmentMutation = useMutation({
     mutationFn: (data) => assessmentAPI.create(data),
-    onSuccess: (data) => {
-      setAssessmentId(data.id);
+    onSuccess: (response) => {
+      setAssessmentId(response.data.id);
     },
     onError: (error) => {
       toast.error(error.response?.data?.detail || 'Failed to create assessment');
