@@ -6,44 +6,18 @@ Build "Semantic Vision," an educational platform — "Learning How to Read incre
 ## Architecture
 - **Backend:** FastAPI + MongoDB (Motor async), JWT Auth, WebSockets
 - **Frontend:** React 18, Tailwind CSS, Shadcn/UI, React Router, React Query, Framer Motion
-- **AI:** OpenAI GPT-5.2 (Emergent LLM Key), OpenRouter
-- **Payments:** Stripe
-- **Email:** Resend
-- **Currency:** Open Exchange Rates API, ip-api.com
-- **i18n:** react-i18next (20 languages)
+- **AI:** OpenAI GPT-5.2 (Emergent LLM Key)
+- **Payments:** Stripe | **Email:** Resend | **Currency:** Open Exchange Rates API, ip-api.com
+- **i18n:** react-i18next (20 languages) — landing page fully translated
 
 ## Implemented Features
 
-### Core Platform
-- Multi-role platform (Admin, Guardian, Teacher, Student, Brand Partner)
-- AI story generation with brand integration, belief-system awareness, cultural context
-- 60/30/10 vocabulary tier system, WebSocket-based live classroom sessions
-
-### Student Profile — Strengths & Weaknesses (NEW)
-- Free-text `strengths` and `weaknesses` fields in student profile
-- Parents describe what their child excels at and where they need growth
-- AI prompt uses strengths as the character's "superpowers" — abilities celebrated and reinforced
-- AI prompt models growth in weak areas through empathetic character development, never shame
-- Combined with interests, beliefs, culture, virtues, vocabulary, and brand products — every story is truly one-of-a-kind
-- New patent claim added: Claim 5 in TECHNICAL_SPECIFICATIONS.md
-
-### Subscription System
-- Auto-creates free subscription (10 seats) for guardians missing one
-- Parents can upgrade plans using wallet balance, redeem coupons
-- Admin: create/edit/delete plans, assign plans to users, edit user subscriptions & wallets
-
-### Admin Portal
-- Plan Membership Overview stats, user search by name/email
-- Per-user controls: edit profile, wallet, subscription, plan assignment, reset password, activate/deactivate
-
-### Landing Page
-- Premium dark theme (midnight navy + gold/teal), Sora + Plus Jakarta Sans fonts
-- NEW: "Truly Personalized" section — "Stories that know your child's superpowers and help them grow"
-- Shows example AI story snippet demonstrating strengths/weaknesses in action
-- "20+ languages" callout badge
-
-### Technical Specifications
-- `/app/memory/TECHNICAL_SPECIFICATIONS.md` — 5 patent claims including new Claim 5: Strengths-and-Weaknesses-Aware Personalized Narrative Generation
+### Core: AI story generation with brand integration, belief-system & cultural awareness, strengths/weaknesses personalization, 60/30/10 vocabulary tiers
+### Student Profile: Free-text strengths/weaknesses, interests, virtues, belief system, cultural context, language
+### Subscription: Auto-create free plan, parent upgrade via wallet, coupon redemption, admin plan management & per-user subscription/wallet editing
+### Admin: Plan stats, user search, plan CRUD with edit/active toggle, user subscription & wallet editing, contests, word banks, brands
+### Landing Page: Fully i18n-translated (all text uses t() keys), premium dark theme, sections for brand integration, cultural awareness, strengths/weaknesses, 60/30/10, role cards
+### Patent: 5 claims in TECHNICAL_SPECIFICATIONS.md including strengths-aware narrative generation
 
 ## Credentials
 - Admin: allen@songsforcenturies.com / LexiAdmin2026!
@@ -51,9 +25,9 @@ Build "Semantic Vision," an educational platform — "Learning How to Read incre
 
 ## Backlog
 - [ ] P0: Refactor server.py into modular routers
+- [ ] P1: Translate remaining 18 locales for new landing page keys
 - [ ] P1: Animated product demo on landing page
 - [ ] P1: Payment integrations (Cash App, Zelle, Venmo, PayPal)
 - [ ] P2: Student gamification, accessibility, COPPA/FERPA
-- [ ] P2: User Demo Flow, Accessibility features
-- [ ] P2: Granular admin analytics dashboard
+- [ ] P2: User Demo Flow, Growth Report feature
 - [ ] P3: Extract AdminPortal.jsx tabs into dedicated components
