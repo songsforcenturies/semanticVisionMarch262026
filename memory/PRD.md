@@ -1,7 +1,7 @@
-# LexiMaster - Product Requirements Document
+# Semantic Vision - Product Requirements Document
 
 ## Original Problem Statement
-Build "LexiMaster," a high-quality educational platform for students, guardians, and teachers, focusing on vocabulary building and character education through AI-generated stories.
+Build "Semantic Vision," a high-quality educational platform — "Learning How to Read increases your vocabulary, which is VISION to your MIND." Multi-role system (Parent/School, Teacher, Student, Admin, Brand Partner), wallet/payment system, brand sponsorship model, and self-service brand partner portal.
 
 ## Architecture
 - **Backend:** FastAPI + MongoDB (Motor async), JWT Auth, WebSockets
@@ -9,68 +9,24 @@ Build "LexiMaster," a high-quality educational platform for students, guardians,
 - **AI:** OpenAI GPT-5.2 (Emergent LLM Key), OpenRouter
 - **Payments:** Stripe
 - **Email:** Resend
-- **Currency:** Open Exchange Rates API, ip-api.com geolocation
+- **Currency:** Open Exchange Rates API, ip-api.com
 - **i18n:** react-i18next (20 languages)
 
 ## Implemented Features
 
-### Admin Portal
-- [x] Statistics, AI Costs, Brands, Users, Coupons, Plans, Billing/ROI, Features, LLM Config, App Settings
-- [x] **Word Banks tab** — Create, Edit, Delete word banks with category filter (All/General/Academic/Professional/Specialized), visibility badges (PRIVATE/GLOBAL), Parent-Created tags
-- [x] **Contests tab** — Create/manage referral contests with prizes (1st/2nd/3rd), date ranges, pause/activate/delete
-- [x] Configurable referral reward amount (USD)
-- [x] Parent Portal quick-nav link
-
-### Parent / School Portal
-- [x] Student management with toggle buttons (green=ON, red=OFF)
-- [x] Word Bank Marketplace with currency-localized prices, category filter
-- [x] **Parent word bank creation** (admin toggle) — **forced PRIVATE**, only visible to creator + their children
-- [x] Wallet system with Stripe + currency-localized display
-- [x] Referral system with total earnings, history, contest leaderboard with countdown
-- [x] Currency auto-detection via IP (50+ countries)
-
-### Word Bank Privacy & Compliance (Mar 8, 2026)
-- [x] Parent-created banks forced to `visibility: private` server-side
-- [x] Parents can only see: global/marketplace banks + their own private banks
-- [x] Other parents CANNOT see another parent's private banks
-- [x] Parents can only edit their own banks, cannot change visibility from private
-- [x] Admin can see/edit ALL banks including private ones for oversight
-- [x] `created_by_role` field tracks whether admin or guardian created the bank
-
-### Referral Contest System (Mar 8, 2026)
-- [x] Admin creates contests with prizes, dates, runner-up prizes
-- [x] Live leaderboard ranked by referral count
-- [x] Contest banner with countdown timer on Parent Portal
-- [x] Privacy-masked display names
-
-### Brand Partner Portal (Complete)
-- [x] Self-service registration, onboarding, products, geo-targeting
-- [x] AI Story Preview, Analytics, Campaign management, Coupons
-- [x] Brand integration proven in story generation
-
-### Auth & Email
-- [x] JWT auth, Forgot Password (Resend), Email verification
-
-## Bug Fixes (This Session)
-- [x] P0: Backend crash (get_current_brand_partner NameError)
-- [x] Toggle buttons not changing color
-- [x] Admin blocked from toggle endpoints (guardian_id ownership check)
-
-## Prioritized Backlog
-
-### P0
-- [ ] Refactor backend/server.py into modular FastAPI routers (4500+ lines)
-
-### P1
-- [ ] Payment integrations (Cash App, Zelle, Venmo, PayPal)
-- [ ] Word content moderation (AI-powered inappropriate word detection)
-- [ ] Accessibility features
-
-### P2
-- [ ] Component extraction (AdminPortal.jsx, BrandPortal.jsx)
-- [ ] Student gamification, manual currency picker, COPPA/FERPA compliance
+### Core: Multi-role platform with AI story generation, vocabulary system, brand integration
+### Admin: Stats, Word Banks (CRUD + category filter + edit), AI Costs, Brands, Users, Coupons, Contests (create/edit/pause/delete), Plans, Billing/ROI, Features, LLM Config, Settings
+### Parent Portal: Students, Marketplace, Wallet, Invite & Earn (leaderboard + contests), Progress
+### Word Bank Compliance: Parent banks forced private, admin oversight, created_by_role tracking
+### Currency: Auto-detect via IP, 50+ countries, live exchange rates, pegged to USD
+### Rebrand: LexiMaster → Semantic Vision (all 20 locales, backend, frontend, page title)
 
 ## Credentials
 - Admin: allen@songsforcenturies.com / LexiAdmin2026!
 - Guardian: allen@ourfamily.contact / LexiAdmin2026!
-- Other Guardian: other@test.com / Test1234!
+
+## Backlog
+- [ ] P0: Refactor server.py into modular routers
+- [ ] P1: Payment integrations (Cash App, Zelle, Venmo, PayPal)
+- [ ] P1: AI word content moderation
+- [ ] P2: Student gamification, accessibility, COPPA/FERPA
