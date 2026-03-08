@@ -19,87 +19,68 @@ Build "LexiMaster," a high-quality educational platform for students, guardians,
 - [x] AI-powered story generation with brand integration (GPT-5.2)
 - [x] AI-evaluated written assessments
 - [x] Story reader with click-to-define words
-- [x] Automated reading timer
 - [x] 60/30/10 vocabulary learning system
 
 ### Parent / School Portal (Complete)
-- [x] Full CRUD student management (name, age, grade, interests, virtues, belief, culture, language)
+- [x] Full CRUD student management
 - [x] Spelling controls & ad preferences toggle buttons (green=ON, red=OFF)
 - [x] Word Bank Marketplace with currency-localized prices
-- [x] Word bank assignment to students
 - [x] Parent word bank creation (admin-controlled toggle)
 - [x] Wallet system with Stripe + currency-localized display
-- [x] Referral program with total earnings display + referral history
+- [x] Referral program with total earnings, referral history
+- [x] Referral contest leaderboard with countdown timer and ranked users
 - [x] Currency auto-detection based on user's IP/country
 
-### Teacher Portal (Complete)
-- [x] Classroom session management
-- [x] Real-time student tracking
-
 ### Admin Portal (Complete)
-- [x] Statistics dashboard
-- [x] Word Banks tab - create/delete/list word banks
-- [x] AI Costs tracking
-- [x] Brands management with analytics
-- [x] User management (CRUD, password reset, deactivate, credits)
-- [x] Coupon management
-- [x] Plans management
-- [x] Billing/ROI configuration (including configurable referral reward amount in USD)
-- [x] Feature flags (10 toggles)
-- [x] LLM Config (Emergent vs OpenRouter)
-- [x] App Settings
+- [x] Statistics, Word Banks, AI Costs, Brands, Users, Coupons tabs
+- [x] **Contests tab** — Create/manage referral contests with configurable prizes (1st, 2nd, 3rd place), date ranges, pause/activate/delete
+- [x] Plans, Billing/ROI (configurable referral reward USD amount), Features, LLM Config, App Settings
+- [x] Parent Portal link in header for quick navigation
 
-### Brand Partner Portal (Complete)
-- [x] Self-service registration, onboarding wizard
-- [x] Problem statement, logo, products, geo-targeting
-- [x] AI Story Preview, Analytics Dashboard
-- [x] Campaign management, coupon creation
-- [x] Budget management with Stripe
+### Referral Contest System (New - Mar 8, 2026)
+- [x] Admin creates contests: title, description, grand prize, prize value, start/end dates
+- [x] Runner-up prizes (2nd, 3rd place) configurable
+- [x] LIVE/PAUSED/ENDED status badges
+- [x] Pause/Activate/Delete contest controls
+- [x] Purple gradient contest banner on Parent Portal with countdown timer
+- [x] Live leaderboard ranking users by referral count
+- [x] Privacy-masked display names (e.g. "Allen A.")
+- [x] "Your Rank" indicator when user appears on leaderboard
+- [x] Leaderboard filtered by contest date range
 
-### Currency Localization (New - Mar 8, 2026)
-- [x] Auto-detect user's country via IP geolocation (ip-api.com)
-- [x] Map country to local currency (50+ countries supported)
-- [x] Live exchange rates from Open Exchange Rates API (6-hour cache)
-- [x] All wallet, marketplace, referral amounts displayed in local currency
+### Currency Localization (Mar 8, 2026)
+- [x] Auto-detect country via IP geolocation
+- [x] 50+ countries mapped to currencies with symbols
+- [x] Live exchange rates (6-hour cache)
+- [x] All wallet, marketplace, referral amounts in local currency
 - [x] All money internally pegged to USD
 
-### Referral System Enhanced (Mar 8, 2026)
-- [x] Total referral earnings displayed prominently on Invite & Earn tab
-- [x] Referral count + total earned + friends saved stats
-- [x] Referral history with per-referral reward amounts
-- [x] Admin-configurable referral reward amount (Billing/ROI tab)
-- [x] Dynamic reward amount displayed (not hardcoded)
+### Brand Partner Portal (Complete)
+- [x] Self-service registration, onboarding, products, geo-targeting
+- [x] AI Story Preview, Analytics Dashboard, Campaign management
+- [x] Coupon creation, Budget management with Stripe
 
 ### Authentication & Email (Complete)
-- [x] JWT auth with role-based routing
-- [x] Forgot Password with 6-digit code via Resend
-- [x] Email verification
+- [x] JWT auth, Forgot Password with Resend, Email verification
 
-### Multi-lingual UI (Complete)
-- [x] 20 languages, localStorage persistence, RTL Arabic support
-
-## Bug Fixes
-- [x] P0: Backend crash - `get_current_brand_partner` NameError - Mar 7, 2026
-- [x] Admin Word Banks tab missing - Mar 7, 2026
-- [x] Toggle buttons (Spellcheck/Phonetic/Brand Stories) not changing color - Mar 8, 2026
-  - Root cause 1: Admin couldn't toggle because guardian_id ownership check blocked them
-  - Root cause 2: Student model missing spellcheck_disabled/spelling_mode fields (stripped from API response)
+## Bug Fixes (This Session)
+- [x] P0: Backend crash - get_current_brand_partner NameError
+- [x] Toggle buttons not changing color (model fields + admin auth bypass)
 
 ## Prioritized Backlog
 
-### P0 - High Priority
-- [ ] Refactor `backend/server.py` into modular FastAPI routers (4300+ lines monolith)
+### P0
+- [ ] Refactor backend/server.py into modular FastAPI routers (4500+ lines)
 
-### P1 - Medium Priority
-- [ ] Expand payment integrations (Cash App, Zelle, Venmo, PayPal)
+### P1
+- [ ] Payment integrations (Cash App, Zelle, Venmo, PayPal)
 - [ ] Accessibility features (deaf/HoH users)
-- [ ] Granular admin analytics
 
-### P2 - Low Priority
-- [ ] AdminPortal.jsx and BrandPortal.jsx component extraction
-- [ ] Student gamification (XP, badges, leaderboard)
-- [ ] COPPA/FERPA compliance review
-- [ ] Manual currency picker (currently auto-detect only)
+### P2
+- [ ] Component extraction (AdminPortal.jsx, BrandPortal.jsx)
+- [ ] Student gamification (XP, badges)
+- [ ] Manual currency picker
+- [ ] COPPA/FERPA compliance
 
 ## Credentials
 - Admin: allen@songsforcenturies.com / LexiAdmin2026!
