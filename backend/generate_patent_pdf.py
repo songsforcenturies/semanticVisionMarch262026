@@ -201,7 +201,7 @@ def build_pdf():
         "    5.9 Consent Architecture and Privacy Controls",
         "    5.10 Multi-Role Access Control System",
         "    5.11 Additional Novel Features",
-        "6. Claims (15 total: 3 Independent + 12 Dependent)",
+        "6. Claims (30 total: 5 Independent + 25 Dependent/Expanded)",
         "7. Abstract",
         "Appendix A: Key Data Model Schemas",
         "Appendix B: Competitive Landscape Analysis",
@@ -542,8 +542,8 @@ def build_pdf():
 
     # ===== CLAIMS =====
     elements.append(PageBreak())
-    elements.append(Paragraph("6. CLAIMS", h1_style))
-    elements.append(Paragraph("Independent Claims", h2_style))
+    elements.append(Paragraph("6. CLAIMS (30 Total: 5 Independent + 25 Dependent/Expanded)", h1_style))
+    elements.append(Paragraph("Independent Claims (Claims 1-3)", h2_style))
 
     # Claim 1
     elements.append(Paragraph("<b>Claim 1.</b> A computer-implemented method for generating personalized educational content with integrated brand product placements, comprising:", claim_style))
@@ -593,9 +593,9 @@ def build_pdf():
     for part in claim3_parts:
         elements.append(Paragraph(part, sub_claim_style))
 
-    # Dependent Claims
+    # Dependent Claims (4-15)
     elements.append(Spacer(1, 0.2 * inch))
-    elements.append(Paragraph("Dependent Claims", h2_style))
+    elements.append(Paragraph("Dependent Claims (Claims 4-15)", h2_style))
     
     dependent_claims = [
         "<b>Claim 4.</b> The method of Claim 1, wherein the belief system identifier directs the LLM to generate character behaviors, moral lessons, and decision-making frameworks consistent with the specified belief system.",
@@ -615,6 +615,57 @@ def build_pdf():
         elements.append(Paragraph(claim, claim_style))
         elements.append(Spacer(1, 0.05 * inch))
 
+    # ===== EXPANDED CLAIMS (16-30) =====
+    elements.append(PageBreak())
+    elements.append(Paragraph("Expanded Method Claims (Claims 16-25)", h2_style))
+    elements.append(Paragraph(
+        "The following claims extend the core inventions to additional industries and applications:",
+        body_style
+    ))
+
+    expanded_method_claims = [
+        "<b>Claim 16.</b> A computer-implemented method for real-time bidding on placement positions within AI-generated content, comprising: receiving bids from multiple brand advertisers for their products to be woven into AI-generated narratives targeting specific audience segments; ranking bids based on bid price, brand-audience relevance score, and content-context compatibility; selecting winning bids not exceeding a configurable maximum per content generation event; and incorporating the winning brands' product information into the AI content generation prompt as organic narrative elements.",
+
+        "<b>Claim 17.</b> The method of Claim 1, further comprising: A/B testing brand integration approaches by varying brand integration directives across multiple content generation events for comparable audience segments; measuring differential engagement metrics including brand comprehension rate, narrative completion rate, and sentiment scores across test variants; and selecting the integration approach yielding the highest brand comprehension rate for subsequent content generation events.",
+
+        "<b>Claim 18.</b> A computer-implemented method for generating therapeutic narratives with integrated health product recommendations, comprising: receiving a content generation request associated with a patient profile comprising at least: medical condition, treatment plan, cultural context, and language preference; querying a health product database for eligible products matching the patient's condition and treatment context; constructing a composite AI prompt directing a Large Language Model to generate a therapeutic narrative in which the health products appear as organic, problem-solving elements that the narrative protagonist uses to manage their condition; and recording product impression data for analytics presentation to the health product sponsor.",
+
+        "<b>Claim 19.</b> A computer-implemented method for generating corporate training content with integrated tool and product placements, comprising: receiving a training content generation request associated with an employee profile comprising at least: role, department, skill level, and identified skill gaps; querying an employer-configured product catalog for software tools, processes, or products relevant to the employee's role and skill gaps; constructing a composite AI prompt directing a Large Language Model to generate a training narrative in which the selected tools and products appear as solutions the protagonist uses to solve workplace challenges; generating comprehension assessments testing the employee's understanding of the tool usage; and recording tool engagement metrics for presentation to the employer and tool vendor.",
+
+        "<b>Claim 20.</b> A computer-implemented method for computing a Brand Comprehension Rate metric, comprising: generating AI content with embedded brand product elements; automatically generating comprehension questions that test user understanding of the brand-integrated content elements; collecting user quiz responses to said comprehension questions; computing a Brand Comprehension Rate as the ratio of correct responses to total attempts on brand-related questions; and presenting said metric to the brand sponsor as a verified measure of brand content effectiveness, wherein the metric is distinguished from traditional advertising metrics by being verified through objective quiz responses rather than self-reported survey data.",
+
+        "<b>Claim 21.</b> The method of Claim 16, further comprising dynamic pricing of AI content placements based on: historical Brand Comprehension Rates for similar placements, audience demographic value scores, content category premiums, competitive bid density, and time-of-day demand factors, wherein the system computes a recommended bid floor for each placement opportunity.",
+
+        "<b>Claim 22.</b> The method of Claim 1, further comprising cross-platform delivery of brand-integrated AI content across multiple modalities including: text-based narratives, AI-generated audio narration of the narrative content, and AI-generated visual illustrations depicting scenes including brand products, while maintaining consistent brand integration and brand safety controls across all modalities.",
+
+        "<b>Claim 23.</b> The method of Claim 1, further comprising generating multilingual brand-integrated educational content wherein: the AI content generation prompt includes language-specific cultural localization directives; brand products are contextualized within the cultural norms, customs, and traditions of the target language locale; and brand safety is evaluated against locale-specific sensitivities in addition to global brand safety criteria.",
+
+        "<b>Claim 24.</b> A computer-implemented method for federated brand analytics across multiple brand campaigns, comprising: aggregating Brand Comprehension Rate data, content engagement metrics, and audience demographic data across multiple brand campaigns without exposing individual brand performance data; computing industry benchmark metrics for brand comprehension, engagement, and audience reach; identifying cross-brand audience overlap patterns; and presenting aggregate benchmark data to individual brand partners to contextualize their campaign performance relative to industry norms.",
+
+        "<b>Claim 25.</b> The method of Claim 1, further comprising brand safety scoring of AI-generated content, comprising: analyzing the generated narrative content for sentiment, topic sensitivity, and contextual appropriateness prior to brand placement confirmation; computing a brand safety score based on: absence of negative sentiment near brand mentions, appropriate narrative context for the brand category, and alignment between brand values and narrative themes; and automatically excluding brand placements from content that scores below a configurable brand safety threshold.",
+    ]
+    for claim in expanded_method_claims:
+        elements.append(Paragraph(claim, claim_style))
+        elements.append(Spacer(1, 0.08 * inch))
+
+    elements.append(PageBreak())
+    elements.append(Paragraph("Expanded System Claims (Claims 26-30)", h2_style))
+
+    expanded_system_claims = [
+        "<b>Claim 26.</b> A computer-implemented system for operating a brand marketplace for AI-generated content placements, comprising: a brand registration module for brands to create product listings, set campaign budgets, define cost-per-impression rates, and specify audience targeting criteria; a real-time auction module that, at each content generation event, solicits eligible brands, ranks them by bid price and relevance score, and selects winning placements; a content integration module that incorporates winning brand products into AI content generation prompts as organic narrative elements; an impression tracking module that records each brand placement, debits campaign budgets, and computes ROI metrics; and a brand analytics dashboard presenting story excerpts, comprehension question performance, and campaign metrics to each brand partner.",
+
+        "<b>Claim 27.</b> The system of Claim 3, further comprising an automated brand-content quality assurance module that, after AI content generation and before content delivery to the user: verifies that brand products appear in contextually appropriate narrative scenarios; confirms that brand mentions carry positive or neutral sentiment; validates that products serve a genuine problem-solving function in the narrative; checks age-appropriateness of the brand-content combination against the user's profile; and flags or rejects content that fails any quality criterion for regeneration.",
+
+        "<b>Claim 28.</b> The system of Claim 3, further comprising a guardian advertising preference dashboard providing: per-child opt-in and opt-out controls for brand-integrated content; category-level blocking allowing guardians to exclude specific brand categories; brand-specific blocking allowing guardians to exclude individual brands; exposure frequency caps limiting how often any single brand appears in a child's content within a configurable time window; opt-in reward mechanisms providing incentives (credits, premium features, or reduced subscription costs) to guardians who enable brand-integrated content; and a transparency log showing guardians which brands appeared in their child's content and when.",
+
+        "<b>Claim 29.</b> The system of Claim 26, further comprising a predictive analytics module that: analyzes historical Brand Comprehension Rate data across multiple campaigns, audience segments, and content categories; builds predictive models estimating expected brand comprehension, engagement, and recall for proposed new campaigns; recommends optimal brand integration strategies (narrative placement density, product-problem pairing, content genre) to maximize predicted Brand Comprehension Rate; and provides brands with expected performance ranges before campaign commitment.",
+
+        "<b>Claim 30.</b> The system of Claim 26, further comprising an attribution modeling module that: tracks user interactions with brand-integrated AI content through unique impression identifiers; integrates with advertiser customer relationship management (CRM) systems via secure API connections; correlates content engagement events with downstream brand outcomes including: brand awareness survey lift, website visit attribution, product trial initiation, and purchase conversion; computes content-to-outcome attribution scores using multi-touch attribution models; and presents attributed ROI metrics to brand partners linking specific AI content placements to verified business outcomes.",
+    ]
+    for claim in expanded_system_claims:
+        elements.append(Paragraph(claim, claim_style))
+        elements.append(Spacer(1, 0.08 * inch))
+
     # ===== ABSTRACT =====
     elements.append(PageBreak())
     elements.append(Paragraph("7. ABSTRACT", h1_style))
@@ -628,8 +679,13 @@ def build_pdf():
         "Large Language Model, which generates a structured multi-chapter educational narrative. The system records brand impressions and "
         "updates campaign budgets in real time. A closed-loop analytics pipeline identifies all narratives containing a brand's content "
         "through multi-layer search, extracts specific story excerpts with brand mentions, identifies brand-related comprehension questions, "
-        "retrieves student interaction data (attempts, pass/fail rates), and presents comprehensive engagement analytics to the brand partner. "
-        "The system further includes AI-powered vocabulary assessment evaluation, mastery tracking with an Agentic Reach Score, and a "
+        "retrieves student interaction data (attempts, pass/fail rates), and presents comprehensive engagement analytics to the brand partner "
+        "including a novel Brand Comprehension Rate metric verified by objective quiz data. The invention further encompasses: a real-time "
+        "bidding system for AI content placements; methods for generating therapeutic narratives with health product integration and corporate "
+        "training content with tool/product integration; cross-platform multi-modal delivery; multilingual culturally-contextualized brand "
+        "content; federated brand analytics with industry benchmarks; brand safety scoring; a guardian advertising preference dashboard with "
+        "granular controls; predictive analytics for placement effectiveness; and attribution modeling linking content engagement to downstream "
+        "brand outcomes. The system includes AI-powered vocabulary assessment evaluation, mastery tracking with an Agentic Reach Score, and a "
         "consent-gated privacy architecture requiring affirmative guardian opt-in for brand content.",
         body_style
     ))

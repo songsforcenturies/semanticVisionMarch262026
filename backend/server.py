@@ -5278,6 +5278,16 @@ async def get_patent_strategy_pdf():
     return FileResponse(pdf_path, media_type="application/pdf", filename="Semantic_Vision_Patent_Strategy_Analysis_CONFIDENTIAL.pdf")
 
 
+@api_router.get("/patent-filing-roadmap/pdf")
+async def get_patent_filing_roadmap_pdf():
+    """Serve the Filing Cost Roadmap as PDF with CONFIDENTIAL watermark"""
+    from fastapi.responses import FileResponse
+    pdf_path = Path(__file__).parent.parent / "Semantic_Vision_Filing_Cost_Roadmap.pdf"
+    if not pdf_path.exists():
+        raise HTTPException(status_code=404, detail="Filing roadmap PDF not found")
+    return FileResponse(pdf_path, media_type="application/pdf", filename="Semantic_Vision_Filing_Cost_Roadmap_CONFIDENTIAL.pdf")
+
+
 # Include router in app
 app.include_router(api_router)
 
