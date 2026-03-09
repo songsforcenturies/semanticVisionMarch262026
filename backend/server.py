@@ -5268,6 +5268,16 @@ async def get_patent_document_pdf():
     return FileResponse(pdf_path, media_type="application/pdf", filename="Semantic_Vision_Provisional_Patent_Application_CONFIDENTIAL.pdf")
 
 
+@api_router.get("/patent-strategy/pdf")
+async def get_patent_strategy_pdf():
+    """Serve the Strategic Patent Analysis as PDF with CONFIDENTIAL watermark"""
+    from fastapi.responses import FileResponse
+    pdf_path = Path(__file__).parent.parent / "Semantic_Vision_Patent_Strategy_Analysis.pdf"
+    if not pdf_path.exists():
+        raise HTTPException(status_code=404, detail="Strategy PDF not found")
+    return FileResponse(pdf_path, media_type="application/pdf", filename="Semantic_Vision_Patent_Strategy_Analysis_CONFIDENTIAL.pdf")
+
+
 # Include router in app
 app.include_router(api_router)
 
