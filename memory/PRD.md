@@ -36,7 +36,7 @@ Build "Semantic Vision," an educational platform — "Learning How to Read incre
 
 ### Student Setup Wizard (March 9, 2026)
 - Replaced scrolling form with 5-step wizard: Basic Info > Virtues > Strengths & Growth > Faith & Culture > Word Banks
-- Virtues section: 16 selectable virtues with descriptions ("Which virtues would you like your child to develop?")
+- Virtues section: 16 selectable virtues with descriptions
 - Strengths/Weaknesses: Fixed font visibility (white text on dark bg)
 - Dark-themed inputs throughout with proper text contrast
 
@@ -58,16 +58,22 @@ Build "Semantic Vision," an educational platform — "Learning How to Read incre
 ### Age-Appropriate Vocabulary (March 9, 2026)
 - Grade-level complexity guide added to AI story generation prompt
 - 16 grade levels (pre-K through adult) with specific language complexity instructions
-- Brand Comprehension questions: AI prompted to generate questions testing understanding of brand products
-- Surrounding narrative text matches grade level even when vocabulary words are above level
+- Brand Comprehension questions + surrounding narrative matches grade level
 
 ### Landing Page Religion Fix (March 9, 2026)
-- Removed specific religion mentions (Ramadan, Diwali, Sabbath, secular humanism)
-- Replaced with generalized "faith, cultural heritage, religious tradition or worldview"
+- Removed specific religion mentions, replaced with generalized faith/cultural references
 
 ### Brand Target Market (March 9, 2026)
-- Brands with empty target_ages default to ALL markets (already working — no code change needed)
-- Brand eligibility engine only restricts if target_ages is explicitly set
+- Brands with empty target_ages default to ALL markets
+
+### First-Login Onboarding Wizards (March 9, 2026)
+- Reusable OnboardingWizard component with step indicators, skip/next/back navigation
+- Guardian Portal: 5-step wizard (Welcome, Student Setup, Subscription, Marketplace, Progress)
+- Brand Portal: 5-step wizard (Welcome, Campaigns, Story Integrations, Offers, Analytics)
+- Student Academy: 4-step wizard (Welcome, Read Stories, Answer Questions, Growth Tracking)
+- Uses localStorage tracking (sv_onboarding_{portalType}_{userId}) — wizard only shows once per user
+- Dark theme with gold accents, blurred backdrop overlay, animated transitions
+- Fully tested: all portals, all steps, skip/dismiss/persistence verified
 
 ## Bug Fixes
 - P0: Vocabulary Mastered/Agentic Reach Score ZERO -> normalized mastered_tokens
@@ -78,10 +84,9 @@ Build "Semantic Vision," an educational platform — "Learning How to Read incre
 - Student SJ: STU-DR40V7 / 914027
 
 ## Backlog
-- [ ] P1: First-login onboarding popups for Brands, Students, Parents (skippable)
 - [ ] P1: Finalize Coupon & Credit System end-to-end verification
 - [ ] P1: Refactor server.py (~5600 lines) into modular APIRouter
-- [ ] P1: Payment gateway integrations (Cash App, Zelle, Venmo, PayPal)
+- [ ] P2: Payment gateway integrations (Cash App, Zelle, Venmo, PayPal)
 - [ ] P2: Brand Engagement Score metric
 - [ ] P2: Translate remaining i18n locales
 - [ ] P2: Student gamification, COPPA/FERPA compliance
