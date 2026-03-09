@@ -29,28 +29,21 @@ Build "Semantic Vision," an educational platform — "Learning How to Read incre
 
 ### Brand Portal Story Integrations (March 8, 2026)
 - **Story Integrations tab** with 3 sections:
-  1. **Brand In Stories**: Real story excerpts where brand/products appear in chapter text, highlighted brand terms, mention counts
-  2. **Brand Activation Questions**: Questions asked to students about brand content, with pass/fail data from read_logs
-  3. **Student Activation Responses**: Free-text responses from students (written_answers collection)
+  1. **Brand In Stories**: Real story excerpts where brand/products appear in chapter text
+  2. **Brand Activation Questions**: Questions asked to students about brand content, with pass/fail data
+  3. **Student Activation Responses**: Free-text responses from students
 - **Summary Stats**: Stories Featuring Brand, Brand Mentions, Activation Questions, Question Attempts, Pass Rate
 - **3-layer narrative search**: brand_placements field, brand_impressions, full-text content search
 - **Backend**: Narratives store brand_placements, written answers saved to written_answers collection
 
-### Login/Register UX (March 8, 2026)
-- "Access Your Portal" section: Parents (gold), Brands (pink), Students (teal) with icons
-
-### Provisional Patent Document (March 8, 2026)
-- Generated comprehensive 619-line, 6400+ word provisional patent application
-- Located at `/app/PROVISIONAL_PATENT_APPLICATION.md`
-- Accessible via API at `GET /api/patent-document`
-- Covers 15 claims (3 independent + 12 dependent)
-- Key protectable innovations documented:
-  1. Real-time brand product integration in personalized educational AI content
-  2. Closed-loop brand engagement analytics pipeline
-  3. Multi-dimensional student profile with belief/culture/strengths awareness
-  4. 60/30/10 tiered vocabulary distribution system
-  5. Consent-gated, non-intrusive educational advertising architecture
-- Includes: Background, Summary, Detailed Description, Claims, Abstract, Data Model Appendix, Competitive Analysis
+### Provisional Patent & IP Strategy (March 8-9, 2026)
+- **Provisional Patent Application** — 30 claims (5 independent + 25 dependent/expanded)
+  - Original 15 claims covering core platform innovations
+  - 15 expanded claims covering: RTB for AI content, A/B testing, therapeutic narratives, corporate training, Brand Comprehension Rate metric, dynamic pricing, cross-platform delivery, multilingual brand content, federated analytics, brand safety scoring, brand marketplace, QA system, guardian dashboard, predictive analytics, attribution modeling
+- **Strategic Patent Analysis** — 6 independent inventions identified, 12+ industries mapped ($1.5T+ TAM)
+- **Filing Cost Roadmap** — 3 scenarios (US Only $13-24K, Recommended $36-74K, Maximum $68-137K)
+- All documents served as PDFs with CONFIDENTIAL watermarks and timestamps
+- API endpoints: `/api/patent-document/pdf`, `/api/patent-strategy/pdf`, `/api/patent-filing-roadmap/pdf`
 
 ## Bug Fixes
 - P0: Vocabulary Mastered/Agentic Reach Score ZERO -> normalized mastered_tokens to plain strings
