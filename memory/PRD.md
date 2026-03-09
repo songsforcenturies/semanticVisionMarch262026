@@ -23,44 +23,67 @@ Build "Semantic Vision," an educational platform — "Learning How to Read incre
 ### Global Dark Theme (March 8, 2026)
 - Consistent dark theme across ALL pages via AppShell + sv-dark CSS
 - Semantic Vision logo (Eye icon) on every page
-- NarrativeReader eye-friendly warm reading color
-- Admin route protection (role-based)
-- Brand portal requires brand_partner or admin role
 
 ### Brand Portal Story Integrations (March 8, 2026)
-- **Story Integrations tab** with 3 sections:
-  1. **Brand In Stories**: Real story excerpts where brand/products appear in chapter text
-  2. **Brand Activation Questions**: Questions asked to students about brand content, with pass/fail data
-  3. **Student Activation Responses**: Free-text responses from students
-- **Summary Stats**: Stories Featuring Brand, Brand Mentions, Activation Questions, Question Attempts, Pass Rate
-- **3-layer narrative search**: brand_placements field, brand_impressions, full-text content search
-- **Backend**: Narratives store brand_placements, written answers saved to written_answers collection
+- Story Integrations tab with real story excerpts, activation questions, student responses
+- 3-layer narrative search, brand placements on narratives
 
 ### Provisional Patent & IP Strategy (March 8-9, 2026)
-- **Provisional Patent Application** — 30 claims (5 independent + 25 dependent/expanded)
-  - Original 15 claims covering core platform innovations
-  - 15 expanded claims covering: RTB for AI content, A/B testing, therapeutic narratives, corporate training, Brand Comprehension Rate metric, dynamic pricing, cross-platform delivery, multilingual brand content, federated analytics, brand safety scoring, brand marketplace, QA system, guardian dashboard, predictive analytics, attribution modeling
-- **Strategic Patent Analysis** — 6 independent inventions identified, 12+ industries mapped ($1.5T+ TAM)
-- **Filing Cost Roadmap** — 3 scenarios (US Only $13-24K, Recommended $36-74K, Maximum $68-137K)
-- All documents served as PDFs with CONFIDENTIAL watermarks and timestamps
-- API endpoints: `/api/patent-document/pdf`, `/api/patent-strategy/pdf`, `/api/patent-filing-roadmap/pdf`
+- 30-claim Provisional Patent Application (5 independent + 25 expanded)
+- Strategic Patent Analysis (6 inventions, 12+ industries, $1.5T+ TAM)
+- Filing Cost Roadmap (3 scenarios: $13K-$137K)
+- All served as CONFIDENTIAL PDFs with watermarks
+
+### Student Setup Wizard (March 9, 2026)
+- Replaced scrolling form with 5-step wizard: Basic Info > Virtues > Strengths & Growth > Faith & Culture > Word Banks
+- Virtues section: 16 selectable virtues with descriptions ("Which virtues would you like your child to develop?")
+- Strengths/Weaknesses: Fixed font visibility (white text on dark bg)
+- Dark-themed inputs throughout with proper text contrast
+
+### Affiliate Link System (March 9, 2026)
+- Public affiliate signup: POST /api/affiliates/signup (auto-generates AFF-XXXXXX codes)
+- Automated confirmation email via Resend with affiliate link
+- Referral tracking: AFF- codes handled during user registration at /api/auth/register
+- Earnings: Flat fee, percentage, or wallet credits (admin-configurable)
+- Admin portal: Affiliates tab with settings management, approve/deactivate, payout recording
+- Affiliate stats endpoint for logged-in affiliates
+
+### Brand Offers System (March 9, 2026)
+- Brands create offers (free + paid) with external links or platform promo codes
+- Target all users or specific users
+- Parent portal: "Offers" tab with toggle to turn off all offers
+- Offer dismissal, click tracking, view counting
+- CRUD endpoints: /api/brands/offers, /api/offers, /api/offers/preferences
+
+### Age-Appropriate Vocabulary (March 9, 2026)
+- Grade-level complexity guide added to AI story generation prompt
+- 16 grade levels (pre-K through adult) with specific language complexity instructions
+- Brand Comprehension questions: AI prompted to generate questions testing understanding of brand products
+- Surrounding narrative text matches grade level even when vocabulary words are above level
+
+### Landing Page Religion Fix (March 9, 2026)
+- Removed specific religion mentions (Ramadan, Diwali, Sabbath, secular humanism)
+- Replaced with generalized "faith, cultural heritage, religious tradition or worldview"
+
+### Brand Target Market (March 9, 2026)
+- Brands with empty target_ages default to ALL markets (already working — no code change needed)
+- Brand eligibility engine only restricts if target_ages is explicitly set
 
 ## Bug Fixes
-- P0: Vocabulary Mastered/Agentic Reach Score ZERO -> normalized mastered_tokens to plain strings
-- Fixed 6 stuck in_progress assessments
-- Fixed brand impression narrative_id (was "pending")
+- P0: Vocabulary Mastered/Agentic Reach Score ZERO -> normalized mastered_tokens
+- Fixed strengths/weaknesses font visibility (dark theme input styling)
 
 ## Credentials
 - Admin: allen@songsforcenturies.com / LexiAdmin2026!
 - Student SJ: STU-DR40V7 / 914027
 
 ## Backlog
-- [ ] P1: Complete end-to-end flow (parent signup -> student reads -> brand activation -> progress -> brand portal)
-- [ ] P1: Finalize Coupon & Credit System
-- [ ] P1: Refactor server.py (~5000 lines) into modular APIRouter
-- [ ] P1: Payment integrations (Cash App, Zelle, Venmo, PayPal)
+- [ ] P1: First-login onboarding popups for Brands, Students, Parents (skippable)
+- [ ] P1: Finalize Coupon & Credit System end-to-end verification
+- [ ] P1: Refactor server.py (~5600 lines) into modular APIRouter
+- [ ] P1: Payment gateway integrations (Cash App, Zelle, Venmo, PayPal)
 - [ ] P2: Brand Engagement Score metric
-- [ ] P2: Translate remaining locales
-- [ ] P2: Student gamification, COPPA/FERPA
-- [ ] P2: User Demo Flow
+- [ ] P2: Translate remaining i18n locales
+- [ ] P2: Student gamification, COPPA/FERPA compliance
+- [ ] P2: User Demo Flow for presentations
 - [ ] P3: Extract AdminPortal.jsx into component modules
