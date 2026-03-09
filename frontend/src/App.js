@@ -10,11 +10,8 @@ import LandingPage from "@/pages/LandingPage";
 import GuardianLogin from "@/pages/GuardianLogin";
 import GuardianRegister from "@/pages/GuardianRegister";
 import ForgotPassword from "@/pages/ForgotPassword";
-import StudentLogin from "@/pages/StudentLogin";
 import GuardianPortal from "@/pages/GuardianPortal";
 import StudentAcademy from "@/pages/StudentAcademy";
-import TeacherLogin from "@/pages/TeacherLogin";
-import TeacherRegister from "@/pages/TeacherRegister";
 import TeacherPortal from "@/pages/TeacherPortal";
 import AdminPortal from "@/pages/AdminPortal";
 import DonatePage from "@/pages/DonatePage";
@@ -70,9 +67,9 @@ function AppContent() {
           <Route path="/login" element={<GuardianLogin />} />
           <Route path="/register" element={<GuardianRegister />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/student-login" element={<StudentLogin />} />
-          <Route path="/teacher-login" element={<TeacherLogin />} />
-          <Route path="/teacher-register" element={<TeacherRegister />} />
+          <Route path="/student-login" element={<Navigate to="/login?type=student" replace />} />
+          <Route path="/teacher-login" element={<Navigate to="/login?type=teacher" replace />} />
+          <Route path="/teacher-register" element={<Navigate to="/register?role=teacher" replace />} />
           <Route path="/donate" element={<DonatePage />} />
 
           {/* Guardian protected routes */}

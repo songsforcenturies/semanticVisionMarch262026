@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { studentAPI, narrativeAPI, classroomAPI } from '@/lib/api';
-import { BookOpen, Plus, TrendingUp, Clock, BookMarked, Users, ArrowRight } from 'lucide-react';
+import { BookOpen, Plus, TrendingUp, Clock, BookMarked, Users, ArrowRight, HelpCircle, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import AppShell from '@/components/AppShell';
@@ -10,6 +10,8 @@ import StoryGenerationDialog from '@/components/student/StoryGenerationDialog';
 import NarrativeReader from '@/components/student/NarrativeReader';
 import OnboardingWizard from '@/components/OnboardingWizard';
 import { studentOnboardingSteps } from '@/components/onboardingSteps';
+import FAQSection from '@/components/FAQSection';
+import { studentFAQ } from '@/components/faqContent';
 
 const C = {
   bg: '#0A0F1E', card: '#1A2236', surface: '#111827',
@@ -40,6 +42,13 @@ const StudentAcademy = () => {
   const [sessionCode, setSessionCode] = useState('');
   const [joiningSession, setJoiningSession] = useState(false);
   const [joinedSession, setJoinedSession] = useState(null);
+  const [wizardKey, setWizardKey] = useState(0);
+  const [showFAQ, setShowFAQ] = useState(false);
+
+  const resetOnboarding = () => {
+    localStorage.removeItem(`sv_onboarding_student_${student?.id || student?.student_code}`);
+    setWizardKey((k) => k + 1);
+  };
 
   const { data: studentData, isLoading: studentLoading } = useQuery({
     queryKey: ['student-detail', student?.id],
@@ -88,8 +97,32 @@ const StudentAcademy = () => {
   const agenticScore = studentData?.agentic_reach_score || 0;
 
   return (
-    <AppShell title="Semantic Vision Academy" subtitle={`Welcome, ${studentData?.full_name}!`} onLogout={handleLogout}>
+    <AppShell title="Semantic Vision Academy" subtitle={`Welcome, ${studentData?.full_name}!`} onLogout={handleLogout}
+      rightContent={
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowFAQ(!showFAQ)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-105"
+            style={{ color: showFAQ ? '#D4A853' : '#94A3B8', border: '1px solid rgba(255,255,255,0.1)', background: showFAQ ? 'rgba(212,168,83,0.1)' : 'rgba(255,255,255,0.04)' }}
+            data-testid="student-faq-btn">
+            <HelpCircle size={14} /> FAQ
+          </button>
+          <button onClick={resetOnboarding}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-105"
+            style={{ color: '#94A3B8', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)' }}
+            data-testid="reset-onboarding-btn">
+            <RotateCcw size={14} /> Tutorial
+          </button>
+        </div>
+      }
+    >
       <div className="container mx-auto px-4 py-6">
+        {/* FAQ Section (toggleable) */}
+        {showFAQ && (
+          <div className="mb-6">
+            <FAQSection items={studentFAQ} title="Student FAQ" />
+          </div>
+        )}
+
         {/* Stats */}
         <div className="grid md:grid-cols-3 gap-4 mb-6">
           <StatCard icon={BookMarked} label="Vocabulary Mastered" value={masteredCount} sub={`Target: ${biologicalTarget} words`} accent="#818CF8" />
@@ -209,6 +242,7 @@ const StudentAcademy = () => {
       )}
 
       <OnboardingWizard
+        key={wizardKey}
         steps={studentOnboardingSteps}
         portalType="student"
         userId={student?.id || student?.student_code}

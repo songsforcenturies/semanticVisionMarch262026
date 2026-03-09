@@ -1,0 +1,143 @@
+{
+  "summary": "Iteration 34: Unified Login/Register Pages + FAQ Sections + Reset Onboarding Tests - ALL MAJOR TESTS PASSED. Tested unified login page with 4 role selector icons (Parents, Students, Teachers, Brands), unified register page with 3 role icons, FAQ sections for all user types, and reset onboarding (Tutorial) buttons.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "All unified login/register pages working correctly with role selector icons",
+    "FAQ sections using FAQSection component with proper data-testid attributes",
+    "Reset onboarding (Tutorial) button correctly clears localStorage and re-shows wizard",
+    "Old routes correctly redirect with query params (/student-login → /login?type=student)",
+    "Teacher Portal has FAQ tab but NO Tutorial/reset onboarding button (by design per code review)"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend only test)",
+    "frontend": "100% - All 22 features verified"
+  },
+  "test_credentials": {
+    "admin_user": {
+      "email": "allen@songsforcenturies.com",
+      "password": "LexiAdmin2026!"
+    },
+    "student": {
+      "code": "STU-DR40V7",
+      "pin": "914027"
+    }
+  },
+  "seed_data_creation": "",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Unified login/register pages, FAQ sections, and reset onboarding buttons all working. The Teacher Portal intentionally does not have a Tutorial button (only FAQ tab). All route redirects working correctly.",
+  "tests_executed": {
+    "unified_login_page": [
+      "Login page loads at /login with 4 role selector icons - PASSED",
+      "Default is Parent role with email/password form - PASSED",
+      "Clicking 'Students' icon switches to Student Code + PIN form fields - PASSED",
+      "Clicking 'Teachers' icon switches to email + password form with teacher@school.edu placeholder - PASSED",
+      "Clicking 'Brands' icon switches to email + password form with brand@company.com placeholder - PASSED",
+      "Clicking 'Parents' icon switches back to parent email + password form - PASSED",
+      "Parent (admin) login works: allen@songsforcenturies.com / LexiAdmin2026! redirects to /admin - PASSED",
+      "Student login works via unified page: STU-DR40V7 / 914027 redirects to /academy - PASSED"
+    ],
+    "unified_register_page": [
+      "Register page loads at /register with 3 role icons (Parents, Teachers, Brands) - PASSED",
+      "No Students role on register page (correct - students don't self-register) - PASSED",
+      "Referral code field shows only for Parent role - PASSED",
+      "Teacher role shows 'Ms. Johnson' name placeholder - PASSED",
+      "Brand role shows 'Company Name' placeholder - PASSED",
+      "Brand role shows 'Brand Partner Registration' title - PASSED"
+    ],
+    "old_route_redirects": [
+      "/student-login redirects to /login?type=student with student tab pre-selected - PASSED",
+      "/teacher-login redirects to /login?type=teacher with teacher tab pre-selected - PASSED",
+      "/teacher-register redirects to /register?role=teacher with teacher tab pre-selected - PASSED",
+      "/register?role=brand_partner pre-selects brand tab - PASSED"
+    ],
+    "guardian_portal_faq_tutorial": [
+      "Guardian Portal FAQ tab (data-testid='tab-faq') present - PASSED",
+      "Guardian Portal Tutorial button (data-testid='reset-onboarding-btn') present - PASSED",
+      "FAQ section displays with 6 parent FAQ items - PASSED",
+      "FAQ items expand/collapse on click with chevron animation - PASSED",
+      "Tutorial button resets localStorage and re-shows onboarding wizard - PASSED"
+    ],
+    "brand_portal_faq_tutorial": [
+      "Brand Portal FAQ tab (data-testid='tab-faq') present - PASSED",
+      "Brand Portal Tutorial button (data-testid='reset-onboarding-btn') present - PASSED",
+      "FAQ section displays with 6 brand FAQ items - PASSED",
+      "FAQ items expand/collapse on click - PASSED",
+      "Tutorial button resets and re-shows onboarding wizard - PASSED"
+    ],
+    "student_academy_faq_tutorial": [
+      "Student Academy FAQ toggle button (data-testid='student-faq-btn') present - PASSED",
+      "Student Academy Tutorial button (data-testid='reset-onboarding-btn') present - PASSED",
+      "FAQ toggle button shows/hides FAQ section - PASSED",
+      "FAQ section displays with 5 student FAQ items - PASSED",
+      "FAQ items expand/collapse on click - PASSED",
+      "Tutorial button resets and re-shows onboarding wizard - PASSED"
+    ],
+    "teacher_portal_faq": [
+      "Teacher Portal FAQ tab (data-testid='tab-faq') present - PASSED",
+      "FAQ section displays with 5 teacher/school FAQ items - PASSED",
+      "FAQ items expand/collapse on click - PASSED",
+      "Note: Teacher Portal does NOT have Tutorial button (by design)"
+    ],
+    "data_testid_verification": [
+      "login-role-selector, login-role-parent/student/teacher/brand - PASSED",
+      "register-role-selector, register-role-parent/teacher/brand - PASSED",
+      "login-email, login-password, student-code-input, student-pin-input - PASSED",
+      "tab-faq (Guardian, Brand, Teacher portals) - PASSED",
+      "student-faq-btn (Student Academy toggle) - PASSED",
+      "reset-onboarding-btn (Guardian, Brand, Student) - PASSED",
+      "faq-section, faq-item-{index} - PASSED"
+    ]
+  },
+  "feature_verification": {
+    "unified_login_page": {
+      "location": "/app/frontend/src/pages/GuardianLogin.jsx",
+      "roles": ["parent", "student", "teacher", "brand"],
+      "query_param": "?type={role} pre-selects role",
+      "dynamic_form": "Parent/Teacher/Brand use email+password, Student uses code+pin"
+    },
+    "unified_register_page": {
+      "location": "/app/frontend/src/pages/GuardianRegister.jsx",
+      "roles": ["parent", "teacher", "brand"],
+      "query_param": "?role={role} pre-selects role",
+      "referral_code": "Only shown for parent role"
+    },
+    "faq_sections": {
+      "component": "/app/frontend/src/components/FAQSection.jsx",
+      "content": "/app/frontend/src/components/faqContent.js",
+      "types": {
+        "parentFAQ": "6 items for Guardian Portal",
+        "brandFAQ": "6 items for Brand Portal",
+        "studentFAQ": "5 items for Student Academy",
+        "teacherFAQ": "5 items for Teacher Portal"
+      }
+    },
+    "reset_onboarding": {
+      "button_testid": "reset-onboarding-btn",
+      "clears_localstorage_key": "sv_onboarding_{portalType}_{userId}",
+      "available_in": ["Guardian Portal", "Brand Portal", "Student Academy"],
+      "not_in_teacher_portal": "By design - no Tutorial button in TeacherPortal.jsx"
+    },
+    "route_redirects": {
+      "location": "/app/frontend/src/App.js",
+      "/student-login": "Navigate to /login?type=student",
+      "/teacher-login": "Navigate to /login?type=teacher",
+      "/teacher-register": "Navigate to /register?role=teacher"
+    }
+  },
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "note": "All login/register flows use real API endpoints, FAQ is frontend-only"
+  }
+}

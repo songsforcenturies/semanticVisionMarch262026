@@ -9,7 +9,7 @@ import {
   BarChart3, Megaphone, DollarSign, PlusCircle, Trash2,
   Play, Pause, CreditCard, TrendingUp, Eye, Upload, Package,
   Globe, FileText, ChevronRight, ChevronLeft, Check, Pencil, X, Building2,
-  BookOpen, Sparkles, RefreshCw, Loader2, Gift,
+  BookOpen, Sparkles, RefreshCw, Loader2, Gift, HelpCircle, RotateCcw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -19,6 +19,8 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 import AppShell from '@/components/AppShell';
 import OnboardingWizard from '@/components/OnboardingWizard';
 import { brandOnboardingSteps } from '@/components/onboardingSteps';
+import FAQSection from '@/components/FAQSection';
+import { brandFAQ } from '@/components/faqContent';
 
 const AD_CATEGORIES = [
   'technology', 'education', 'food', 'sports', 'arts', 'health',
@@ -43,6 +45,12 @@ const BrandPortal = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [wizardKey, setWizardKey] = useState(0);
+
+  const resetOnboarding = () => {
+    localStorage.removeItem(`sv_onboarding_brand_${user?.id || user?.email}`);
+    setWizardKey((k) => k + 1);
+  };
 
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -90,10 +98,20 @@ const BrandPortal = () => {
     { id: 'offers', label: 'Offers', icon: Gift },
     { id: 'budget', label: 'Budget', icon: DollarSign },
     { id: 'impressions', label: 'Analytics', icon: Eye },
+    { id: 'faq', label: 'FAQ', icon: HelpCircle },
   ];
 
   return (
-    <AppShell title="Brand Portal" subtitle={brand?.name || user?.full_name} onLogout={() => { logout(); navigate('/login'); }}>
+    <AppShell title="Brand Portal" subtitle={brand?.name || user?.full_name} onLogout={() => { logout(); navigate('/login'); }}
+      rightContent={
+        <button onClick={resetOnboarding}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-105"
+          style={{ color: '#94A3B8', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)' }}
+          data-testid="reset-onboarding-btn">
+          <RotateCcw size={14} /> Tutorial
+        </button>
+      }
+    >
       <div className="container mx-auto px-4 py-6" data-testid="brand-portal">
         {notApproved && (
           <div className="p-4 rounded-xl mb-6" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)' }}>
@@ -142,9 +160,11 @@ const BrandPortal = () => {
         {activeTab === 'offers' && <BrandOffersTab brand={brand} queryClient={queryClient} />}
         {activeTab === 'budget' && <BudgetTab stats={stats} />}
         {activeTab === 'impressions' && <AnalyticsTab brand={brand} stats={stats} dashboard={dashboard} />}
+        {activeTab === 'faq' && <FAQSection items={brandFAQ} title="Brand Partner FAQ" />}
       </div>
 
       <OnboardingWizard
+        key={wizardKey}
         steps={brandOnboardingSteps}
         portalType="brand"
         userId={user?.id || user?.email}
