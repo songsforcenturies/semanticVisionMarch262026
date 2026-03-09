@@ -673,3 +673,83 @@ def get_biological_target(age: int) -> int:
     elif age > 20:
         return 50000  # Polymath level
     return BIOLOGICAL_TARGETS.get(age, 35000)
+
+
+
+def generate_affiliate_code():
+    import random, string
+    chars = string.ascii_uppercase + string.digits
+    return f"AFF-{''.join(random.choices(chars, k=8))}"
+
+
+# Affiliate System
+class AffiliateRewardType(str, Enum):
+    FLAT_FEE = "flat_fee"
+    PERCENTAGE = "percentage"
+    WALLET_CREDITS = "wallet_credits"
+
+
+class Affiliate(MongoBaseModel):
+    id: str = Field(default_factory=generate_uuid)
+    user_id: str  # linked user
+    email: str
+    full_name: str
+    affiliate_code: str = Field(default_factory=generate_affiliate_code)
+    reward_type: AffiliateRewardType = AffiliateRewardType.FLAT_FEE
+    flat_fee_amount: float = 5.0
+    percentage_rate: float = 10.0
+    wallet_credit_amount: float = 5.0
+    total_referrals: int = 0
+    total_earnings: float = 0.0
+    total_paid: float = 0.0
+    pending_balance: float = 0.0
+    is_active: bool = True
+    confirmed: bool = False
+    created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class AffiliateReferral(MongoBaseModel):
+    id: str = Field(default_factory=generate_uuid)
+    affiliate_id: str
+    affiliate_code: str
+    referred_user_id: str
+    referred_email: str
+    reward_type: AffiliateRewardType
+    reward_amount: float = 0.0
+    status: str = "pending"  # pending, credited, paid
+    created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class AffiliateSettings(BaseModel):
+    default_reward_type: AffiliateRewardType = AffiliateRewardType.FLAT_FEE
+    default_flat_fee: float = 5.0
+    default_percentage: float = 10.0
+    default_wallet_credits: float = 5.0
+    min_payout_threshold: float = 25.0
+    affiliate_program_enabled: bool = True
+    auto_approve: bool = True
+
+
+# Brand Offers
+class BrandOffer(MongoBaseModel):
+    id: str = Field(default_factory=generate_uuid)
+    brand_id: str
+    brand_name: str
+    title: str
+    description: str
+    offer_type: str = "free"  # free, paid
+    price: float = 0.0
+    external_link: Optional[str] = None
+    internal_promo_code: Optional[str] = None
+    is_active: bool = True
+    target_all_users: bool = True
+    target_user_ids: List[str] = Field(default_factory=list)
+    views: int = 0
+    clicks: int = 0
+    created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class UserOfferPreference(MongoBaseModel):
+    user_id: str
+    offers_enabled: bool = True
+    dismissed_offer_ids: List[str] = Field(default_factory=list)

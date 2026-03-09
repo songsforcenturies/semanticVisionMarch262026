@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { adminAPI, wordBankAPI } from '@/lib/api';
+import { adminAPI, wordBankAPI, adminAffiliateAPI } from '@/lib/api';
+import AffiliatesTab from '@/components/admin/AffiliatesTab';
 import apiClient from '@/lib/api';
 import { BrutalCard, BrutalButton, BrutalBadge, BrutalInput } from '@/components/brutal';
 import {
   DollarSign, Cpu, Users, BarChart3, Settings, Shield,
   Ticket, Crown, PlusCircle, Trash2, UserCheck, BookOpen, Clock, Zap, Sliders, ToggleLeft,
-  Megaphone, Building2, Edit, Trophy, Wallet,
+  Megaphone, Building2, Edit, Trophy, Wallet, Link2, Send, CheckCircle, XCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
@@ -406,6 +407,7 @@ const AdminPortal = () => {
     { id: 'plans', label: 'Plans', icon: Crown },
     { id: 'billing', label: 'Billing/ROI', icon: Sliders },
     { id: 'features', label: 'Features', icon: ToggleLeft },
+    { id: 'affiliates', label: 'Affiliates', icon: Link2 },
     { id: 'config', label: 'LLM Config', icon: Settings },
     { id: 'settings', label: 'App Settings', icon: Shield },
   ];
@@ -1654,6 +1656,9 @@ const AdminPortal = () => {
             </BrutalCard>
           </div>
         )}
+
+        {/* =================== AFFILIATES TAB =================== */}
+        {activeTab === 'affiliates' && <AffiliatesTab />}
 
         {/* =================== LLM CONFIG TAB =================== */}
         {activeTab === 'config' && (

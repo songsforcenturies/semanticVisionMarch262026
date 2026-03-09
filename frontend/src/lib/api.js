@@ -251,4 +251,36 @@ export const brandPortalAPI = {
   deleteCoupon: (id) => apiClient.delete(`/brand-portal/coupons/${id}`),
 };
 
+// ==================== AFFILIATE API ====================
+
+export const affiliateAPI = {
+  signup: (data) => apiClient.post('/affiliates/signup', data),
+  track: (code) => apiClient.get(`/affiliates/track/${code}`),
+  getMyStats: () => apiClient.get('/affiliates/my-stats'),
+};
+
+// ==================== ADMIN AFFILIATE API ====================
+
+export const adminAffiliateAPI = {
+  getAll: () => apiClient.get('/admin/affiliates'),
+  updateSettings: (data) => apiClient.put('/admin/affiliates/settings', data),
+  update: (id, data) => apiClient.put(`/admin/affiliates/${id}`, data),
+  payout: (id, data) => apiClient.post(`/admin/affiliates/${id}/payout`, data),
+};
+
+// ==================== BRAND OFFERS API ====================
+
+export const brandOffersAPI = {
+  create: (data) => apiClient.post('/brands/offers', data),
+  getOwn: () => apiClient.get('/brands/offers'),
+  update: (id, data) => apiClient.put(`/brands/offers/${id}`, data),
+  remove: (id) => apiClient.delete(`/brands/offers/${id}`),
+};
+
+export const parentOffersAPI = {
+  getAvailable: () => apiClient.get('/offers'),
+  updatePreferences: (data) => apiClient.put('/offers/preferences', data),
+  trackClick: (id) => apiClient.post(`/offers/${id}/click`),
+};
+
 export default apiClient;

@@ -183,6 +183,33 @@ CHILD'S GROWTH AREAS: {weaknesses}
 The protagonist should face challenges related to these areas. Show the character struggling with but GROWING through these challenges. Weave in practical strategies and small victories. The story should model how to improve in these areas through perseverance, support from others, and positive mindset — never shame or deficit framing. Show that growth is possible and celebrate progress over perfection."""
 
         # Create the story generation prompt
+        # Grade-level complexity mapping for age-appropriate language
+        grade_complexity = {
+            "pre-k": "very simple sentences, 3-5 word vocabulary, familiar everyday objects and animals",
+            "k": "simple sentences, basic sight words, concrete concepts, repetition for learning",
+            "1": "short sentences, common vocabulary, basic story structure, simple cause and effect",
+            "2": "developing sentences, grade 2 vocabulary, beginning chapter books level",
+            "3": "moderate sentence complexity, grade 3 vocabulary, descriptive language",
+            "4": "compound sentences, grade 4 vocabulary, figurative language introduction",
+            "5": "complex sentences, grade 5 vocabulary, abstract concepts, inference skills",
+            "6": "middle school vocabulary, complex narrative structure, themes and symbolism",
+            "7": "advanced vocabulary, multi-layered narratives, critical thinking prompts",
+            "8": "sophisticated vocabulary, nuanced characters, complex moral dilemmas",
+            "9": "high school vocabulary, literary techniques, analytical thinking",
+            "10": "advanced literary vocabulary, complex themes, persuasive reasoning",
+            "11": "college-prep vocabulary, advanced literary analysis, rhetorical strategies",
+            "12": "college-level vocabulary, sophisticated narrative structure, philosophical themes",
+            "college": "academic vocabulary, complex argumentation, interdisciplinary concepts",
+            "adult": "professional vocabulary, nuanced storytelling, real-world complexity",
+        }
+        complexity_guide = grade_complexity.get(str(grade_level), grade_complexity.get("5", "moderate complexity"))
+
+        brand_question_section = ""
+        if brand_placements:
+            brand_names = [bp['name'] for bp in brand_placements]
+            brand_question_section = f"""
+BRAND COMPREHENSION: For at least one chapter that features a brand product, the comprehension question MUST test the student's understanding of HOW the brand's product helped solve a problem in the story. Reference the brand or product by name in the question or answer options. These are 'Brand Activation Questions' — they measure whether the student understood the role of the product in the narrative. Brands featured: {', '.join(brand_names)}."""
+
         system_message = f"""You are an expert educational story writer for Semantic Vision. 
 Generate engaging, age-appropriate stories that naturally embed vocabulary words for learning.
 
@@ -192,6 +219,10 @@ Student Profile:
 - Grade: {grade_level}
 - Interests: {', '.join(interests)}
 - Character Lessons: {', '.join(virtues) if virtues else 'General positive values'}
+
+GRADE-LEVEL LANGUAGE GUIDE: Write at a complexity appropriate for grade {grade_level}: {complexity_guide}. 
+The comprehension questions and answer choices must also match this reading level.
+Vocabulary words from the word banks may be above grade level (that is intentional for learning) but the surrounding narrative text, sentence structure, and comprehension questions should be appropriate for a {grade_level} reader aged {student_age}.
 
 Vocabulary Distribution:
 - 60% BASELINE words: {baseline_list}
@@ -203,6 +234,7 @@ Vocabulary Distribution:
 {culture_section}
 {language_section}
 {brand_section}
+{brand_question_section}
 {strengths_section}
 
 Requirements:

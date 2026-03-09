@@ -3,13 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
-import { brandPortalAPI } from '@/lib/api';
+import { brandPortalAPI, brandOffersAPI } from '@/lib/api';
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput } from '@/components/brutal';
 import {
   BarChart3, Megaphone, DollarSign, PlusCircle, Trash2,
   Play, Pause, CreditCard, TrendingUp, Eye, Upload, Package,
   Globe, FileText, ChevronRight, ChevronLeft, Check, Pencil, X, Building2,
-  BookOpen, Sparkles, RefreshCw, Loader2,
+  BookOpen, Sparkles, RefreshCw, Loader2, Gift,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -85,6 +85,7 @@ const BrandPortal = () => {
     { id: 'products', label: 'Products', icon: Package },
     { id: 'coupons', label: 'Coupons', icon: CreditCard },
     { id: 'campaigns', label: 'Campaigns', icon: Megaphone },
+    { id: 'offers', label: 'Offers', icon: Gift },
     { id: 'budget', label: 'Budget', icon: DollarSign },
     { id: 'impressions', label: 'Analytics', icon: Eye },
   ];
@@ -136,6 +137,7 @@ const BrandPortal = () => {
         {activeTab === 'products' && <ProductsTab brand={brand} queryClient={queryClient} />}
         {activeTab === 'coupons' && <BrandCouponsTab queryClient={queryClient} />}
         {activeTab === 'campaigns' && <CampaignsTab brand={brand} campaigns={campaigns} notApproved={notApproved} queryClient={queryClient} />}
+        {activeTab === 'offers' && <BrandOffersTab brand={brand} queryClient={queryClient} />}
         {activeTab === 'budget' && <BudgetTab stats={stats} />}
         {activeTab === 'impressions' && <AnalyticsTab brand={brand} stats={stats} dashboard={dashboard} />}
       </div>
@@ -1462,3 +1464,170 @@ const StoryPreviewCard = ({ brand }) => {
 };
 
 export default BrandPortal;
+
+// ==================== BRAND OFFERS TAB ====================
+const BrandOffersTab = ({ brand, queryClient }) => {
+  const [showForm, setShowForm] = React.useState(false);
+  const [editingOffer, setEditingOffer] = React.useState(null);
+  const [form, setForm] = React.useState({ title: '', description: '', offer_type: 'free', price: 0, external_link: '', internal_promo_code: '', target_all_users: true });
+
+  const { data: offers = [] } = useQuery({
+    queryKey: ['brand-offers'],
+    queryFn: async () => (await brandOffersAPI.getOwn()).data,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data) => brandOffersAPI.create(data),
+    onSuccess: () => { queryClient.invalidateQueries(['brand-offers']); setShowForm(false); resetForm(); toast.success('Offer created!'); },
+    onError: (e) => toast.error(e.response?.data?.detail || 'Failed'),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => brandOffersAPI.update(id, data),
+    onSuccess: () => { queryClient.invalidateQueries(['brand-offers']); setEditingOffer(null); setShowForm(false); resetForm(); toast.success('Offer updated!'); },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => brandOffersAPI.remove(id),
+    onSuccess: () => { queryClient.invalidateQueries(['brand-offers']); toast.success('Offer deleted'); },
+  });
+
+  const resetForm = () => setForm({ title: '', description: '', offer_type: 'free', price: 0, external_link: '', internal_promo_code: '', target_all_users: true });
+
+  const startEdit = (offer) => {
+    setEditingOffer(offer);
+    setForm({ title: offer.title, description: offer.description, offer_type: offer.offer_type, price: offer.price || 0, external_link: offer.external_link || '', internal_promo_code: offer.internal_promo_code || '', target_all_users: offer.target_all_users !== false });
+    setShowForm(true);
+  };
+
+  const handleSubmit = () => {
+    if (editingOffer) {
+      updateMutation.mutate({ id: editingOffer.id, data: form });
+    } else {
+      createMutation.mutate(form);
+    }
+  };
+
+  const svCard = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '24px' };
+  const svInput = "w-full px-4 py-3 rounded-lg text-white border focus:outline-none focus:ring-2 focus:ring-amber-500/60";
+
+  return (
+    <div className="space-y-6" data-testid="brand-offers-tab">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold" style={{ color: '#F8F5EE' }}>Offers & Promotions</h2>
+          <p className="text-sm" style={{ color: '#94A3B8' }}>Create offers that parents can see in their portal. Free offers and paid promotions.</p>
+        </div>
+        <button onClick={() => { resetForm(); setEditingOffer(null); setShowForm(true); }}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-black"
+          style={{ background: '#D4A853' }} data-testid="create-offer-btn">
+          <PlusCircle size={16} /> New Offer
+        </button>
+      </div>
+
+      {/* Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: 'Total Offers', val: offers.length, color: '#D4A853' },
+          { label: 'Active', val: offers.filter(o => o.is_active).length, color: '#10B981' },
+          { label: 'Total Views', val: offers.reduce((s,o) => s + (o.views||0), 0), color: '#818CF8' },
+          { label: 'Total Clicks', val: offers.reduce((s,o) => s + (o.clicks||0), 0), color: '#F472B6' },
+        ].map(s => (
+          <div key={s.label} style={svCard}>
+            <p className="text-xs font-semibold uppercase" style={{ color: '#64748B' }}>{s.label}</p>
+            <p className="text-3xl font-bold mt-1" style={{ color: s.color }}>{s.val}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Offers List */}
+      {offers.length === 0 && !showForm && (
+        <div style={svCard} className="text-center py-12">
+          <Gift size={40} className="mx-auto mb-3" style={{ color: '#D4A853' }} />
+          <p className="font-semibold" style={{ color: '#F8F5EE' }}>No offers yet</p>
+          <p className="text-sm mt-1" style={{ color: '#94A3B8' }}>Create your first offer to promote to parents.</p>
+        </div>
+      )}
+
+      {offers.map(offer => (
+        <div key={offer.id} style={svCard} className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <span className={`text-xs font-bold px-2 py-0.5 rounded ${offer.offer_type === 'free' ? 'text-emerald-400 bg-emerald-400/10' : 'text-amber-400 bg-amber-400/10'}`}>
+                {offer.offer_type === 'free' ? 'FREE' : `$${offer.price}`}
+              </span>
+              {!offer.is_active && <span className="text-xs font-bold px-2 py-0.5 rounded text-red-400 bg-red-400/10">Inactive</span>}
+            </div>
+            <h3 className="text-base font-bold" style={{ color: '#F8F5EE' }}>{offer.title}</h3>
+            <p className="text-sm mt-1" style={{ color: '#94A3B8' }}>{offer.description}</p>
+            {offer.external_link && <p className="text-xs mt-2" style={{ color: '#38BDF8' }}>Link: {offer.external_link}</p>}
+            {offer.internal_promo_code && <p className="text-xs mt-1" style={{ color: '#D4A853' }}>Promo Code: {offer.internal_promo_code}</p>}
+            <p className="text-xs mt-2" style={{ color: '#64748B' }}>{offer.views||0} views &middot; {offer.clicks||0} clicks</p>
+          </div>
+          <div className="flex gap-2 flex-shrink-0">
+            <button onClick={() => startEdit(offer)} className="p-2 rounded-lg hover:bg-white/5"><Pencil size={16} style={{ color: '#94A3B8' }} /></button>
+            <button onClick={() => { if(window.confirm('Delete this offer?')) deleteMutation.mutate(offer.id); }} className="p-2 rounded-lg hover:bg-white/5"><Trash2 size={16} style={{ color: '#EF4444' }} /></button>
+          </div>
+        </div>
+      ))}
+
+      {/* Create/Edit Form Modal */}
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.7)' }}>
+          <div className="w-full max-w-lg rounded-2xl p-6" style={{ background: '#1A2236', border: '1px solid rgba(212,168,83,0.2)' }}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-bold" style={{ color: '#F8F5EE' }}>{editingOffer ? 'Edit Offer' : 'Create New Offer'}</h3>
+              <button onClick={() => { setShowForm(false); setEditingOffer(null); }} className="p-2 rounded-lg hover:bg-white/10"><X size={18} style={{ color: '#94A3B8' }} /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block mb-1 text-sm font-semibold" style={{ color: '#CBD5E1' }}>Title</label>
+                <input value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="20% Off Educational Tablets"
+                  className={svInput} style={{ background: '#0F172A', borderColor: 'rgba(255,255,255,0.1)' }} data-testid="offer-title" />
+              </div>
+              <div>
+                <label className="block mb-1 text-sm font-semibold" style={{ color: '#CBD5E1' }}>Description</label>
+                <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} placeholder="Get 20% off our learning tablets this month..." rows={3}
+                  className={svInput + " resize-none"} style={{ background: '#0F172A', borderColor: 'rgba(255,255,255,0.1)' }} data-testid="offer-desc" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block mb-1 text-sm font-semibold" style={{ color: '#CBD5E1' }}>Type</label>
+                  <select value={form.offer_type} onChange={e => setForm({...form, offer_type: e.target.value})}
+                    className={svInput} style={{ background: '#0F172A', borderColor: 'rgba(255,255,255,0.1)' }}>
+                    <option value="free">Free Offer</option>
+                    <option value="paid">Paid Offer</option>
+                  </select>
+                </div>
+                {form.offer_type === 'paid' && (
+                  <div>
+                    <label className="block mb-1 text-sm font-semibold" style={{ color: '#CBD5E1' }}>Price ($)</label>
+                    <input type="number" step="0.01" value={form.price} onChange={e => setForm({...form, price: parseFloat(e.target.value)||0})}
+                      className={svInput} style={{ background: '#0F172A', borderColor: 'rgba(255,255,255,0.1)' }} />
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="block mb-1 text-sm font-semibold" style={{ color: '#CBD5E1' }}>External Link (optional)</label>
+                <input value={form.external_link} onChange={e => setForm({...form, external_link: e.target.value})} placeholder="https://yourbrand.com/promo"
+                  className={svInput} style={{ background: '#0F172A', borderColor: 'rgba(255,255,255,0.1)' }} />
+              </div>
+              <div>
+                <label className="block mb-1 text-sm font-semibold" style={{ color: '#CBD5E1' }}>Platform Promo Code (optional)</label>
+                <input value={form.internal_promo_code} onChange={e => setForm({...form, internal_promo_code: e.target.value})} placeholder="LEARN20"
+                  className={svInput} style={{ background: '#0F172A', borderColor: 'rgba(255,255,255,0.1)' }} />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button onClick={handleSubmit} disabled={!form.title || createMutation.isPending || updateMutation.isPending}
+                  className="flex-1 py-3 rounded-xl text-sm font-bold text-black disabled:opacity-40" style={{ background: '#D4A853' }} data-testid="save-offer-btn">
+                  {createMutation.isPending || updateMutation.isPending ? 'Saving...' : editingOffer ? 'Update Offer' : 'Create Offer'}
+                </button>
+                <button onClick={() => { setShowForm(false); setEditingOffer(null); }} className="px-6 py-3 rounded-xl text-sm font-semibold" style={{ color: '#94A3B8', border: '1px solid rgba(255,255,255,0.1)' }}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

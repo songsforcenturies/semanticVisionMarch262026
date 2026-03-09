@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { studentAPI, subscriptionAPI, wordBankAPI } from '@/lib/api';
-import { BrutalButton, BrutalInput, BrutalCard, BrutalBadge } from '@/components/brutal';
 import { Dialog } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { X, Check } from 'lucide-react';
+import { X, Check, ChevronRight, ChevronLeft, User, Heart, Sparkles, BookOpen, Globe } from 'lucide-react';
 
 const GRADE_LEVELS = [
   { value: 'pre-k', label: 'Pre-K' },
   { value: 'k', label: 'Kindergarten' },
-  { value: '1-12', label: 'Grades 1-12' },
+  ...Array.from({ length: 12 }, (_, i) => ({ value: `${i + 1}`, label: `Grade ${i + 1}` })),
   { value: 'college', label: 'College' },
-  { value: 'adult', label: 'Adult' }
+  { value: 'adult', label: 'Adult' },
 ];
 
 const LANGUAGES = [
@@ -21,7 +20,7 @@ const LANGUAGES = [
 ];
 
 const BELIEF_SYSTEMS = [
-  '', 'Baha\'i', 'Buddhist', 'Christian - Baptist', 'Christian - Catholic', 'Christian - Methodist',
+  '', "Baha'i", 'Buddhist', 'Christian - Baptist', 'Christian - Catholic', 'Christian - Methodist',
   'Christian - Non-Denominational', 'Christian - Orthodox', 'Christian - Pentecostal', 'Christian - Presbyterian',
   'Hindu', 'Islamic - Sunni', 'Islamic - Shia', 'Jewish - Orthodox', 'Jewish - Reform', 'Jewish - Conservative',
   'Sikh', 'Taoist', 'Shinto', 'Indigenous Spiritual', 'Secular / Humanist', 'Other',
@@ -33,75 +32,114 @@ const CULTURAL_CONTEXTS = [
   'Pacific Islander', 'South Asian', 'Southeast Asian', 'Mixed Heritage', 'Other',
 ];
 
+const VIRTUE_OPTIONS = [
+  { value: 'patience', label: 'Patience', desc: 'Waiting calmly and handling delays with grace' },
+  { value: 'kindness', label: 'Kindness', desc: 'Showing care and compassion toward others' },
+  { value: 'honesty', label: 'Honesty', desc: 'Being truthful even when it is difficult' },
+  { value: 'courage', label: 'Courage', desc: 'Facing fears and standing up for what is right' },
+  { value: 'responsibility', label: 'Responsibility', desc: 'Taking ownership of actions and commitments' },
+  { value: 'respect', label: 'Respect', desc: 'Valuing others, their belongings, and their feelings' },
+  { value: 'perseverance', label: 'Perseverance', desc: 'Keeping going even when things get hard' },
+  { value: 'gratitude', label: 'Gratitude', desc: 'Appreciating what they have and expressing thanks' },
+  { value: 'self-control', label: 'Self-Control', desc: 'Managing emotions and impulses thoughtfully' },
+  { value: 'generosity', label: 'Generosity', desc: 'Willingness to share and give to others' },
+  { value: 'humility', label: 'Humility', desc: 'Staying humble and open to learning from mistakes' },
+  { value: 'empathy', label: 'Empathy', desc: 'Understanding and sharing others\' feelings' },
+  { value: 'forgiveness', label: 'Forgiveness', desc: 'Letting go of anger and giving second chances' },
+  { value: 'fairness', label: 'Fairness', desc: 'Treating everyone equally and playing by the rules' },
+  { value: 'trustworthiness', label: 'Trustworthiness', desc: 'Being someone others can rely on and believe in' },
+  { value: 'teamwork', label: 'Teamwork', desc: 'Working well with others toward a common goal' },
+];
+
+const STEPS = [
+  { id: 'basic', label: 'Basic Info', icon: User },
+  { id: 'virtues', label: 'Virtues', icon: Heart },
+  { id: 'strengths', label: 'Strengths & Growth', icon: Sparkles },
+  { id: 'culture', label: 'Faith & Culture', icon: Globe },
+  { id: 'banks', label: 'Word Banks', icon: BookOpen },
+];
+
+// Dark-themed input component
+const DarkInput = ({ label, hint, children, ...props }) => (
+  <div>
+    {label && <label className="block mb-1.5 text-sm font-semibold text-slate-200">{label}</label>}
+    {children || (
+      <input
+        {...props}
+        className="w-full px-4 py-3 rounded-lg text-white bg-slate-800 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500/60 focus:border-amber-500 placeholder:text-slate-500"
+      />
+    )}
+    {hint && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
+  </div>
+);
+
+const DarkTextarea = ({ label, hint, ...props }) => (
+  <div>
+    {label && <label className="block mb-1.5 text-sm font-semibold text-slate-200">{label}</label>}
+    <textarea
+      {...props}
+      className="w-full px-4 py-3 rounded-lg text-white bg-slate-800 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500/60 focus:border-amber-500 placeholder:text-slate-500 resize-none"
+    />
+    {hint && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
+  </div>
+);
+
+const DarkSelect = ({ label, hint, children, ...props }) => (
+  <div>
+    {label && <label className="block mb-1.5 text-sm font-semibold text-slate-200">{label}</label>}
+    <select
+      {...props}
+      className="w-full px-4 py-3 rounded-lg text-white bg-slate-800 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500/60 focus:border-amber-500"
+    >
+      {children}
+    </select>
+    {hint && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
+  </div>
+);
+
 const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks = false }) => {
   const queryClient = useQueryClient();
+  const [step, setStep] = useState(0);
   const [formData, setFormData] = useState({
-    full_name: '',
-    age: '',
-    grade_level: '',
-    interests: '',
-    virtues: '',
-    strengths: '',
-    weaknesses: '',
-    assigned_banks: [],
-    belief_system: '',
-    cultural_context: '',
-    language: 'English',
+    full_name: '', age: '', grade_level: '', interests: '',
+    virtues: [], strengths: '', weaknesses: '',
+    assigned_banks: [], belief_system: '', cultural_context: '', language: 'English',
   });
 
-  // Fetch subscription to get available word banks
   const { data: subscription } = useQuery({
     queryKey: ['subscription', guardianId],
-    queryFn: async () => {
-      const response = await subscriptionAPI.get(guardianId);
-      return response.data;
-    },
-    enabled: !!guardianId && isOpen
+    queryFn: async () => (await subscriptionAPI.get(guardianId)).data,
+    enabled: !!guardianId && isOpen,
   });
 
-  // Fetch word bank details for owned banks
   const { data: availableBanks = [] } = useQuery({
     queryKey: ['available-banks'],
-    queryFn: async () => {
-      const response = await wordBankAPI.getAll({});
-      return response.data;
-    },
-    enabled: isOpen
+    queryFn: async () => (await wordBankAPI.getAll({})).data,
+    enabled: isOpen,
   });
 
   useEffect(() => {
+    if (!isOpen) return;
     if (student) {
       setFormData({
-        full_name: student.full_name || '',
-        age: student.age?.toString() || '',
-        grade_level: student.grade_level || '',
-        interests: student.interests?.join(', ') || '',
-        virtues: student.virtues?.join(', ') || '',
-        strengths: student.strengths || '',
-        weaknesses: student.weaknesses || '',
-        assigned_banks: student.assigned_banks || [],
-        belief_system: student.belief_system || '',
-        cultural_context: student.cultural_context || '',
+        full_name: student.full_name || '', age: student.age?.toString() || '',
+        grade_level: student.grade_level || '', interests: student.interests?.join(', ') || '',
+        virtues: student.virtues || [], strengths: student.strengths || '',
+        weaknesses: student.weaknesses || '', assigned_banks: student.assigned_banks || [],
+        belief_system: student.belief_system || '', cultural_context: student.cultural_context || '',
         language: student.language || 'English',
       });
+      setStep(focusOnBanks ? 4 : 0);
     } else {
       setFormData({
-        full_name: '',
-        age: '',
-        grade_level: '',
-        interests: '',
-        virtues: '',
-        strengths: '',
-        weaknesses: '',
-        assigned_banks: [],
-        belief_system: '',
-        cultural_context: '',
-        language: 'English',
+        full_name: '', age: '', grade_level: '', interests: '',
+        virtues: [], strengths: '', weaknesses: '',
+        assigned_banks: [], belief_system: '', cultural_context: '', language: 'English',
       });
+      setStep(0);
     }
-  }, [student, isOpen]);
+  }, [student, isOpen, focusOnBanks]);
 
-  // Create mutation
   const createMutation = useMutation({
     mutationFn: (data) => studentAPI.create(data),
     onSuccess: () => {
@@ -110,12 +148,9 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
       toast.success('Student created successfully!');
       onClose();
     },
-    onError: (error) => {
-      toast.error(error.response?.data?.detail || 'Failed to create student');
-    }
+    onError: (error) => toast.error(error.response?.data?.detail || 'Failed to create student'),
   });
 
-  // Update mutation
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => studentAPI.update(id, data),
     onSuccess: () => {
@@ -123,370 +158,336 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
       toast.success('Student updated successfully!');
       onClose();
     },
-    onError: (error) => {
-      toast.error(error.response?.data?.detail || 'Failed to update student');
-    }
+    onError: (error) => toast.error(error.response?.data?.detail || 'Failed to update student'),
   });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    // Process interests
-    const interestsArray = formData.interests
-      .split(',')
-      .map(i => i.trim())
-      .filter(i => i.length > 0);
-
-    // Process virtues
-    const virtuesArray = formData.virtues
-      .split(',')
-      .map(v => v.trim())
-      .filter(v => v.length > 0);
-
-    const submitData = {
-      full_name: formData.full_name,
-      age: formData.age ? parseInt(formData.age) : null,
-      grade_level: formData.grade_level || null,
-      interests: interestsArray,
-      virtues: virtuesArray,
-      guardian_id: guardianId,
-      belief_system: formData.belief_system,
-      cultural_context: formData.cultural_context,
-      language: formData.language,
-      strengths: formData.strengths,
-      weaknesses: formData.weaknesses,
-    };
-
-    if (student) {
-      // Update existing student
-      const { guardian_id, ...updateData } = submitData;
-      updateMutation.mutate({ id: student.id, data: updateData });
-    } else {
-      // Create new student
-      createMutation.mutate(submitData);
-    }
-  };
-
-  // Assign banks mutation (separate from create/update)
   const assignBanksMutation = useMutation({
     mutationFn: ({ studentId, bankIds }) => wordBankAPI.assignToStudent(studentId, bankIds),
     onSuccess: () => {
       queryClient.invalidateQueries(['students']);
-      toast.success('Word banks assigned successfully!');
+      toast.success('Word banks assigned!');
     },
-    onError: (error) => {
-      toast.error(error.response?.data?.detail || 'Failed to assign word banks');
-    }
+    onError: (error) => toast.error(error.response?.data?.detail || 'Failed to assign banks'),
   });
 
+  const handleSubmit = () => {
+    const interestsArray = formData.interests.split(',').map(i => i.trim()).filter(Boolean);
+    const virtuesArray = Array.isArray(formData.virtues) ? formData.virtues : formData.virtues.split(',').map(v => v.trim()).filter(Boolean);
+    const submitData = {
+      full_name: formData.full_name, age: formData.age ? parseInt(formData.age) : null,
+      grade_level: formData.grade_level || null, interests: interestsArray, virtues: virtuesArray,
+      guardian_id: guardianId, belief_system: formData.belief_system,
+      cultural_context: formData.cultural_context, language: formData.language,
+      strengths: formData.strengths, weaknesses: formData.weaknesses,
+    };
+    if (student) {
+      const { guardian_id, ...updateData } = submitData;
+      updateMutation.mutate({ id: student.id, data: updateData });
+    } else {
+      createMutation.mutate(submitData);
+    }
+  };
+
   const handleBankToggle = (bankId) => {
-    setFormData(prev => {
-      const current = prev.assigned_banks || [];
-      const newBanks = current.includes(bankId)
-        ? current.filter(id => id !== bankId)
-        : [...current, bankId];
-      return { ...prev, assigned_banks: newBanks };
-    });
+    setFormData(prev => ({
+      ...prev,
+      assigned_banks: prev.assigned_banks.includes(bankId)
+        ? prev.assigned_banks.filter(id => id !== bankId)
+        : [...prev.assigned_banks, bankId],
+    }));
   };
 
   const handleSaveBanks = () => {
     if (student) {
-      assignBanksMutation.mutate({
-        studentId: student.id,
-        bankIds: formData.assigned_banks
-      });
+      assignBanksMutation.mutate({ studentId: student.id, bankIds: formData.assigned_banks });
     }
   };
 
-  const ownedBankIds = subscription?.bank_access || [];
-  const ownedBanks = availableBanks.filter(bank => 
-    ownedBankIds.includes(bank.id) || bank.visibility === 'global'
-  );
+  const handleVirtueToggle = (virtue) => {
+    setFormData(prev => {
+      const current = Array.isArray(prev.virtues) ? prev.virtues : [];
+      return {
+        ...prev,
+        virtues: current.includes(virtue) ? current.filter(v => v !== virtue) : [...current, virtue],
+      };
+    });
+  };
 
+  const ownedBankIds = subscription?.bank_access || [];
+  const ownedBanks = availableBanks.filter(b => ownedBankIds.includes(b.id) || b.visibility === 'global');
   const isLoading = createMutation.isPending || updateMutation.isPending || assignBanksMutation.isPending;
+  const isLastStep = step === STEPS.length - 1;
+  const canGoNext = step === 0 ? formData.full_name.trim() : true;
+
+  // For existing students, show all steps; for new, skip banks (step 4)
+  const maxStep = student ? STEPS.length - 1 : STEPS.length - 2;
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <BrutalCard shadow="xl" className="w-full max-w-2xl bg-white max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-3xl font-black uppercase">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
+      <div className="w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl" style={{ background: '#1A2236', border: '1px solid rgba(212,168,83,0.2)', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <h2 className="text-xl font-bold text-white" data-testid="student-form-title">
             {student ? 'Edit Student' : 'Add New Student'}
           </h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 border-4 border-black brutal-active"
-          >
-            <X size={24} />
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition" data-testid="close-student-form">
+            <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <BrutalInput
-            label="Full Name *"
-            type="text"
-            required
-            value={formData.full_name}
-            onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-            placeholder="John Doe"
-          />
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <BrutalInput
-              label="Age"
-              type="number"
-              min="3"
-              max="100"
-              value={formData.age}
-              onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-              placeholder="10"
-            />
-
-            <div>
-              <label className="block mb-2 font-bold uppercase text-sm">
-                Grade Level
-              </label>
-              <select
-                value={formData.grade_level}
-                onChange={(e) => setFormData({ ...formData, grade_level: e.target.value })}
-                className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500 bg-white"
-              >
-                <option value="">Select grade...</option>
-                {GRADE_LEVELS.map((grade) => (
-                  <option key={grade.value} value={grade.value}>
-                    {grade.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block mb-2 font-bold uppercase text-sm">
-              Interests (comma-separated)
-            </label>
-            <textarea
-              value={formData.interests}
-              onChange={(e) => setFormData({ ...formData, interests: e.target.value })}
-              placeholder="space, dinosaurs, robots, science"
-              rows={3}
-              className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500 resize-none"
-            />
-            <p className="mt-1 text-sm font-medium text-gray-600">
-              These will be used to personalize AI-generated stories
-            </p>
-          </div>
-
-          <div>
-            <label className="block mb-2 font-bold uppercase text-sm">
-              Virtues & Life Lessons (comma-separated)
-            </label>
-            <textarea
-              value={formData.virtues}
-              onChange={(e) => setFormData({ ...formData, virtues: e.target.value })}
-              placeholder="patience, kindness, honesty, courage, responsibility"
-              rows={3}
-              className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-emerald-500 resize-none"
-            />
-            <p className="mt-1 text-sm font-medium text-emerald-700">
-              Stories will teach these character traits and life lessons
-            </p>
-          </div>
-
-          {/* Strengths & Weaknesses */}
-          <div className="border-4 border-blue-300 p-4 bg-blue-50">
-            <h4 className="font-black uppercase text-sm mb-4 text-blue-700">Your Child's Strengths & Growth Areas</h4>
-            <p className="text-sm text-gray-600 mb-4">
-              Every child is unique. Tell us what makes yours special and where they need support — the AI will celebrate their strengths and gently help them grow.
-            </p>
-            <div className="space-y-4">
-              <div>
-                <label className="block mb-2 font-bold uppercase text-sm text-blue-800">
-                  Strengths — What your child excels at
-                </label>
-                <textarea
-                  value={formData.strengths}
-                  onChange={(e) => setFormData({ ...formData, strengths: e.target.value })}
-                  placeholder="e.g., Very creative and imaginative. Great at math. Natural leader among friends. Loves helping younger kids. Strong reader who devours chapter books."
-                  rows={3}
-                  className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-blue-500 resize-none"
-                  data-testid="student-strengths"
-                />
-                <p className="text-xs text-blue-600 mt-1">Story characters will use these as superpowers</p>
-              </div>
-              <div>
-                <label className="block mb-2 font-bold uppercase text-sm text-amber-800">
-                  Growth Areas — Where your child needs support
-                </label>
-                <textarea
-                  value={formData.weaknesses}
-                  onChange={(e) => setFormData({ ...formData, weaknesses: e.target.value })}
-                  placeholder="e.g., Struggles with patience and waiting turns. Has difficulty sharing with siblings. Gets frustrated easily with hard tasks. Needs to work on reading comprehension."
-                  rows={3}
-                  className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-amber-500 resize-none"
-                  data-testid="student-weaknesses"
-                />
-                <p className="text-xs text-amber-600 mt-1">Stories will model growth in these areas with empathy and encouragement</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Belief System, Culture, Language */}
-          <div className="border-4 border-violet-300 p-4 bg-violet-50">
-            <h4 className="font-black uppercase text-sm mb-4 text-violet-700">Story Worldview & Culture</h4>
-            <div className="space-y-4">
-              <div>
-                <label className="block mb-1 font-bold text-sm uppercase">Belief System / Faith</label>
-                <select
-                  value={formData.belief_system}
-                  onChange={(e) => setFormData({ ...formData, belief_system: e.target.value })}
-                  className="w-full px-4 py-3 border-4 border-black font-medium bg-white"
-                  data-testid="belief-system-select"
+        {/* Step Indicators */}
+        <div className="flex items-center gap-1 px-6 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+          {STEPS.slice(0, maxStep + 1).map((s, i) => {
+            const Icon = s.icon;
+            const isActive = i === step;
+            const isDone = i < step;
+            return (
+              <React.Fragment key={s.id}>
+                {i > 0 && <div className="flex-1 h-px" style={{ background: isDone ? '#D4A853' : 'rgba(255,255,255,0.1)' }} />}
+                <button
+                  onClick={() => setStep(i)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                    isActive ? 'text-black' : isDone ? 'text-amber-400' : 'text-slate-500'
+                  }`}
+                  style={isActive ? { background: '#D4A853' } : {}}
+                  data-testid={`step-${s.id}`}
                 >
-                  <option value="">None / Secular</option>
-                  {BELIEF_SYSTEMS.filter(Boolean).map((b) => (
-                    <option key={b} value={b}>{b}</option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">Stories will reflect values from this tradition</p>
-              </div>
-              <div>
-                <label className="block mb-1 font-bold text-sm uppercase">Cultural Context</label>
-                <select
-                  value={formData.cultural_context}
-                  onChange={(e) => setFormData({ ...formData, cultural_context: e.target.value })}
-                  className="w-full px-4 py-3 border-4 border-black font-medium bg-white"
-                  data-testid="cultural-context-select"
-                >
-                  <option value="">Universal / No Preference</option>
-                  {CULTURAL_CONTEXTS.filter(Boolean).map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">Stories will include culturally relevant elements</p>
-              </div>
-              <div>
-                <label className="block mb-1 font-bold text-sm uppercase">Story Language</label>
-                <select
-                  value={formData.language}
-                  onChange={(e) => setFormData({ ...formData, language: e.target.value })}
-                  className="w-full px-4 py-3 border-4 border-black font-medium bg-white"
-                  data-testid="language-select"
-                >
-                  {LANGUAGES.map((l) => (
-                    <option key={l} value={l}>{l}</option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">AI stories will be generated in this language</p>
-              </div>
-            </div>
-          </div>
+                  <Icon size={14} />
+                  <span className="hidden sm:inline">{s.label}</span>
+                </button>
+              </React.Fragment>
+            );
+          })}
+        </div>
 
-          {student && (
-            <BrutalCard variant="amber" className="bg-yellow-100">
-              <p className="font-bold text-sm uppercase mb-3">Student Login Credentials</p>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs font-bold uppercase text-gray-600 mb-1">Student Code</p>
-                  <p className="text-xl font-black font-mono tracking-wider">{student.student_code}</p>
+        {/* Step Content */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5" style={{ minHeight: 0 }}>
+
+          {/* STEP 0: Basic Info */}
+          {step === 0 && (
+            <>
+              <DarkInput label="Full Name *" type="text" required value={formData.full_name}
+                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} placeholder="John Doe" data-testid="student-name" />
+              <div className="grid grid-cols-2 gap-4">
+                <DarkInput label="Age" type="number" min="3" max="100" value={formData.age}
+                  onChange={(e) => setFormData({ ...formData, age: e.target.value })} placeholder="10" />
+                <DarkSelect label="Grade Level" value={formData.grade_level}
+                  onChange={(e) => setFormData({ ...formData, grade_level: e.target.value })}>
+                  <option value="">Select grade...</option>
+                  {GRADE_LEVELS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
+                </DarkSelect>
+              </div>
+              <DarkTextarea label="Interests (comma-separated)" value={formData.interests}
+                onChange={(e) => setFormData({ ...formData, interests: e.target.value })}
+                placeholder="space, dinosaurs, robots, science" rows={2}
+                hint="Used to personalize AI-generated stories" />
+              {student && (
+                <div className="rounded-xl p-4" style={{ background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(212,168,83,0.2)' }}>
+                  <p className="text-xs font-semibold uppercase text-amber-400 mb-2">Student Login Credentials</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-slate-400 mb-1">Student Code</p>
+                      <p className="text-lg font-bold font-mono text-white tracking-wider">{student.student_code}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400 mb-1">PIN</p>
+                      <p className="text-lg font-bold font-mono text-white tracking-wider">{student.access_pin}</p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs font-bold uppercase text-gray-600 mb-1">9-Digit PIN</p>
-                  <p className="text-xl font-black font-mono tracking-wider">{student.access_pin}</p>
-                </div>
-              </div>
-              <p className="text-sm font-medium mt-3 text-amber-800">
-                ⚠️ Both codes are required to login and cannot be changed
-              </p>
-            </BrutalCard>
+              )}
+            </>
           )}
 
-          {/* Word Bank Assignment */}
-          {student && ownedBanks.length > 0 && (
-            <div className={focusOnBanks ? 'border-4 border-emerald-500 p-4 bg-emerald-50' : ''}>
-              <label className="block mb-3 font-bold uppercase text-sm">
-                {focusOnBanks && '✨ '}Assign Word Banks ({formData.assigned_banks.length} selected)
-              </label>
-              {focusOnBanks && (
-                <p className="mb-3 text-sm font-medium text-emerald-700">
-                  Select which word banks this student can use to generate stories:
-                </p>
-              )}
-              <div className="space-y-2 max-h-48 overflow-y-auto border-4 border-black p-4 bg-gray-50">
-                {ownedBanks.map((bank) => {
-                  const isSelected = formData.assigned_banks.includes(bank.id);
+          {/* STEP 1: Virtues */}
+          {step === 1 && (
+            <>
+              <div className="rounded-xl p-4" style={{ background: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.15)' }}>
+                <h3 className="text-base font-bold text-amber-400 mb-1">Which virtues would you like your child to develop?</h3>
+                <p className="text-sm text-slate-400">Select the character traits and life lessons you'd like the AI to weave into your child's stories. These are areas where you feel your child could grow.</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {VIRTUE_OPTIONS.map(v => {
+                  const virtuesArr = Array.isArray(formData.virtues) ? formData.virtues : [];
+                  const selected = virtuesArr.includes(v.value);
                   return (
-                    <label
-                      key={bank.id}
-                      className={`flex items-center gap-3 p-3 border-4 border-black cursor-pointer transition-colors ${
-                        isSelected ? 'bg-emerald-200' : 'bg-white hover:bg-gray-100'
+                    <button key={v.value} type="button" onClick={() => handleVirtueToggle(v.value)}
+                      className={`flex items-start gap-3 p-3 rounded-xl text-left transition-all ${
+                        selected ? 'ring-2 ring-amber-500' : 'hover:bg-white/5'
                       }`}
+                      style={{ background: selected ? 'rgba(212,168,83,0.12)' : 'rgba(255,255,255,0.03)', border: '1px solid ' + (selected ? 'rgba(212,168,83,0.4)' : 'rgba(255,255,255,0.06)') }}
+                      data-testid={`virtue-${v.value}`}
                     >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => handleBankToggle(bank.id)}
-                        className="w-6 h-6 border-4 border-black"
-                      />
-                      <div className="flex-1">
-                        <p className="font-black text-sm">{bank.name}</p>
-                        <p className="text-xs font-medium text-gray-600">
-                          {bank.total_tokens} words • {bank.specialty || bank.category}
-                        </p>
+                      <div className={`w-5 h-5 mt-0.5 rounded flex-shrink-0 flex items-center justify-center ${
+                        selected ? 'bg-amber-500 text-black' : 'border border-slate-600'
+                      }`}>
+                        {selected && <Check size={14} />}
                       </div>
-                      {isSelected && (
-                        <Check size={20} className="text-emerald-600" />
-                      )}
-                    </label>
+                      <div>
+                        <p className="text-sm font-semibold text-white">{v.label}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">{v.desc}</p>
+                      </div>
+                    </button>
                   );
                 })}
               </div>
-              {student && (
-                <BrutalButton
-                  type="button"
-                  variant="emerald"
-                  size="md"
-                  fullWidth
-                  onClick={handleSaveBanks}
-                  disabled={assignBanksMutation.isPending}
-                  className="mt-3"
-                >
-                  {assignBanksMutation.isPending ? 'Saving...' : '💾 Save Bank Assignments'}
-                </BrutalButton>
+              {(Array.isArray(formData.virtues) ? formData.virtues : []).length > 0 && (
+                <p className="text-sm text-amber-400 font-medium">
+                  {(Array.isArray(formData.virtues) ? formData.virtues : []).length} virtue{(Array.isArray(formData.virtues) ? formData.virtues : []).length !== 1 ? 's' : ''} selected
+                </p>
               )}
-            </div>
+            </>
           )}
 
-          {ownedBanks.length === 0 && student && (
-            <BrutalCard className="bg-amber-50 border-amber-500">
-              <p className="font-medium text-sm">
-                💡 No word banks available. Visit the Marketplace tab to add word banks to your library!
-              </p>
-            </BrutalCard>
+          {/* STEP 2: Strengths & Growth Areas */}
+          {step === 2 && (
+            <>
+              <div className="rounded-xl p-4" style={{ background: 'rgba(56,189,248,0.06)', border: '1px solid rgba(56,189,248,0.15)' }}>
+                <h3 className="text-base font-bold text-sky-400 mb-1">Tell us what makes your child special</h3>
+                <p className="text-sm text-slate-400">The AI will celebrate their strengths as "superpowers" in stories and gently model growth in their challenge areas — never through shame.</p>
+              </div>
+              <div className="rounded-xl p-4 space-y-4" style={{ background: 'rgba(56,189,248,0.04)', border: '1px solid rgba(56,189,248,0.1)' }}>
+                <DarkTextarea
+                  label="Strengths — What your child excels at"
+                  value={formData.strengths}
+                  onChange={(e) => setFormData({ ...formData, strengths: e.target.value })}
+                  placeholder="e.g., Very creative and imaginative. Great at math. Natural leader among friends. Loves helping younger kids."
+                  rows={3} data-testid="student-strengths"
+                  hint="Story characters will exhibit these as superpowers"
+                />
+              </div>
+              <div className="rounded-xl p-4 space-y-4" style={{ background: 'rgba(212,168,83,0.04)', border: '1px solid rgba(212,168,83,0.1)' }}>
+                <DarkTextarea
+                  label="Growth Areas — Where your child needs support"
+                  value={formData.weaknesses}
+                  onChange={(e) => setFormData({ ...formData, weaknesses: e.target.value })}
+                  placeholder="e.g., Struggles with patience. Gets frustrated with hard tasks. Needs to work on sharing with siblings."
+                  rows={3} data-testid="student-weaknesses"
+                  hint="Stories will model growth in these areas with empathy and encouragement"
+                />
+              </div>
+            </>
           )}
 
-          <div className="flex gap-4">
-            <BrutalButton
-              type="submit"
-              variant="emerald"
-              fullWidth
-              disabled={isLoading}
-            >
-              {isLoading ? 'Saving...' : student ? 'Update Student' : 'Create Student'}
-            </BrutalButton>
-            <BrutalButton
-              type="button"
-              variant="ghost"
-              fullWidth
-              onClick={onClose}
-              disabled={isLoading}
-            >
-              Cancel
-            </BrutalButton>
+          {/* STEP 3: Faith & Culture */}
+          {step === 3 && (
+            <>
+              <div className="rounded-xl p-4" style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.15)' }}>
+                <h3 className="text-base font-bold text-violet-400 mb-1">Story Worldview & Culture</h3>
+                <p className="text-sm text-slate-400">Stories will reflect your family's faith, cultural traditions, and language. All settings are optional.</p>
+              </div>
+              <DarkSelect label="Belief System / Faith" value={formData.belief_system}
+                onChange={(e) => setFormData({ ...formData, belief_system: e.target.value })}
+                hint="Stories will reflect values from this tradition" data-testid="belief-system-select">
+                <option value="">None / Secular</option>
+                {BELIEF_SYSTEMS.filter(Boolean).map(b => <option key={b} value={b}>{b}</option>)}
+              </DarkSelect>
+              <DarkSelect label="Cultural Context" value={formData.cultural_context}
+                onChange={(e) => setFormData({ ...formData, cultural_context: e.target.value })}
+                hint="Stories will include culturally relevant elements" data-testid="cultural-context-select">
+                <option value="">Universal / No Preference</option>
+                {CULTURAL_CONTEXTS.filter(Boolean).map(c => <option key={c} value={c}>{c}</option>)}
+              </DarkSelect>
+              <DarkSelect label="Story Language" value={formData.language}
+                onChange={(e) => setFormData({ ...formData, language: e.target.value })}
+                hint="AI stories will be generated in this language" data-testid="language-select">
+                {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
+              </DarkSelect>
+            </>
+          )}
+
+          {/* STEP 4: Word Banks (Edit mode only) */}
+          {step === 4 && student && (
+            <>
+              <div className="rounded-xl p-4" style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.15)' }}>
+                <h3 className="text-base font-bold text-emerald-400 mb-1">Assign Word Banks</h3>
+                <p className="text-sm text-slate-400">Select which vocabulary word banks this student will use for their stories. Each bank contains age-appropriate words across baseline, target, and stretch tiers.</p>
+              </div>
+              {ownedBanks.length === 0 ? (
+                <div className="rounded-xl p-6 text-center" style={{ background: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.15)' }}>
+                  <BookOpen size={32} className="mx-auto text-amber-400 mb-3" />
+                  <p className="text-sm text-slate-300">No word banks available yet.</p>
+                  <p className="text-xs text-slate-500 mt-1">Visit the Marketplace tab to add word banks to your library.</p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm font-medium text-slate-300">{formData.assigned_banks.length} of {ownedBanks.length} banks selected</p>
+                  <div className="grid gap-2">
+                    {ownedBanks.map(bank => {
+                      const selected = formData.assigned_banks.includes(bank.id);
+                      return (
+                        <button key={bank.id} type="button" onClick={() => handleBankToggle(bank.id)}
+                          className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all ${
+                            selected ? 'ring-2 ring-emerald-500' : 'hover:bg-white/5'
+                          }`}
+                          style={{ background: selected ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.02)', border: '1px solid ' + (selected ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.06)') }}
+                          data-testid={`bank-${bank.id}`}
+                        >
+                          <div className={`w-6 h-6 rounded flex-shrink-0 flex items-center justify-center ${
+                            selected ? 'bg-emerald-500 text-black' : 'border border-slate-600'
+                          }`}>
+                            {selected && <Check size={16} />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-white truncate">{bank.name}</p>
+                            <p className="text-xs text-slate-400">{bank.total_tokens || 0} words &middot; {bank.specialty || bank.category || 'General'}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button type="button" onClick={handleSaveBanks} disabled={assignBanksMutation.isPending}
+                    className="w-full py-3 rounded-xl text-sm font-bold transition-all hover:scale-[1.01]"
+                    style={{ background: '#10B981', color: 'black' }}
+                    data-testid="save-banks-btn">
+                    {assignBanksMutation.isPending ? 'Saving...' : 'Save Bank Assignments'}
+                  </button>
+                </>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Footer Navigation */}
+        <div className="flex items-center justify-between px-6 py-4" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="flex gap-2">
+            {step > 0 && (
+              <button type="button" onClick={() => setStep(s => s - 1)}
+                className="flex items-center gap-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-white/5 transition"
+                data-testid="wizard-back">
+                <ChevronLeft size={16} /> Back
+              </button>
+            )}
           </div>
-        </form>
-      </BrutalCard>
+          <div className="flex gap-2">
+            {!student && step < maxStep && (
+              <button type="button" onClick={() => { handleSubmit(); }}
+                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition"
+                data-testid="wizard-skip">
+                Skip & Save
+              </button>
+            )}
+            {step < maxStep ? (
+              <button type="button" onClick={() => setStep(s => s + 1)} disabled={!canGoNext}
+                className="flex items-center gap-1 px-6 py-2.5 rounded-xl text-sm font-bold text-black transition-all hover:scale-[1.02] disabled:opacity-40"
+                style={{ background: '#D4A853' }}
+                data-testid="wizard-next">
+                Next <ChevronRight size={16} />
+              </button>
+            ) : (
+              <button type="button" onClick={handleSubmit} disabled={isLoading || !formData.full_name.trim()}
+                className="flex items-center gap-1 px-6 py-2.5 rounded-xl text-sm font-bold text-black transition-all hover:scale-[1.02] disabled:opacity-40"
+                style={{ background: '#D4A853' }}
+                data-testid="wizard-save">
+                {isLoading ? 'Saving...' : student ? 'Update Student' : 'Create Student'}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
