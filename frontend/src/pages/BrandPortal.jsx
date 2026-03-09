@@ -17,6 +17,8 @@ import {
 } from 'recharts';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import AppShell from '@/components/AppShell';
+import OnboardingWizard from '@/components/OnboardingWizard';
+import { brandOnboardingSteps } from '@/components/onboardingSteps';
 
 const AD_CATEGORIES = [
   'technology', 'education', 'food', 'sports', 'arts', 'health',
@@ -141,6 +143,12 @@ const BrandPortal = () => {
         {activeTab === 'budget' && <BudgetTab stats={stats} />}
         {activeTab === 'impressions' && <AnalyticsTab brand={brand} stats={stats} dashboard={dashboard} />}
       </div>
+
+      <OnboardingWizard
+        steps={brandOnboardingSteps}
+        portalType="brand"
+        userId={user?.id || user?.email}
+      />
     </AppShell>
   );
 };

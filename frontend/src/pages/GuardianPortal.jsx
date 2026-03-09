@@ -11,6 +11,8 @@ import WalletTab from '@/components/guardian/WalletTab';
 import ReferralTab from '@/components/guardian/ReferralTab';
 import SubscriptionTab from '@/components/guardian/SubscriptionTab';
 import OffersTab from '@/components/guardian/OffersTab';
+import OnboardingWizard from '@/components/OnboardingWizard';
+import { guardianOnboardingSteps } from '@/components/onboardingSteps';
 
 const GuardianPortal = () => {
   const { user, logout } = useAuth();
@@ -74,6 +76,12 @@ const GuardianPortal = () => {
           {activeTab === 'progress' && <ProgressTab />}
         </div>
       </div>
+
+      <OnboardingWizard
+        steps={guardianOnboardingSteps}
+        portalType="guardian"
+        userId={user?.id || user?.email}
+      />
     </AppShell>
   );
 };

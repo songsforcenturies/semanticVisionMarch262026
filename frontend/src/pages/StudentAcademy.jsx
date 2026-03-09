@@ -8,6 +8,8 @@ import { useNavigate } from 'react-router-dom';
 import AppShell from '@/components/AppShell';
 import StoryGenerationDialog from '@/components/student/StoryGenerationDialog';
 import NarrativeReader from '@/components/student/NarrativeReader';
+import OnboardingWizard from '@/components/OnboardingWizard';
+import { studentOnboardingSteps } from '@/components/onboardingSteps';
 
 const C = {
   bg: '#0A0F1E', card: '#1A2236', surface: '#111827',
@@ -205,6 +207,12 @@ const StudentAcademy = () => {
       {showStoryDialog && (
         <StoryGenerationDialog isOpen={showStoryDialog} onClose={() => setShowStoryDialog(false)} student={studentData} />
       )}
+
+      <OnboardingWizard
+        steps={studentOnboardingSteps}
+        portalType="student"
+        userId={student?.id || student?.student_code}
+      />
     </AppShell>
   );
 };
