@@ -17,9 +17,10 @@ Build a comprehensive AI-powered personalized educational narrative platform ("S
 - **Backend:** Python FastAPI, Motor (async MongoDB)
 - **Database:** MongoDB
 - **AI:** OpenAI GPT-5.2 (via Emergent LLM Key), OpenAI Whisper
-- **Payments:** Stripe
+- **Payments:** Stripe, PayPal
 - **Email:** Resend
 - **PDF:** ReportLab
+- **Screen Share:** Daily.co (requires user API key)
 
 ## What's Been Implemented (as of March 2026)
 
@@ -38,65 +39,85 @@ Build a comprehensive AI-powered personalized educational narrative platform ("S
 - PWA architecture (service worker, manifest, offline caching)
 - Music player placeholder in narrative reader
 - Affiliate referral system
-- Wallet/payment system (Stripe)
+- Wallet/payment system (Stripe + PayPal)
 - Multi-currency support (50+)
 - Guided onboarding framework
 - Student progress export (HTML/JSON)
 - Brand story preview system
 - Full mobile-responsive UI with softer color theme
 
+### Admin Features
+- Comprehensive admin dashboard with 18 tabs
+- User management (create, edit, deactivate, delete, reset password)
+- Delegated admin access (grant/revoke)
+- Cost/income/ROI analytics with family-level breakdown
+- API key management (Stripe, PayPal, Resend, Daily.co)
+- Admin impersonation ("View as User") - view app from any user's perspective
+- Screen share/remote support infrastructure (Daily.co)
+- Subscription plan management
+- Word bank CRUD
+- Brand & sponsorship management
+- Coupon system
+- Feature flags
+- Billing/ROI configuration
+
+### Guardian Features
+- Student management with PIN changes
+- Downloadable user/student ID cards with PINs
+- Multi-select heritage/culture with custom write-in
+- Culture learning preferences (16 topics influencing AI stories)
+- Tab order: Students, Word Bank, Audio Memories, Audio Books, Progress, ID Cards, Invite & Earn, Subscription, Wallet, Offers, Affiliate, FAQ
+
 ### Documentation Suite (Completed March 10, 2026)
 - **DEFINITIVE Provisional Patent Application v6** -- 98 claims, 31 screenshots, 1,000 technical specifications
-- **Master User Manual v6.0** -- 1,424-line comprehensive guide for all 6 user roles with:
-  - Detailed step-by-step instructions for every feature
-  - Benefits tied to patent claims for each stakeholder POV
-  - 105 FAQ questions across all roles (25 Parent, 20 Student, 15 Teacher, 20 Brand, 10 Affiliate, 15 Admin)
-  - Complete glossary of 30+ platform-specific terms
+- **Master User Manual v6.0** -- 1,424-line comprehensive guide for all 6 user roles
 
 ### Download Endpoints
 - `/api/patent/definitive-pdf` -- Patent PDF
 - `/api/patent/definitive-md` -- Patent Markdown
-- `/api/patent/definitive-bundle` -- Complete ZIP (patent + specs + manual + 31 screenshots)
+- `/api/patent/definitive-bundle` -- Complete ZIP
 - `/api/user-manual/master-pdf` -- User Manual PDF
 - `/api/user-manual/master-md` -- User Manual Markdown
 
 ## Prioritized Backlog
 
-### P0 (Critical)
-- [x] ~~Finalize Provisional Patent~~ -- COMPLETED (v6, 98 claims, 31 screenshots)
-- [x] ~~Master User Manual~~ -- COMPLETED (6 roles, 105 FAQs, benefits tied to claims)
-- [x] ~~Refactor `server.py`~~ -- COMPLETED (March 2026). Split into 10 modular route files in backend/routes/. 37/37 regression tests passed.
-
-### Go-Live Preparation (Next)
-- [x] ~~Integrate PayPal alongside Stripe~~ -- COMPLETED (March 2026). PayPal routes in backend/routes/paypal.py, frontend WalletTab updated with payment method toggle. Auto-enables when keys are set.
-- [x] ~~Configure email sending from @semanticvision.ai domain (Resend)~~ -- COMPLETED. SENDER_EMAIL updated to hello@semanticvision.ai across services.py, auth.py, affiliates.py.
-- [x] ~~Update CORS/domain config for semanticvision.ai~~ -- COMPLETED. CORS_ORIGINS includes semanticvision.ai and www.semanticvision.ai.
+### P0 (Critical) - ALL COMPLETED
+- [x] Finalize Provisional Patent -- COMPLETED (v6, 98 claims, 31 screenshots)
+- [x] Master User Manual -- COMPLETED (6 roles, 105 FAQs)
+- [x] Refactor server.py -- COMPLETED (10 modular route files, 37/37 regression tests)
+- [x] Go-Live Preparation (PayPal, Resend, CORS) -- COMPLETED
+- [x] Admin Impersonation ("View as User") -- COMPLETED & TESTED (iteration 48)
+- [x] Daily.co Screen Share Infrastructure -- COMPLETED & TESTED (iteration 48)
+- [x] Student "Change My PIN" route fix -- COMPLETED & TESTED (iteration 48)
 
 ### User Action Items (Required for Go-Live)
 - [ ] Add PayPal sandbox/production keys via Admin Dashboard > Integrations tab
-- [ ] Verify Resend domain: Add DNS records (SPF, DKIM, MX) in Porkbun for semanticvision.ai
-- [ ] Switch PayPal mode from Sandbox to Live when ready (via Integrations tab)
+- [ ] Verify Resend domain: Add DNS records (SPF, DKIM, MX) for semanticvision.ai
+- [ ] Switch PayPal mode from Sandbox to Live when ready
+- [ ] Add Daily.co API key via Admin > Integrations for screen sharing
 
 ### P1 (High)
-- [x] ~~Chunked auto-save recording~~ -- COMPLETED (March 2026). Auto-saves every 15s to sessionStorage.
-- [x] ~~Parent notification on audio memory creation~~ -- COMPLETED. Notification sent to parent on upload.
-- [x] ~~Clearer "Allow for Audio Books" button~~ -- COMPLETED. Text + icon label.
-- [x] ~~User ID / Invitation Cards~~ -- COMPLETED. Downloadable PNG for guardians (referral code) and students (student code).
-- [x] ~~Rename Marketplace to Word Bank + reorder tabs~~ -- COMPLETED (March 2026). New order: Students, Word Bank, Audio Memories, Audio Books, Progress, ID Cards, Invite & Earn, Subscription, Wallet, Offers, Affiliate, FAQ
-- [x] ~~PIN Change~~ -- COMPLETED. Parents change via student card button, students change at /student-login
-- [x] ~~Heritage Multi-Select~~ -- COMPLETED. Multi-select chips + write-in for custom heritage
-- [x] ~~Culture Learning Preferences~~ -- COMPLETED. 16 topics (Black History, Women's History, etc.) affect AI story generation
-- [x] ~~Delegated Admin Fix~~ -- COMPLETED. Delegated admins now see Admin button and can access admin routes
+- [x] Chunked auto-save recording -- COMPLETED
+- [x] Parent notification on audio memory creation -- COMPLETED
+- [x] Clearer "Allow for Audio Books" button -- COMPLETED
+- [x] User ID / Invitation Cards -- COMPLETED
+- [x] Rename Marketplace to Word Bank + reorder tabs -- COMPLETED
+- [x] PIN Change -- COMPLETED
+- [x] Heritage Multi-Select -- COMPLETED
+- [x] Culture Learning Preferences -- COMPLETED
+- [x] Delegated Admin Fix -- COMPLETED
+- [ ] Dual Role (Parent/Student) Toggle -- Users 15+ can switch between parent and student views
 - [ ] On-Device LLM Integration -- WebLLM or similar for offline story generation
 
 ### P2 (Medium)
-- [ ] Dynamic Music Generation -- Replace MusicPlayer placeholder with actual logic
-- [ ] Video Recording & Analysis -- Extend recording to include video
-- [ ] User Demo Flow -- Streamlined demo mode
+- [ ] "Wheel of the World" Game -- Interactive spinning globe on student dashboard
+- [ ] Dynamic Music Generation -- Replace MusicPlayer placeholder
+- [ ] Video Recording & Analysis
+- [ ] User Demo Flow
 
 ### P3 (Low/Future)
 - [ ] Accessibility Features -- Text-to-sign-language AI
-- [ ] Granular Admin Analytics -- Expanded admin dashboard
+- [ ] Granular Admin Analytics
 - [ ] AR Story Experience
 - [ ] Gamification & Achievement System
 - [ ] Family Shared Narratives
@@ -104,3 +125,13 @@ Build a comprehensive AI-powered personalized educational narrative platform ("S
 
 ## Key Credentials
 - **Admin/Guardian:** allen@songsforcenturies.com / LexiAdmin2026!
+
+## 3rd Party Integrations
+- **OpenAI GPT** (Text Generation) -- uses Emergent LLM Key
+- **OpenAI Whisper** (Speech-to-Text) -- uses Emergent LLM Key
+- **Stripe** (Payments) -- requires User API Key
+- **PayPal** (Payments) -- requires User API Key
+- **Resend** (Transactional Emails) -- requires User API Key
+- **Daily.co** (Screen Sharing / Video) -- requires User API Key
+- **reportlab** (Python library for PDF generation)
+- **html2canvas** (JS library for image generation)
