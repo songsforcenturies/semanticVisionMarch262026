@@ -125,3 +125,10 @@ html, body, #root {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
+
+/* Ensure dark text on light backgrounds within dark theme */
+.sv-dark .bg-white,
+.sv-dark .bg-gray-50,
+.sv-dark .bg-gray-100 {
+  color: #111827;
+}

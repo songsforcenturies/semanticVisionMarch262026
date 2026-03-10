@@ -1,24 +1,25 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 
+const variantStyles = {
+  default: { backgroundColor: '#ffffff', color: '#111827' },
+  indigo: { backgroundColor: '#e0e7ff', color: '#111827' },
+  emerald: { backgroundColor: '#d1fae5', color: '#111827' },
+  rose: { backgroundColor: '#ffe4e6', color: '#111827' },
+  amber: { backgroundColor: '#fef3c7', color: '#111827' },
+  dark: { backgroundColor: '#111827', color: '#ffffff' },
+};
+
 const BrutalCard = React.forwardRef(({ 
   className, 
   variant = 'default',
   shadow = 'lg',
   hover = false,
+  style: userStyle,
   children,
   ...props 
 }, ref) => {
-  const baseStyles = 'border-6 border-black p-6 transition-all';
-  
-  const variants = {
-    default: 'bg-white',
-    indigo: 'bg-indigo-100',
-    emerald: 'bg-emerald-100',
-    rose: 'bg-rose-100',
-    amber: 'bg-amber-100',
-    dark: 'bg-gray-900 text-white'
-  };
+  const baseStyles = 'border-4 border-black p-6 transition-all';
   
   const shadows = {
     sm: 'brutal-shadow-sm',
@@ -32,11 +33,11 @@ const BrutalCard = React.forwardRef(({
       ref={ref}
       className={cn(
         baseStyles,
-        variants[variant],
         shadows[shadow],
         hover && 'hover:translate-x-1 hover:translate-y-1 hover:shadow-xl cursor-pointer',
         className
       )}
+      style={{ ...variantStyles[variant], ...userStyle }}
       {...props}
     >
       {children}

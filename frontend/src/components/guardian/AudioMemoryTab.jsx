@@ -79,12 +79,12 @@ const AudioMemoryTab = () => {
       {students.length > 1 && (
         <div className="flex gap-2 flex-wrap">
           <button onClick={() => setSelectedStudent('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold ${selectedStudent === 'all' ? 'bg-indigo-600 text-white' : 'bg-gray-100'}`}>
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold ${selectedStudent === 'all' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-900'}`}>
             All Students
           </button>
           {students.map(s => (
             <button key={s.id} onClick={() => setSelectedStudent(s.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold ${selectedStudent === s.id ? 'bg-indigo-600 text-white' : 'bg-gray-100'}`}>
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold ${selectedStudent === s.id ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-900'}`}>
               {s.full_name}
             </button>
           ))}

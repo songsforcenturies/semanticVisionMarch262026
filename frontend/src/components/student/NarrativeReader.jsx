@@ -154,6 +154,31 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
             </div>
           </div>
 
+          {/* Read Aloud Section - AT THE TOP */}
+          <div className="mb-6">
+            {!showRecorder ? (
+              <button onClick={() => setShowRecorder(true)}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold transition-all hover:scale-[1.01]"
+                style={{ background: 'rgba(239,68,68,0.1)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.2)' }}
+                data-testid="read-aloud-btn">
+                <Mic size={16} /> Read This Chapter Aloud
+              </button>
+            ) : (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-bold uppercase" style={{ color: C.gold }}>Read Aloud Recording</p>
+                  <button onClick={() => setShowRecorder(false)} className="text-xs font-bold" style={{ color: C.muted }}>Close</button>
+                </div>
+                <ReadAloudRecorder
+                  studentId={student.id}
+                  narrativeId={narrative.id}
+                  chapterNumber={currentChapter}
+                  onRecordingComplete={(result) => toast.success(`Diction score: ${result.diction_scores?.overall}%`)}
+                />
+              </div>
+            )}
+          </div>
+
           {/* Story Text */}
           <div className="mb-6 sm:mb-8">
             <div className="text-base sm:text-lg leading-[1.8] sm:leading-[1.9] font-medium" style={{ color: C.reading }}>
@@ -197,31 +222,6 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
               </div>
             </div>
           )}
-
-          {/* Read Aloud Section */}
-          <div className="mb-4">
-            {!showRecorder ? (
-              <button onClick={() => setShowRecorder(true)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.01]"
-                style={{ background: 'rgba(239,68,68,0.1)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.2)' }}
-                data-testid="read-aloud-btn">
-                <Mic size={16} /> Read This Chapter Aloud
-              </button>
-            ) : (
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-bold uppercase" style={{ color: C.gold }}>Read Aloud Recording</p>
-                  <button onClick={() => setShowRecorder(false)} className="text-xs font-bold" style={{ color: C.muted }}>Close</button>
-                </div>
-                <ReadAloudRecorder
-                  studentId={student.id}
-                  narrativeId={narrative.id}
-                  chapterNumber={currentChapter}
-                  onRecordingComplete={(result) => toast.success(`Diction score: ${result.diction_scores?.overall}%`)}
-                />
-              </div>
-            )}
-          </div>
 
           {/* Controls */}
           <div className="space-y-3">

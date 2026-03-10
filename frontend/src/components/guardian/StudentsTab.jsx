@@ -220,7 +220,7 @@ const StudentsTab = () => {
                   <div>
                     <p className="font-bold text-xs uppercase text-gray-600">Student Code</p>
                     <div className="flex items-center gap-2">
-                      <div className="bg-indigo-100 border-4 border-black px-4 py-2 font-mono text-lg font-black tracking-wider">
+                      <div className="bg-indigo-100 border-4 border-black px-4 py-2 font-mono text-lg font-black tracking-wider" style={{ color: '#1e1b4b' }}>
                         {student.student_code}
                       </div>
                       <BrutalButton
@@ -241,7 +241,7 @@ const StudentsTab = () => {
                   <div>
                     <p className="font-bold text-xs uppercase text-gray-600" data-testid="pin-label">PIN</p>
                     <div className="flex items-center gap-2">
-                      <div className="bg-yellow-100 border-4 border-black px-4 py-2 font-mono text-lg font-black tracking-wider">
+                      <div className="bg-yellow-100 border-4 border-black px-4 py-2 font-mono text-lg font-black tracking-wider" style={{ color: '#78350f' }}>
                         {student.access_pin}
                       </div>
                       <BrutalButton
