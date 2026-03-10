@@ -5408,21 +5408,21 @@ async def get_patent_filing_roadmap_pdf():
 
 @api_router.get("/patent-filing-2026/pdf")
 async def get_patent_filing_2026_pdf():
-    """Serve the March 2026 Comprehensive Patent Filing as PDF"""
+    """Serve the March 2026 Comprehensive Patent Filing v3 as PDF"""
     from fastapi.responses import FileResponse
-    pdf_path = Path(__file__).parent.parent / "PATENT_FILING_MARCH_2026.pdf"
+    pdf_path = Path(__file__).parent.parent / "PATENT_FILING_MARCH_2026_v3.pdf"
     if not pdf_path.exists():
         raise HTTPException(status_code=404, detail="Patent filing PDF not found")
-    return FileResponse(pdf_path, media_type="application/pdf", filename="Semantic_Vision_Provisional_Patent_March_2026_CONFIDENTIAL.pdf")
+    return FileResponse(pdf_path, media_type="application/pdf", filename="Semantic_Vision_Provisional_Patent_March_2026_v3_CONFIDENTIAL.pdf")
 
 @api_router.get("/patent-filing-2026/md")
 async def get_patent_filing_2026_md():
-    """Serve the March 2026 Patent Filing as Markdown"""
+    """Serve the March 2026 Patent Filing v3 as Markdown"""
     from fastapi.responses import FileResponse
-    md_path = Path(__file__).parent.parent / "PATENT_FILING_MARCH_2026.md"
+    md_path = Path(__file__).parent.parent / "PATENT_FILING_MARCH_2026_v3.md"
     if not md_path.exists():
         raise HTTPException(status_code=404, detail="Patent filing markdown not found")
-    return FileResponse(md_path, media_type="text/markdown", filename="Semantic_Vision_Provisional_Patent_March_2026.md")
+    return FileResponse(md_path, media_type="text/markdown", filename="Semantic_Vision_Provisional_Patent_March_2026_v3.md")
 
 
 @api_router.get("/user-manual/pdf")
