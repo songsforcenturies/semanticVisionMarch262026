@@ -5482,6 +5482,26 @@ async def get_patent_definitive_bundle():
     return FileResponse(zip_path, media_type="application/zip", filename="Semantic_Vision_Patent_Filing_DEFINITIVE_v6.zip")
 
 
+@api_router.get("/user-manual/master-pdf")
+async def get_master_user_manual_pdf():
+    """Serve the Master User Manual as PDF"""
+    from fastapi.responses import FileResponse
+    pdf_path = Path(__file__).parent.parent / "SEMANTIC_VISION_MASTER_USER_MANUAL.pdf"
+    if not pdf_path.exists():
+        raise HTTPException(status_code=404, detail="User Manual PDF not found")
+    return FileResponse(pdf_path, media_type="application/pdf", filename="Semantic_Vision_Master_User_Manual.pdf")
+
+@api_router.get("/user-manual/master-md")
+async def get_master_user_manual_md():
+    """Serve the Master User Manual as Markdown"""
+    from fastapi.responses import FileResponse
+    md_path = Path(__file__).parent.parent / "SEMANTIC_VISION_MASTER_USER_MANUAL.md"
+    if not md_path.exists():
+        raise HTTPException(status_code=404, detail="User Manual markdown not found")
+    return FileResponse(md_path, media_type="text/markdown", filename="Semantic_Vision_Master_User_Manual.md")
+
+
+
 
 # ================================
 # AFFILIATE SYSTEM ENDPOINTS

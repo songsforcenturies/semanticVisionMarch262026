@@ -10,18 +10,7 @@ Build a comprehensive AI-powered personalized educational narrative platform ("S
 - Parental controls with recording enforcement
 - Admin messaging, spelling bees, task reminders
 - PWA architecture with offline caching
-- Provisional patent filing
-
-## Core Requirements
-1. **AI Content Generation** - GPT-5.2 powered multi-chapter narrative generation
-2. **Brand Comprehension Pipeline** - Novel metric measuring cognitive brand engagement
-3. **Vocabulary System** - 60/30/10 tier distribution with mastery tracking
-4. **Multi-Role Architecture** - Six-tier RBAC with purpose-built portals
-5. **Read-Aloud Recording** - Whisper-powered diction analysis and Audio Memory Library
-6. **Parental Controls** - Recording enforcement with chapter-threshold gating
-7. **Admin Tools** - Messaging, spelling bees, analytics
-8. **PWA** - Service worker, offline caching, installability
-9. **Patent Protection** - Comprehensive provisional patent application
+- Provisional patent filing with comprehensive documentation
 
 ## Tech Stack
 - **Frontend:** React 18, Tailwind CSS, Shadcn/UI, react-i18next
@@ -33,6 +22,8 @@ Build a comprehensive AI-powered personalized educational narrative platform ("S
 - **PDF:** ReportLab
 
 ## What's Been Implemented (as of March 2026)
+
+### Core Platform
 - Full authentication system (JWT, role-based, code/PIN for students)
 - AI story generation with all personalization dimensions
 - Brand integration engine with competitive bidding
@@ -53,42 +44,45 @@ Build a comprehensive AI-powered personalized educational narrative platform ("S
 - Student progress export (HTML/JSON)
 - Brand story preview system
 - Full mobile-responsive UI with softer color theme
-- **DEFINITIVE Provisional Patent Application v6** - 98 claims + 1,000 technical specifications
+
+### Documentation Suite (Completed March 10, 2026)
+- **DEFINITIVE Provisional Patent Application v6** -- 98 claims, 31 screenshots, 1,000 technical specifications
+- **Master User Manual v6.0** -- 1,424-line comprehensive guide for all 6 user roles with:
+  - Detailed step-by-step instructions for every feature
+  - Benefits tied to patent claims for each stakeholder POV
+  - 105 FAQ questions across all roles (25 Parent, 20 Student, 15 Teacher, 20 Brand, 10 Affiliate, 15 Admin)
+  - Complete glossary of 30+ platform-specific terms
+
+### Download Endpoints
+- `/api/patent/definitive-pdf` -- Patent PDF
+- `/api/patent/definitive-md` -- Patent Markdown
+- `/api/patent/definitive-bundle` -- Complete ZIP (patent + specs + manual + 31 screenshots)
+- `/api/user-manual/master-pdf` -- User Manual PDF
+- `/api/user-manual/master-md` -- User Manual Markdown
 
 ## Prioritized Backlog
 
 ### P0 (Critical)
-- [x] ~~Finalize Provisional Patent~~ - COMPLETED (v6 Definitive, 98 claims)
-- [ ] Refactor `server.py` - Break monolithic file into FastAPI APIRouter modules
+- [x] ~~Finalize Provisional Patent~~ -- COMPLETED (v6, 98 claims, 31 screenshots)
+- [x] ~~Master User Manual~~ -- COMPLETED (6 roles, 105 FAQs, benefits tied to claims)
+- [ ] Refactor `server.py` -- Break monolithic file into FastAPI APIRouter modules
 
 ### P1 (High)
-- [ ] On-Device LLM Integration - WebLLM or similar for offline story generation
-- [ ] Payment Gateway Integrations - Cash App, Zelle, Venmo, PayPal
+- [ ] On-Device LLM Integration -- WebLLM or similar for offline story generation
+- [ ] Payment Gateway Integrations -- Cash App, Zelle, Venmo, PayPal
 
 ### P2 (Medium)
-- [ ] Dynamic Music Generation - Replace MusicPlayer placeholder with actual logic
-- [ ] Video Recording & Analysis - Extend recording to include video
-- [ ] User Demo Flow - Streamlined demo mode
+- [ ] Dynamic Music Generation -- Replace MusicPlayer placeholder with actual logic
+- [ ] Video Recording & Analysis -- Extend recording to include video
+- [ ] User Demo Flow -- Streamlined demo mode
 
 ### P3 (Low/Future)
-- [ ] Accessibility Features - Text-to-sign-language AI
-- [ ] Granular Admin Analytics - Expanded admin dashboard
+- [ ] Accessibility Features -- Text-to-sign-language AI
+- [ ] Granular Admin Analytics -- Expanded admin dashboard
 - [ ] AR Story Experience
 - [ ] Gamification & Achievement System
 - [ ] Family Shared Narratives
-- [ ] Seasonal Content Adaptation
 - [ ] AI-Generated Illustrations per chapter
 
 ## Key Credentials
 - **Admin/Guardian:** allen@songsforcenturies.com / LexiAdmin2026!
-
-## Patent Filing Status
-- **Document:** PROVISIONAL_PATENT_DEFINITIVE_v6.md / .pdf
-- **Claims:** 98 total (11 Independent + 60 Dependent + 14 Future + 13 Specialized)
-- **Technical Specs:** 1,000 specifications (TECHNICAL_SPECIFICATIONS_1000.md)
-- **Screenshots:** 11 figures (patent_screenshots/)
-- **Bundle:** patent_filing_definitive_v6.zip (ready for download)
-- **Download Endpoints:**
-  - `/api/patent/definitive-pdf` - PDF document
-  - `/api/patent/definitive-md` - Markdown source
-  - `/api/patent/definitive-bundle` - Complete ZIP bundle with all exhibits
