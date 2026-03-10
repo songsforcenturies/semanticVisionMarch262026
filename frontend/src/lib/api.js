@@ -28,6 +28,17 @@ apiClient.interceptors.response.use(
       // Only clear auth if not on a login-related request
       const url = error.config?.url || '';
       if (!url.includes('/auth/login') && !url.includes('/auth/register')) {
+        // If impersonating, restore admin session instead of logging out
+        const origToken = localStorage.getItem('admin_original_token');
+        const origUser = localStorage.getItem('admin_original_user');
+        if (origToken && origUser) {
+          localStorage.setItem('token', origToken);
+          localStorage.setItem('user', origUser);
+          localStorage.removeItem('admin_original_token');
+          localStorage.removeItem('admin_original_user');
+          window.location.href = '/admin';
+          return Promise.reject(error);
+        }
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         window.location.href = '/login';

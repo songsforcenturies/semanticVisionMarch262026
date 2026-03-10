@@ -2033,16 +2033,15 @@ async def impersonate_user(user_id: str, current_user: dict = Depends(get_curren
     if not target:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Generate a JWT for the target user
-    import jwt
-    secret = os.environ.get("JWT_SECRET_KEY", "lexi-secret-2026")
+    # Generate a JWT for the target user using the same auth module
+    from auth import create_access_token, SECRET_KEY
     token_data = {
         "sub": target["id"],
+        "email": target.get("email", ""),
         "role": target.get("role", "guardian"),
         "impersonated_by": current_user["id"],
-        "exp": datetime.now(timezone.utc).timestamp() + 3600,  # 1 hour
     }
-    token = jwt.encode(token_data, secret, algorithm="HS256")
+    token = create_access_token(token_data, expires_delta=timedelta(hours=1))
 
     return {
         "access_token": token,
