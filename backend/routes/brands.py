@@ -21,6 +21,13 @@ stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
 
 router = APIRouter()
 
+
+async def _get_stripe_key():
+    """Get Stripe API key from DB first, then env fallback"""
+    config = await db.system_config.find_one({"key": "integration_keys"}, {"_id": 0})
+    stored = config.get("value", {}) if config else {}
+    return stored.get("stripe_api_key") or os.environ.get("STRIPE_API_KEY", "")
+
 # ==================== BRAND MANAGEMENT (ADMIN) ====================
 
 class BrandCreate(BaseModel):
@@ -1275,7 +1282,7 @@ async def brand_topup(data: BrandTopupRequest, request: Request, current_user: d
     if data.amount < 5:
         raise HTTPException(status_code=400, detail="Minimum top-up is $5")
 
-    stripe_key = os.environ.get("STRIPE_API_KEY")
+    stripe_key = await _get_stripe_key()
     if not stripe_key:
         raise HTTPException(status_code=500, detail="Payment not configured")
 
@@ -1313,7 +1320,7 @@ async def brand_topup_status(session_id: str, request: Request, current_user: di
     if txn.get("payment_status") == "paid":
         return {"status": "paid", "amount": txn["amount"]}
 
-    stripe_key = os.environ.get("STRIPE_API_KEY")
+    stripe_key = await _get_stripe_key()
     from emergentintegrations.payments.stripe.checkout import StripeCheckout
     host_url = str(request.base_url).rstrip("/")
     stripe_checkout = StripeCheckout(api_key=stripe_key, webhook_url=f"{host_url}/api/webhook/stripe")

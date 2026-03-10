@@ -24,6 +24,14 @@ stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
 
 router = APIRouter()
 
+
+async def _get_stripe_key():
+    """Get Stripe API key from DB first, then env fallback"""
+    config = await db.system_config.find_one({"key": "integration_keys"}, {"_id": 0})
+    stored = config.get("value", {}) if config else {}
+    key = stored.get("stripe_api_key") or os.environ.get("STRIPE_API_KEY", "")
+    return key
+
 class PurchaseRequest(BaseModel):
     guardian_id: str
     bank_id: str
@@ -159,7 +167,7 @@ async def create_wallet_topup(data: TopupRequest, request: Request, current_user
     amount = TOPUP_PACKAGES[data.package_id]
     origin = data.origin_url.rstrip("/")
 
-    stripe_key = os.environ.get("STRIPE_API_KEY")
+    stripe_key = await _get_stripe_key()
     if not stripe_key:
         raise HTTPException(status_code=500, detail="Payment system not configured")
 
@@ -215,7 +223,7 @@ async def get_payment_status(session_id: str, request: Request, current_user: di
     if txn.get("payment_status") == "paid":
         return {"status": txn["status"], "payment_status": "paid", "amount": txn["amount"]}
 
-    stripe_key = os.environ.get("STRIPE_API_KEY")
+    stripe_key = await _get_stripe_key()
     from emergentintegrations.payments.stripe.checkout import StripeCheckout
 
     host_url = str(request.base_url).rstrip("/")
@@ -280,7 +288,7 @@ async def stripe_webhook(request: Request):
     """Handle Stripe webhook events"""
     body = await request.body()
     sig = request.headers.get("Stripe-Signature")
-    stripe_key = os.environ.get("STRIPE_API_KEY")
+    stripe_key = await _get_stripe_key()
 
     try:
         from emergentintegrations.payments.stripe.checkout import StripeCheckout
@@ -1626,7 +1634,7 @@ async def create_donation(data: DonationRequest, request: Request, current_user:
     
     stories_funded = int(data.amount / cost_per_story) if cost_per_story > 0 else 0
     
-    stripe_key = os.environ.get("STRIPE_API_KEY")
+    stripe_key = await _get_stripe_key()
     if not stripe_key:
         raise HTTPException(status_code=500, detail="Payment not configured")
     
@@ -1674,7 +1682,7 @@ async def get_donation_status(session_id: str, request: Request, current_user: d
     if donation.get("payment_status") == "paid":
         return {"status": "paid", "amount": donation["amount"], "stories_funded": donation["stories_funded"]}
     
-    stripe_key = os.environ.get("STRIPE_API_KEY")
+    stripe_key = await _get_stripe_key()
     from emergentintegrations.payments.stripe.checkout import StripeCheckout
     host_url = str(request.base_url).rstrip("/")
     stripe_checkout = StripeCheckout(api_key=stripe_key, webhook_url=f"{host_url}/api/webhook/stripe")
