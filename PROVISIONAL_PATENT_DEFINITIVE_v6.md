@@ -296,7 +296,7 @@ The platform comprises fourteen interconnected pipelines:
 
 **FIG. 31** (fig31_mobile_landing.jpeg) -- Mobile-Responsive Landing Page (390x844 viewport) demonstrating the fully responsive mobile layout with "Patent-Pending AI Technology" badge, hero text, "Your child can learn in 20+ languages" badge, Start Free and Parent/School Login buttons, and navigation links. Confirms mobile-first design implementation.
 
-*Note: All 31 figures are actual screenshots from a working embodiment of the invention captured from the live application at https://story-hub-demo.preview.emergentagent.com. The referenced JPEG files accompany this application as exhibits.*
+*Note: All 31 figures are actual screenshots from a working embodiment of the invention captured from the live application at https://patent-filing-deploy.preview.emergentagent.com. The referenced JPEG files accompany this application as exhibits.*
 
 ---
 

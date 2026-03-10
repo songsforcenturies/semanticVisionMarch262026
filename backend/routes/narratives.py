@@ -1,0 +1,866 @@
+"""Narrative generation, reading, assessment, and read log routes."""
+from fastapi import APIRouter, HTTPException, Depends
+from typing import Optional, List, Any
+from pydantic import BaseModel
+from datetime import datetime, timezone
+import uuid, json as json_lib, random, os
+
+from database import db, logger
+from models import (
+    Narrative, NarrativeCreate, NarrativeStatus, UserRole,
+    ReadLog, Assessment, Brand, BrandImpression, BrandProduct,
+    SystemConfig, WordBank,
+)
+from auth import get_current_user, get_current_admin, get_current_guardian
+from story_service import story_service
+
+router = APIRouter()
+
+# ==================== NARRATIVE ROUTES ====================
+
+@router.post("/narratives")
+async def create_narrative(narrative_data: NarrativeCreate):
+    """Generate a new AI story for a student"""
+    # Get student
+    student = await db.students.find_one({"id": narrative_data.student_id})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    
+    # Check if student has assigned word banks
+    if not student.get("assigned_banks"):
+        raise HTTPException(
+            status_code=400, 
+            detail="Student has no assigned word banks. Please assign word banks first."
+        )
+    
+    # Fetch word banks
+    word_banks = []
+    for bank_id in narrative_data.bank_ids:
+        bank = await db.word_banks.find_one({"id": bank_id})
+        if bank:
+            word_banks.append(bank)
+    
+    if not word_banks:
+        raise HTTPException(status_code=404, detail="No valid word banks found")
+    
+    # Collect vocabulary from all assigned banks
+    all_baseline = []
+    all_target = []
+    all_stretch = []
+    
+    for bank in word_banks:
+        all_baseline.extend(bank.get("baseline_words", []))
+        all_target.extend(bank.get("target_words", []))
+        all_stretch.extend(bank.get("stretch_words", []))
+    
+    # Shuffle and limit vocabulary (max 30 words total for story)
+    random.shuffle(all_baseline)
+    random.shuffle(all_target)
+    random.shuffle(all_stretch)
+    
+    baseline_words = all_baseline[:18]  # 60% of 30
+    target_words = all_target[:9]       # 30% of 30
+    stretch_words = all_stretch[:3]     # 10% of 30
+    
+    # Generate story using AI
+    try:
+        # Ensure story service has db reference
+        story_service.set_db(db)
+        
+        # Get guardian info for cost tracking
+        guardian = await db.users.find_one({"id": student["guardian_id"]}, {"_id": 0, "full_name": 1})
+        
+        # Check for eligible brand placements
+        brand_placements = []
+        flags = await db.system_config.find_one({"key": "feature_flags"}, {"_id": 0})
+        brand_enabled = True
+        if flags and flags.get("value"):
+            brand_enabled = flags["value"].get("brand_sponsorship_enabled", True)
+        
+        ad_prefs = student.get("ad_preferences", {})
+        if brand_enabled and ad_prefs.get("allow_brand_stories", False):
+            blocked = ad_prefs.get("blocked_categories", [])
+            student_age = student.get("age", 10)
+            active_brands = await db.brands.find({"is_active": True}, {"_id": 0}).to_list(20)
+            for b in active_brands:
+                if b.get("target_ages") and student_age not in b["target_ages"]:
+                    continue
+                if b.get("budget_total", 0) > 0 and b.get("budget_spent", 0) >= b.get("budget_total", 0):
+                    continue
+                brand_cats = b.get("target_categories", [])
+                if any(c in blocked for c in brand_cats):
+                    continue
+                brand_placements.append({
+                    "id": b["id"], "name": b["name"], "products": b.get("products", []),
+                    "problem_statement": b.get("problem_statement", ""),
+                    "logo_url": b.get("logo_url", ""),
+                })
+                if len(brand_placements) >= 2:
+                    break
+        
+        story_data = await story_service.generate_story(
+            student_name=student["full_name"],
+            student_age=student.get("age", 10),
+            grade_level=student.get("grade_level", "1-12"),
+            interests=student.get("interests", []),
+            virtues=student.get("virtues", []),
+            prompt=narrative_data.prompt,
+            baseline_words=baseline_words,
+            target_words=target_words,
+            stretch_words=stretch_words,
+            student_id=student["id"],
+            guardian_id=student.get("guardian_id", ""),
+            guardian_name=guardian.get("full_name", "") if guardian else "",
+            belief_system=student.get("belief_system", ""),
+            cultural_context=student.get("cultural_context", ""),
+            language=student.get("language", "English"),
+            brand_placements=brand_placements,
+            strengths=student.get("strengths", ""),
+            weaknesses=student.get("weaknesses", ""),
+        )
+        
+        # Record brand impressions (after narrative creation so we have the real ID)
+        # Brand impressions will be recorded below after narrative_dict is inserted
+        
+        # Create narrative object
+        from models import Chapter, EmbeddedToken, VisionCheck
+        
+        valid_tiers = {"baseline", "target", "stretch"}
+        chapters = []
+        for ch_data in story_data.get("chapters", []):
+            # Filter embedded tokens to only valid tiers
+            tokens = []
+            for token in ch_data.get("embedded_tokens", []):
+                if isinstance(token, dict) and token.get("tier") in valid_tiers:
+                    tokens.append(EmbeddedToken(**token))
+            
+            # Handle vision_check with defaults
+            vc_data = ch_data.get("vision_check", {})
+            if not vc_data or not vc_data.get("question"):
+                vc_data = {"question": "What happened in this chapter?", "options": ["A", "B", "C", "D"], "correct_index": 0}
+            
+            chapter = Chapter(
+                number=ch_data.get("number", len(chapters) + 1),
+                title=ch_data.get("title", f"Chapter {len(chapters) + 1}"),
+                content=ch_data.get("content", ""),
+                word_count=ch_data.get("word_count", len(ch_data.get("content", "").split())),
+                embedded_tokens=tokens,
+                vision_check=VisionCheck(**vc_data)
+            )
+            chapters.append(chapter)
+        
+        # Collect all target and stretch words for verification
+        tokens_to_verify = [w["word"] for w in target_words] + [w["word"] for w in stretch_words]
+        
+        narrative = Narrative(
+            title=story_data["title"],
+            student_id=narrative_data.student_id,
+            bank_ids=narrative_data.bank_ids,
+            theme=story_data.get("theme", narrative_data.prompt),
+            chapters=chapters,
+            total_word_count=story_data.get("total_word_count", 0),
+            status=NarrativeStatus.READY,
+            tokens_to_verify=tokens_to_verify
+        )
+        
+        narrative_dict = narrative.model_dump()
+        # Store brand placements on the narrative for brand portal story snippets
+        if brand_placements:
+            narrative_dict["brand_placements"] = brand_placements
+        await db.narratives.insert_one(narrative_dict)
+        
+        # Record brand impressions with the real narrative ID
+        if brand_placements:
+            for bp in brand_placements:
+                impression = BrandImpression(
+                    brand_id=bp["id"], brand_name=bp["name"],
+                    narrative_id=narrative.id, student_id=student["id"],
+                    guardian_id=student.get("guardian_id", ""),
+                    products_featured=[p.get("name", "") for p in bp.get("products", [])],
+                    cost=0.05,
+                )
+                await db.brand_impressions.insert_one(impression.model_dump())
+                await db.brands.update_one(
+                    {"id": bp["id"]},
+                    {"$inc": {"total_impressions": 1, "total_stories": 1, "budget_spent": 0.05}}
+                )
+        
+        return narrative
+        
+    except Exception as e:
+        logger.error(f"Story generation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Story generation failed: {str(e)}")
+
+
+@router.get("/narratives")
+async def get_narratives(student_id: Optional[str] = None):
+    """Get narratives, optionally filtered by student"""
+    query = {}
+    if student_id:
+        query["student_id"] = student_id
+    
+    narratives = await db.narratives.find(query, {"_id": 0}).to_list(1000)
+    return narratives
+
+
+@router.get("/narratives/{narrative_id}")
+async def get_narrative(narrative_id: str):
+    """Get a specific narrative"""
+    narrative = await db.narratives.find_one({"id": narrative_id}, {"_id": 0})
+    if not narrative:
+        raise HTTPException(status_code=404, detail="Narrative not found")
+    return narrative
+
+
+@router.delete("/narratives/{narrative_id}")
+async def delete_narrative(narrative_id: str, current_user: dict = Depends(get_current_user)):
+    """Delete a narrative"""
+    result = await db.narratives.delete_one({"id": narrative_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Narrative not found")
+    return {"message": "Narrative deleted successfully"}
+
+
+# ==================== READ LOG ROUTES ====================
+
+class ReadLogCreate(BaseModel):
+    student_id: str
+    narrative_id: str
+    chapter_number: int
+    session_start: datetime
+    session_end: datetime
+    words_read: int
+    vision_check_passed: Optional[bool] = None
+
+
+@router.post("/read-logs")
+async def create_read_log(log_data: ReadLogCreate):
+    """Create a reading session log"""
+    from models import ReadLog
+    
+    # Calculate duration and WPM
+    duration = (log_data.session_end - log_data.session_start).total_seconds()
+    wpm = (log_data.words_read / (duration / 60)) if duration > 0 and log_data.words_read > 0 else 0
+    
+    read_log = ReadLog(
+        student_id=log_data.student_id,
+        narrative_id=log_data.narrative_id,
+        chapter_number=log_data.chapter_number,
+        session_start=log_data.session_start,
+        session_end=log_data.session_end,
+        duration_seconds=int(duration),
+        words_read=log_data.words_read,
+        wpm=round(wpm, 1)
+    )
+    
+    log_dict = read_log.model_dump()
+    if log_data.vision_check_passed is not None:
+        log_dict["vision_check_passed"] = log_data.vision_check_passed
+    await db.read_logs.insert_one(log_dict)
+
+    # Update narrative progress (chapters_completed, current_chapter, status)
+    narrative = await db.narratives.find_one({"id": log_data.narrative_id})
+    if narrative:
+        chapters_completed = narrative.get("chapters_completed", [])
+        if log_data.chapter_number not in chapters_completed:
+            chapters_completed.append(log_data.chapter_number)
+            chapters_completed = sorted(set(chapters_completed))
+
+        total_chapters = len(narrative.get("chapters", []))
+        new_current = max(chapters_completed) if chapters_completed else 1
+        new_status = "completed" if len(chapters_completed) >= total_chapters and total_chapters > 0 else "in_progress" if len(chapters_completed) > 0 else narrative.get("status", "ready")
+
+        await db.narratives.update_one(
+            {"id": log_data.narrative_id},
+            {"$set": {
+                "chapters_completed": chapters_completed,
+                "current_chapter": new_current,
+                "status": new_status,
+            }}
+        )
+
+        # When narrative is completed, credit vocabulary from embedded tokens
+        if new_status == "completed":
+            student = await db.students.find_one({"id": log_data.student_id})
+            if student:
+                # Normalize existing tokens to plain strings
+                existing_mastered = set()
+                for t in student.get("mastered_tokens", []):
+                    if isinstance(t, str):
+                        existing_mastered.add(t.lower().strip())
+                    elif isinstance(t, dict):
+                        existing_mastered.add(t.get("token", "").lower().strip())
+                
+                new_tokens = set()
+                for ch in narrative.get("chapters", []):
+                    for token in ch.get("embedded_tokens", []):
+                        word = token.get("word", "").lower().strip()
+                        if word and word not in existing_mastered:
+                            new_tokens.add(word)
+                
+                if new_tokens:
+                    all_mastered = list(existing_mastered | new_tokens)
+                    # Calculate agentic reach score
+                    total_narratives = await db.narratives.count_documents({"student_id": log_data.student_id})
+                    completed_narratives = await db.narratives.count_documents({"student_id": log_data.student_id, "status": "completed"})
+                    score = round((len(all_mastered) * 10 + completed_narratives * 50) / max(total_narratives * 50, 1) * 100, 1)
+                    score = min(score, 100.0)
+                    
+                    await db.students.update_one(
+                        {"id": log_data.student_id},
+                        {"$set": {
+                            "mastered_tokens": all_mastered,
+                            "agentic_reach_score": score,
+                        }}
+                    )
+
+    # Update student reading statistics
+    if log_data.words_read > 0:
+        student = await db.students.find_one({"id": log_data.student_id})
+        if student:
+            new_total_seconds = student.get("total_reading_seconds", 0) + int(duration)
+            new_total_words = student.get("total_words_read", 0) + log_data.words_read
+            new_average_wpm = (new_total_words / (new_total_seconds / 60)) if new_total_seconds > 0 else 0
+            
+            await db.students.update_one(
+                {"id": log_data.student_id},
+                {
+                    "$set": {
+                        "total_reading_seconds": new_total_seconds,
+                        "total_words_read": new_total_words,
+                        "average_wpm": round(new_average_wpm, 1)
+                    }
+                }
+            )
+    
+    return read_log
+
+
+@router.get("/read-logs")
+async def get_read_logs(student_id: Optional[str] = None):
+    """Get read logs, optionally filtered by student"""
+    query = {}
+    if student_id:
+        query["student_id"] = student_id
+    
+    logs = await db.read_logs.find(query, {"_id": 0}).to_list(1000)
+    return logs
+
+
+class WrittenAnswerEval(BaseModel):
+    student_id: str
+    chapter_number: int
+    question: str
+    student_answer: str
+    chapter_summary: str = ""
+    spelling_mode: str = "phonetic"  # "exact" or "phonetic"
+
+
+@router.post("/assessments/evaluate-written")
+async def evaluate_written_answer(data: WrittenAnswerEval):
+    """Evaluate a written comprehension answer using AI"""
+    from story_service import story_service
+    story_service.set_db(db)
+    llm_config = await story_service._get_llm_config()
+    provider = llm_config.get("provider", "emergent")
+    model = llm_config.get("model", "gpt-5.2")
+
+    prompt = f"""Evaluate this student's written answer to a reading comprehension question.
+
+Question: {data.question}
+Student's Answer: {data.student_answer}
+Chapter Context (first 500 chars): {data.chapter_summary}
+Spelling Mode: {data.spelling_mode}
+
+Evaluate:
+1. Does the answer demonstrate understanding of the chapter content?
+2. Is the answer relevant to the question?
+3. {"Check for exact spelling. List any misspelled words." if data.spelling_mode == "exact" else "Accept phonetic/close spellings. Only note severely misspelled words."}
+
+Return ONLY valid JSON:
+{{
+  "passed": true/false,
+  "feedback": "brief encouraging feedback",
+  "spelling_errors": [{{"written": "misspeled", "correct": "misspelled"}}],
+  "comprehension_score": 0-100
+}}"""
+
+    try:
+        if provider == "openrouter":
+            from openai import AsyncOpenAI
+            api_key = llm_config.get("openrouter_key") or os.environ.get("OPENROUTER_API_KEY")
+            client = AsyncOpenAI(
+                base_url="https://openrouter.ai/api/v1", api_key=api_key,
+                default_headers={"HTTP-Referer": "https://leximaster.app"},
+                max_retries=1, timeout=30.0,
+            )
+            response = await client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3, max_tokens=500,
+            )
+            text = response.choices[0].message.content or ""
+        else:
+            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            from emergentintegrations.llm.chat import LlmChat, UserMessage
+            chat = LlmChat(api_key=api_key, session_id=f"eval_{data.student_id}_{data.chapter_number}")
+            chat.with_model("openai", model if provider == "emergent" else "gpt-5.2")
+            text = await chat.send_message(UserMessage(text=prompt))
+
+        text = text.strip()
+        if "```" in text:
+            import re
+            json_match = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', text, re.DOTALL)
+            if json_match:
+                text = json_match.group(1).strip()
+            else:
+                text = text.replace("```json", "").replace("```", "").strip()
+
+        try:
+            result = json_lib.loads(text)
+        except json_lib.JSONDecodeError:
+            import re
+            json_match = re.search(r'\{[\s\S]*\}', text)
+            if json_match:
+                cleaned = json_match.group(0)
+                cleaned = re.sub(r',\s*}', '}', cleaned)
+                cleaned = re.sub(r',\s*]', ']', cleaned)
+                result = json_lib.loads(cleaned)
+            else:
+                raise ValueError(f"No valid JSON in response: {text[:200]}")
+
+        # Log spelling errors for the student
+        if result.get("spelling_errors"):
+            await db.spelling_logs.insert_one({
+                "student_id": data.student_id,
+                "chapter_number": data.chapter_number,
+                "errors": result["spelling_errors"],
+                "answer_text": data.student_answer,
+                "created_date": datetime.now(timezone.utc).isoformat(),
+            })
+
+        # Save written answer for brand analytics (shows student engagement with content)
+        await db.written_answers.insert_one({
+            "student_id": data.student_id,
+            "chapter_number": data.chapter_number,
+            "question": data.question,
+            "student_answer": data.student_answer,
+            "passed": result.get("passed", False),
+            "comprehension_score": result.get("comprehension_score", 0),
+            "feedback": result.get("feedback", ""),
+            "created_date": datetime.now(timezone.utc).isoformat(),
+        })
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Written answer evaluation failed: {str(e)}")
+        # Lenient fallback — pass if answer has enough words
+        word_count = len(data.student_answer.split())
+        return {
+            "passed": word_count >= 5,
+            "feedback": "Your answer was recorded. Keep reading!" if word_count >= 5 else "Please write a more complete answer.",
+            "spelling_errors": [],
+            "comprehension_score": 60 if word_count >= 5 else 30,
+        }
+
+
+# ==================== ADMIN SPELLING & LIMITS CONFIG ====================
+
+@router.get("/admin/settings")
+async def get_admin_settings(current_user: dict = Depends(get_current_user)):
+    """Get admin settings (spelling, free limits, etc.)"""
+    settings = await db.system_config.find_one({"key": "admin_settings"}, {"_id": 0})
+    defaults = {
+        "global_spellcheck_disabled": False,
+        "global_spelling_mode": "phonetic",
+        "free_account_story_limit": 5,
+        "free_account_assessment_limit": 10,
+    }
+    return settings.get("value", defaults) if settings else defaults
+
+
+class AdminSettingsUpdate(BaseModel):
+    global_spellcheck_disabled: Optional[bool] = None
+    global_spelling_mode: Optional[str] = None
+    free_account_story_limit: Optional[int] = None
+    free_account_assessment_limit: Optional[int] = None
+
+
+@router.post("/admin/settings")
+async def update_admin_settings(data: AdminSettingsUpdate, current_user: dict = Depends(get_current_user)):
+    """Update admin settings"""
+    current = await get_admin_settings(current_user)
+    updates = {k: v for k, v in data.model_dump().items() if v is not None}
+    current.update(updates)
+    await db.system_config.update_one(
+        {"key": "admin_settings"},
+        {"$set": {"key": "admin_settings", "value": current, "updated_date": datetime.now(timezone.utc).isoformat()}},
+        upsert=True,
+    )
+    return {"message": "Settings updated", "settings": current}
+
+
+@router.post("/students/{student_id}/spellcheck")
+async def update_student_spellcheck(
+    student_id: str,
+    current_user: dict = Depends(get_current_guardian)
+):
+    """Toggle spellcheck for a specific student"""
+    student = await db.students.find_one({"id": student_id})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    if current_user.get("role") != "admin" and student["guardian_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    current = student.get("spellcheck_disabled", False)
+    await db.students.update_one(
+        {"id": student_id},
+        {"$set": {"spellcheck_disabled": not current}}
+    )
+    return {"spellcheck_disabled": not current}
+
+
+@router.post("/students/{student_id}/spelling-mode")
+async def update_student_spelling_mode(
+    student_id: str,
+    current_user: dict = Depends(get_current_guardian)
+):
+    """Toggle spelling mode between exact and phonetic for a student"""
+    student = await db.students.find_one({"id": student_id})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    if current_user.get("role") != "admin" and student["guardian_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    current = student.get("spelling_mode", "phonetic")
+    new_mode = "exact" if current == "phonetic" else "phonetic"
+    await db.students.update_one(
+        {"id": student_id},
+        {"$set": {"spelling_mode": new_mode}}
+    )
+    return {"spelling_mode": new_mode}
+
+
+@router.get("/students/{student_id}/spelling-logs")
+async def get_spelling_logs(
+    student_id: str,
+    current_user: dict = Depends(get_current_guardian)
+):
+    """Get spelling error logs for a student"""
+    student = await db.students.find_one({"id": student_id})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    if student["guardian_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    logs = await db.spelling_logs.find(
+        {"student_id": student_id}, {"_id": 0}
+    ).sort("created_date", -1).to_list(100)
+    return logs
+
+
+# ==================== ASSESSMENT ROUTES ====================
+
+class AssessmentCreate(BaseModel):
+    student_id: str
+    narrative_id: str
+    type: str = "token_verification"
+
+
+@router.post("/assessments")
+async def create_assessment(assessment_data: AssessmentCreate):
+    """Create a vocabulary assessment for a completed narrative"""
+    from models import Assessment, AssessmentQuestion, AssessmentType, QuestionType
+    
+    # Get narrative
+    narrative = await db.narratives.find_one({"id": assessment_data.narrative_id})
+    if not narrative:
+        raise HTTPException(status_code=404, detail="Narrative not found")
+    
+    # Clean up any stuck in_progress assessments for this narrative+student
+    await db.assessments.delete_many({
+        "student_id": assessment_data.student_id,
+        "narrative_id": assessment_data.narrative_id,
+        "status": "in_progress",
+    })
+    
+    # Get words to test (target + stretch)
+    tokens_to_verify = narrative.get("tokens_to_verify", [])
+    
+    if not tokens_to_verify:
+        raise HTTPException(status_code=400, detail="No tokens to verify in this narrative")
+    
+    # Create questions for each token
+    questions = []
+    for word in tokens_to_verify:
+        question = AssessmentQuestion(
+            word=word,
+            question_type=QuestionType.DEFINITION,
+            prompt=f"Provide a definition for '{word}' and use it in a sentence.",
+            correct_answer=""  # Will be filled from word bank
+        )
+        questions.append(question)
+    
+    assessment = Assessment(
+        student_id=assessment_data.student_id,
+        narrative_id=assessment_data.narrative_id,
+        type=AssessmentType.TOKEN_VERIFICATION,
+        questions=questions,
+        total_questions=len(questions)
+    )
+    
+    assessment_dict = assessment.model_dump()
+    await db.assessments.insert_one(assessment_dict)
+    
+    return assessment
+
+
+class AssessmentAnswer(BaseModel):
+    word: str
+    definition: str
+    sentence: str
+
+
+class AssessmentSubmission(BaseModel):
+    answers: List[AssessmentAnswer]
+
+
+@router.post("/assessments/{assessment_id}/evaluate")
+async def evaluate_assessment(assessment_id: str, submission: AssessmentSubmission):
+    """Evaluate student responses using LLM"""
+    
+    # Get assessment
+    assessment = await db.assessments.find_one({"id": assessment_id})
+    if not assessment:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+    
+    # Get narrative to find correct definitions
+    narrative = await db.narratives.find_one({"id": assessment["narrative_id"]})
+    if not narrative:
+        raise HTTPException(status_code=404, detail="Narrative not found")
+    
+    # Get word banks to find correct definitions
+    word_definitions = {}
+    for bank_id in narrative.get("bank_ids", []):
+        bank = await db.word_banks.find_one({"id": bank_id})
+        if bank:
+            for tier in ["baseline_words", "target_words", "stretch_words"]:
+                for word_obj in bank.get(tier, []):
+                    word_definitions[word_obj["word"]] = {
+                        "definition": word_obj["definition"],
+                        "example": word_obj["example_sentence"]
+                    }
+    
+    # Prepare LLM evaluation
+    try:
+        from story_service import story_service
+        story_service.set_db(db)
+        llm_config = await story_service._get_llm_config()
+        provider = llm_config.get("provider", "emergent")
+        model = llm_config.get("model", "gpt-5.2")
+
+        # Get student spelling settings
+        student_record = await db.students.find_one({"id": assessment["student_id"]})
+        spelling_mode = student_record.get("spelling_mode", "phonetic") if student_record else "phonetic"
+        
+        # Build evaluation prompt
+        evaluation_requests = []
+        for answer in submission.answers:
+            correct_info = word_definitions.get(answer.word, {})
+            evaluation_requests.append({
+                "word": answer.word,
+                "correct_definition": correct_info.get("definition", ""),
+                "correct_example": correct_info.get("example", ""),
+                "student_definition": answer.definition,
+                "student_sentence": answer.sentence
+            })
+        
+        prompt = f"""Evaluate these vocabulary responses from a student. For each word, determine if the student demonstrates understanding.
+
+Evaluation Criteria:
+- Definition: Does it capture the core meaning? (Allow for different wording)
+- Sentence: Is the word used correctly in context?
+- Spelling Mode: {spelling_mode} ({'Require exact spelling' if spelling_mode == 'exact' else 'Accept phonetic/close spellings'})
+- Overall: If both are reasonable, mark as correct
+- Track any spelling errors found
+
+Words to evaluate:
+{json_lib.dumps(evaluation_requests, indent=2)}
+
+Return ONLY valid JSON (no markdown):
+{{
+  "results": [
+    {{
+      "word": "word",
+      "definition_correct": true/false,
+      "sentence_correct": true/false,
+      "overall_correct": true/false,
+      "feedback": "brief encouraging feedback",
+      "spelling_errors": [{{"written": "misspeled", "correct": "misspelled"}}]
+    }}
+  ]
+}}"""
+
+        if provider == "openrouter":
+            from openai import AsyncOpenAI
+            api_key = llm_config.get("openrouter_key") or os.environ.get("OPENROUTER_API_KEY")
+            client = AsyncOpenAI(
+                base_url="https://openrouter.ai/api/v1", api_key=api_key,
+                default_headers={"HTTP-Referer": "https://leximaster.app"},
+                max_retries=1, timeout=60.0,
+            )
+            response_obj = await client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3, max_tokens=4000,
+            )
+            response = response_obj.choices[0].message.content or ""
+        else:
+            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            from emergentintegrations.llm.chat import LlmChat, UserMessage
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=f"assess_{assessment_id}",
+                system_message="You are an educational assessment evaluator. Be encouraging but fair."
+            )
+            chat.with_model("openai", model if provider == "emergent" else "gpt-5.2")
+            message = UserMessage(text=prompt)
+            response = await chat.send_message(message)
+
+        # Parse response — robust JSON extraction
+        text = response.strip()
+        # Strip markdown code blocks
+        if "```" in text:
+            import re
+            json_match = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', text, re.DOTALL)
+            if json_match:
+                text = json_match.group(1).strip()
+            else:
+                text = text.replace("```json", "").replace("```", "").strip()
+
+        # Try to extract JSON object
+        try:
+            evaluation = json_lib.loads(text)
+        except json_lib.JSONDecodeError:
+            # Try to find JSON object within text
+            import re
+            json_match = re.search(r'\{[\s\S]*\}', text)
+            if json_match:
+                try:
+                    evaluation = json_lib.loads(json_match.group(0))
+                except json_lib.JSONDecodeError:
+                    # Last resort: truncate at the last valid closing brace
+                    raw = json_match.group(0)
+                    # Fix common LLM JSON issues: trailing commas, unescaped quotes
+                    raw = re.sub(r',\s*}', '}', raw)
+                    raw = re.sub(r',\s*]', ']', raw)
+                    evaluation = json_lib.loads(raw)
+            else:
+                raise ValueError(f"No valid JSON found in LLM response: {text[:200]}")
+        
+        # Update assessment with results
+        correct_count = sum(1 for r in evaluation["results"] if r["overall_correct"])
+        accuracy = (correct_count / len(submission.answers)) * 100 if submission.answers else 0
+        
+        # Update questions with student answers and feedback
+        updated_questions = []
+        for i, answer in enumerate(submission.answers):
+            result = evaluation["results"][i]
+            question = assessment["questions"][i]
+            question.update({
+                "student_definition": answer.definition,
+                "student_sentence": answer.sentence,
+                "is_correct": result["overall_correct"],
+                "feedback": result["feedback"]
+            })
+            updated_questions.append(question)
+        
+        # Determine mastered tokens (80%+ accuracy)
+        tokens_mastered = [
+            r["word"] for r in evaluation["results"] 
+            if r["overall_correct"]
+        ]
+        
+        # Update assessment
+        await db.assessments.update_one(
+            {"id": assessment_id},
+            {
+                "$set": {
+                    "questions": updated_questions,
+                    "correct_count": correct_count,
+                    "accuracy_percentage": round(accuracy, 1),
+                    "tokens_mastered": tokens_mastered,
+                    "status": "completed",
+                    "completed_at": datetime.now(timezone.utc).isoformat()
+                }
+            }
+        )
+        
+        # Update student mastered tokens if 80%+ accuracy
+        if accuracy >= 80:
+            student = await db.students.find_one({"id": assessment["student_id"]})
+            if student:
+                # Normalize existing tokens to plain strings
+                existing_tokens = set()
+                for t in student.get("mastered_tokens", []):
+                    if isinstance(t, str):
+                        existing_tokens.add(t.lower().strip())
+                    elif isinstance(t, dict):
+                        existing_tokens.add(t.get("token", "").lower().strip())
+                
+                new_tokens = []
+                for word in tokens_mastered:
+                    w = word.lower().strip()
+                    if w and w not in existing_tokens:
+                        new_tokens.append(w)
+                
+                if new_tokens:
+                    # Store all tokens as plain strings consistently
+                    all_mastered = list(existing_tokens | set(new_tokens))
+                    
+                    # Recalculate agentic reach score
+                    total_narratives = await db.narratives.count_documents({"student_id": assessment["student_id"]})
+                    completed_narratives = await db.narratives.count_documents({"student_id": assessment["student_id"], "status": "completed"})
+                    agentic_score = round((len(all_mastered) * 10 + completed_narratives * 50) / max(total_narratives * 50, 1) * 100, 1)
+                    agentic_score = min(agentic_score, 100.0)
+                    
+                    await db.students.update_one(
+                        {"id": assessment["student_id"]},
+                        {"$set": {
+                            "mastered_tokens": all_mastered,
+                            "agentic_reach_score": agentic_score,
+                        }}
+                    )
+        
+        # Return updated assessment
+        updated_assessment = await db.assessments.find_one({"id": assessment_id}, {"_id": 0})
+        return updated_assessment
+        
+    except Exception as e:
+        logger.error(f"Assessment evaluation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Evaluation failed: {str(e)}")
+
+
+@router.get("/assessments")
+async def get_assessments(student_id: Optional[str] = None, narrative_id: Optional[str] = None):
+    """Get assessments with optional filters"""
+    query = {}
+    if student_id:
+        query["student_id"] = student_id
+    if narrative_id:
+        query["narrative_id"] = narrative_id
+    
+    assessments = await db.assessments.find(query, {"_id": 0}).to_list(1000)
+    return assessments
+
+
+@router.get("/assessments/{assessment_id}")
+async def get_assessment(assessment_id: str):
+    """Get a specific assessment"""
+    assessment = await db.assessments.find_one({"id": assessment_id}, {"_id": 0})
+    if not assessment:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+    return assessment
+
+

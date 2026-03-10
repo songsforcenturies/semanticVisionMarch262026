@@ -108,3 +108,13 @@ async def get_current_teacher(current_user: dict = Depends(get_current_user)) ->
             detail="Teacher access required"
         )
     return current_user
+
+
+async def get_current_brand_partner(current_user: dict = Depends(get_current_user)) -> dict:
+    """Dependency to require brand_partner role"""
+    if current_user.get("role") not in ["brand_partner", "admin"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Brand partner access required"
+        )
+    return current_user
