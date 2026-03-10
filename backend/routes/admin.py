@@ -1822,3 +1822,130 @@ async def get_parent_wordbank_flag(current_user: dict = Depends(get_current_user
     return {"parent_wordbank_creation_enabled": enabled}
 
 
+
+
+# ==================== INTEGRATION / API KEYS MANAGEMENT ====================
+
+INTEGRATION_PROVIDERS = ["stripe", "paypal", "resend"]
+
+def _mask_key(key: str) -> str:
+    """Mask an API key, showing only last 4 chars"""
+    if not key or len(key) < 8:
+        return "****" if key else ""
+    return "*" * (len(key) - 4) + key[-4:]
+
+
+class IntegrationUpdate(BaseModel):
+    stripe_api_key: str = ""
+    paypal_client_id: str = ""
+    paypal_secret: str = ""
+    resend_api_key: str = ""
+    sender_email: str = "Semantic Vision <hello@semanticvision.ai>"
+    paypal_mode: str = "sandbox"  # sandbox or live
+    stripe_enabled: bool = True
+    paypal_enabled: bool = False
+    resend_enabled: bool = True
+
+
+@router.get("/admin/integrations")
+async def get_integrations(current_user: dict = Depends(get_current_user)):
+    """Get integration configs with masked keys"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    config = await db.system_config.find_one({"key": "integration_keys"}, {"_id": 0})
+    stored = config.get("value", {}) if config else {}
+
+    # Merge DB values with env fallbacks
+    stripe_key = stored.get("stripe_api_key") or os.environ.get("STRIPE_API_KEY", "")
+    paypal_id = stored.get("paypal_client_id") or os.environ.get("PAYPAL_CLIENT_ID", "")
+    paypal_secret = stored.get("paypal_secret") or os.environ.get("PAYPAL_SECRET", "")
+    resend_key = stored.get("resend_api_key") or os.environ.get("RESEND_API_KEY", "")
+    sender = stored.get("sender_email") or os.environ.get("SENDER_EMAIL", "Semantic Vision <hello@semanticvision.ai>")
+
+    return {
+        "stripe": {
+            "api_key_masked": _mask_key(stripe_key),
+            "has_key": bool(stripe_key),
+            "enabled": stored.get("stripe_enabled", bool(stripe_key)),
+        },
+        "paypal": {
+            "client_id_masked": _mask_key(paypal_id),
+            "secret_masked": _mask_key(paypal_secret),
+            "has_keys": bool(paypal_id and paypal_secret),
+            "enabled": stored.get("paypal_enabled", bool(paypal_id and paypal_secret)),
+            "mode": stored.get("paypal_mode", "sandbox"),
+        },
+        "resend": {
+            "api_key_masked": _mask_key(resend_key),
+            "has_key": bool(resend_key),
+            "enabled": stored.get("resend_enabled", bool(resend_key)),
+            "sender_email": sender,
+        },
+    }
+
+
+@router.put("/admin/integrations")
+async def update_integrations(data: IntegrationUpdate, current_user: dict = Depends(get_current_user)):
+    """Update integration API keys and settings"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    # Get existing config to preserve unchanged keys
+    config = await db.system_config.find_one({"key": "integration_keys"}, {"_id": 0})
+    existing = config.get("value", {}) if config else {}
+
+    # Only update keys that are not masked placeholders (i.e., user actually typed a new key)
+    update = {}
+    if data.stripe_api_key and not data.stripe_api_key.startswith("*"):
+        update["stripe_api_key"] = data.stripe_api_key
+    else:
+        update["stripe_api_key"] = existing.get("stripe_api_key", os.environ.get("STRIPE_API_KEY", ""))
+
+    if data.paypal_client_id and not data.paypal_client_id.startswith("*"):
+        update["paypal_client_id"] = data.paypal_client_id
+    else:
+        update["paypal_client_id"] = existing.get("paypal_client_id", os.environ.get("PAYPAL_CLIENT_ID", ""))
+
+    if data.paypal_secret and not data.paypal_secret.startswith("*"):
+        update["paypal_secret"] = data.paypal_secret
+    else:
+        update["paypal_secret"] = existing.get("paypal_secret", os.environ.get("PAYPAL_SECRET", ""))
+
+    if data.resend_api_key and not data.resend_api_key.startswith("*"):
+        update["resend_api_key"] = data.resend_api_key
+    else:
+        update["resend_api_key"] = existing.get("resend_api_key", os.environ.get("RESEND_API_KEY", ""))
+
+    update["sender_email"] = data.sender_email
+    update["paypal_mode"] = data.paypal_mode
+    update["stripe_enabled"] = data.stripe_enabled
+    update["paypal_enabled"] = data.paypal_enabled
+    update["resend_enabled"] = data.resend_enabled
+    update["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    await db.system_config.update_one(
+        {"key": "integration_keys"},
+        {"$set": {"value": update}},
+        upsert=True,
+    )
+
+    # Update runtime environment so services pick up new keys immediately
+    os.environ["STRIPE_API_KEY"] = update["stripe_api_key"]
+    os.environ["PAYPAL_CLIENT_ID"] = update["paypal_client_id"]
+    os.environ["PAYPAL_SECRET"] = update["paypal_secret"]
+    os.environ["RESEND_API_KEY"] = update["resend_api_key"]
+    os.environ["SENDER_EMAIL"] = update["sender_email"]
+
+    # Update resend module key and stripe module key
+    try:
+        import resend
+        resend.api_key = update["resend_api_key"]
+    except Exception:
+        pass
+    try:
+        stripe.api_key = update["stripe_api_key"]
+    except Exception:
+        pass
+
+    return {"message": "Integration settings saved successfully"}

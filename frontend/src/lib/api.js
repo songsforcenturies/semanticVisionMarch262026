@@ -174,6 +174,9 @@ export const adminAPI = {
   getPlanStats: () => apiClient.get('/admin/plan-stats'),
   editUserSubscription: (userId, data) => apiClient.put(`/admin/users/${userId}/subscription`, data),
   editUserWallet: (userId, data) => apiClient.put(`/admin/users/${userId}/wallet`, data),
+  // Integrations / API Keys
+  getIntegrations: () => apiClient.get('/admin/integrations'),
+  updateIntegrations: (data) => apiClient.put('/admin/integrations', data),
 };
 
 // ==================== WALLET API ====================

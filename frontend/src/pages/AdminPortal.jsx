@@ -7,12 +7,13 @@ import AffiliatesTab from '@/components/admin/AffiliatesTab';
 import AdminAudioBooksTab from '@/components/admin/AdminAudioBooksTab';
 import AdminMessagingTab from '@/components/admin/AdminMessagingTab';
 import AdminSpellingContestsTab from '@/components/admin/AdminSpellingContestsTab';
+import IntegrationsTab from '@/components/admin/IntegrationsTab';
 import apiClient from '@/lib/api';
 import { BrutalCard, BrutalButton, BrutalBadge, BrutalInput } from '@/components/brutal';
 import {
   DollarSign, Cpu, Users, BarChart3, Settings, Shield,
   Ticket, Crown, PlusCircle, Trash2, UserCheck, BookOpen, Clock, Zap, Sliders, ToggleLeft,
-  Megaphone, Building2, Edit, Trophy, Wallet, Link2, Send, CheckCircle, XCircle, MessageSquare, Award,
+  Megaphone, Building2, Edit, Trophy, Wallet, Link2, Send, CheckCircle, XCircle, MessageSquare, Award, Key,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
@@ -415,6 +416,7 @@ const AdminPortal = () => {
     { id: 'messaging', label: 'Messaging', icon: MessageSquare },
     { id: 'spelling', label: 'Spelling Bee', icon: Award },
     { id: 'config', label: 'LLM Config', icon: Settings },
+    { id: 'integrations', label: 'Integrations', icon: Key },
     { id: 'settings', label: 'App Settings', icon: Shield },
   ];
 
@@ -1668,6 +1670,7 @@ const AdminPortal = () => {
         {activeTab === 'audiobooks' && <AdminAudioBooksTab />}
         {activeTab === 'messaging' && <AdminMessagingTab />}
         {activeTab === 'spelling' && <AdminSpellingContestsTab />}
+        {activeTab === 'integrations' && <IntegrationsTab />}
 
         {/* =================== LLM CONFIG TAB =================== */}
         {activeTab === 'config' && (

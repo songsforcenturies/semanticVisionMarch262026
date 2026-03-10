@@ -10,18 +10,25 @@ from models import PaymentTransaction, WalletTransaction, WalletTransactionType
 
 router = APIRouter()
 
-PAYPAL_BASE = "https://api-m.sandbox.paypal.com"  # Switch to https://api-m.paypal.com for production
+async def _get_paypal_credentials():
+    """Get PayPal credentials from DB first, then env fallback"""
+    config = await db.system_config.find_one({"key": "integration_keys"}, {"_id": 0})
+    stored = config.get("value", {}) if config else {}
+    client_id = stored.get("paypal_client_id") or os.environ.get("PAYPAL_CLIENT_ID", "")
+    secret = stored.get("paypal_secret") or os.environ.get("PAYPAL_SECRET", "")
+    mode = stored.get("paypal_mode", "sandbox")
+    base_url = "https://api-m.paypal.com" if mode == "live" else "https://api-m.sandbox.paypal.com"
+    return client_id, secret, base_url
 
 
 async def _get_paypal_token():
-    client_id = os.environ.get("PAYPAL_CLIENT_ID")
-    secret = os.environ.get("PAYPAL_SECRET")
+    client_id, secret, base_url = await _get_paypal_credentials()
     if not client_id or not secret:
         raise HTTPException(status_code=500, detail="PayPal not configured")
     credentials = base64.b64encode(f"{client_id}:{secret}".encode()).decode()
     async with httpx.AsyncClient() as client:
         resp = await client.post(
-            f"{PAYPAL_BASE}/v1/oauth2/token",
+            f"{base_url}/v1/oauth2/token",
             headers={"Authorization": f"Basic {credentials}", "Content-Type": "application/x-www-form-urlencoded"},
             data="grant_type=client_credentials",
             timeout=15,
@@ -29,7 +36,7 @@ async def _get_paypal_token():
         if resp.status_code != 200:
             logger.error(f"PayPal auth failed: {resp.text}")
             raise HTTPException(status_code=502, detail="PayPal authentication failed")
-        return resp.json()["access_token"]
+        return resp.json()["access_token"], base_url
 
 
 TOPUP_PACKAGES = {"small": 5, "medium": 10, "large": 25, "xl": 50, "xxl": 100}
@@ -47,7 +54,7 @@ async def create_paypal_order(data: PayPalOrderRequest, current_user: dict = Dep
         raise HTTPException(status_code=400, detail="Invalid package")
 
     amount = TOPUP_PACKAGES[data.package_id]
-    token = await _get_paypal_token()
+    token, base_url = await _get_paypal_token()
     origin = data.origin_url.rstrip("/")
 
     order_body = {
@@ -66,7 +73,7 @@ async def create_paypal_order(data: PayPalOrderRequest, current_user: dict = Dep
 
     async with httpx.AsyncClient() as client:
         resp = await client.post(
-            f"{PAYPAL_BASE}/v2/checkout/orders",
+            f"{base_url}/v2/checkout/orders",
             headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
             json=order_body,
             timeout=15,
@@ -94,11 +101,11 @@ async def create_paypal_order(data: PayPalOrderRequest, current_user: dict = Dep
 @router.post("/paypal/capture-order/{order_id}")
 async def capture_paypal_order(order_id: str, current_user: dict = Depends(get_current_user)):
     """Capture an approved PayPal order and credit wallet"""
-    token = await _get_paypal_token()
+    token, base_url = await _get_paypal_token()
 
     async with httpx.AsyncClient() as client:
         resp = await client.post(
-            f"{PAYPAL_BASE}/v2/checkout/orders/{order_id}/capture",
+            f"{base_url}/v2/checkout/orders/{order_id}/capture",
             headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
             timeout=15,
         )
@@ -149,5 +156,8 @@ async def capture_paypal_order(order_id: str, current_user: dict = Depends(get_c
 @router.get("/paypal/config")
 async def get_paypal_config():
     """Return PayPal client ID for frontend (safe to expose)"""
-    client_id = os.environ.get("PAYPAL_CLIENT_ID", "")
-    return {"client_id": client_id, "enabled": bool(client_id)}
+    config = await db.system_config.find_one({"key": "integration_keys"}, {"_id": 0})
+    stored = config.get("value", {}) if config else {}
+    client_id = stored.get("paypal_client_id") or os.environ.get("PAYPAL_CLIENT_ID", "")
+    enabled = stored.get("paypal_enabled", bool(client_id))
+    return {"client_id": client_id, "enabled": enabled and bool(client_id)}
