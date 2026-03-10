@@ -13,7 +13,7 @@ from models import (
     Coupon, CouponType, CouponRedemption,
     AdminSubscriptionPlan, Subscription, SubscriptionPlan, SubscriptionStatus, SubscriptionFeatures,
     Referral, Donation, generate_referral_code,
-    Brand,
+    Brand, PaymentTransaction,
     WordBank, WordBankCreate,
 )
 from auth import get_current_user, get_current_admin, get_current_guardian

@@ -11,7 +11,7 @@ from database import db, logger
 from models import (
     UserRole, Brand, BrandProduct, BrandImpression, BrandCampaign,
     BrandOffer, UserOfferPreference,
-    ClassroomSponsorship, TargetRegion,
+    ClassroomSponsorship, TargetRegion, PaymentTransaction,
 )
 from auth import get_current_user, get_current_admin, get_current_guardian, get_current_brand_partner
 from story_service import story_service
