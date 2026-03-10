@@ -54,23 +54,25 @@ const OnboardingWizard = ({ steps, portalType, userId, onComplete }) => {
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center"
+      className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto p-4"
       style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}
       data-testid="onboarding-wizard-overlay"
     >
       <div
-        className="relative w-full max-w-lg mx-4 rounded-2xl overflow-hidden"
+        className="relative w-full max-w-lg rounded-2xl overflow-hidden my-auto"
         style={{
           background: C.card,
           border: `1px solid ${C.border}`,
           boxShadow: `0 0 60px rgba(212,168,83,0.08), 0 8px 32px rgba(0,0,0,0.4)`,
+          maxHeight: '90vh',
+          overflowY: 'auto',
         }}
         data-testid="onboarding-wizard-modal"
       >
         {/* Skip button */}
         <button
           onClick={dismiss}
-          className="absolute top-4 right-4 z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:scale-105"
+          className="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:scale-105"
           style={{
             color: C.muted,
             background: 'rgba(255,255,255,0.06)',
@@ -82,7 +84,7 @@ const OnboardingWizard = ({ steps, portalType, userId, onComplete }) => {
         </button>
 
         {/* Step indicator bar */}
-        <div className="px-6 pt-5 pb-0">
+        <div className="px-4 sm:px-6 pt-5 pb-0">
           <div className="flex gap-1.5">
             {steps.map((_, i) => (
               <div
@@ -103,7 +105,7 @@ const OnboardingWizard = ({ steps, portalType, userId, onComplete }) => {
         </div>
 
         {/* Content */}
-        <div className="px-6 pt-4 pb-2" style={{ minHeight: 280 }}>
+        <div className="px-4 sm:px-6 pt-4 pb-2" style={{ minHeight: 220 }}>
           <div
             key={currentStep}
             className="animate-in fade-in-0 duration-300"
@@ -113,18 +115,18 @@ const OnboardingWizard = ({ steps, portalType, userId, onComplete }) => {
           >
             {/* Icon */}
             <div
-              className="w-14 h-14 rounded-xl flex items-center justify-center mb-5"
+              className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center mb-4"
               style={{
                 background: `linear-gradient(135deg, ${C.gold}22, ${C.gold}08)`,
                 border: `1px solid ${C.gold}30`,
               }}
             >
-              <Icon size={28} style={{ color: C.gold }} />
+              <Icon size={24} style={{ color: C.gold }} />
             </div>
 
             {/* Title */}
             <h2
-              className="text-xl font-bold mb-2"
+              className="text-lg sm:text-xl font-bold mb-2"
               style={{ color: C.cream }}
               data-testid="onboarding-step-title"
             >
@@ -142,9 +144,9 @@ const OnboardingWizard = ({ steps, portalType, userId, onComplete }) => {
 
             {/* Tips / bullet points */}
             {step.tips?.length > 0 && (
-              <ul className="space-y-2.5">
+              <ul className="space-y-2">
                 {step.tips.map((tip, i) => (
-                  <li key={i} className="flex items-start gap-2.5">
+                  <li key={i} className="flex items-start gap-2">
                     <div
                       className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
                       style={{ background: `${C.gold}18` }}
@@ -163,13 +165,13 @@ const OnboardingWizard = ({ steps, portalType, userId, onComplete }) => {
 
         {/* Footer navigation */}
         <div
-          className="px-6 py-4 flex items-center justify-between"
+          className="px-4 sm:px-6 py-4 flex items-center justify-between"
           style={{ borderTop: `1px solid ${C.border}` }}
         >
           <button
             onClick={prev}
             disabled={currentStep === 0}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all"
+            className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-all"
             style={{
               color: currentStep === 0 ? 'rgba(148,163,184,0.3)' : C.muted,
               background: currentStep === 0 ? 'transparent' : 'rgba(255,255,255,0.04)',
@@ -182,7 +184,7 @@ const OnboardingWizard = ({ steps, portalType, userId, onComplete }) => {
 
           <button
             onClick={next}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all hover:scale-105 active:scale-95"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all hover:scale-105 active:scale-95"
             style={{
               background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`,
               color: '#000',

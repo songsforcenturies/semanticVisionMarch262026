@@ -52,13 +52,13 @@ const StoryGenerationDialog = ({ isOpen, onClose, student }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
-      <div className="w-full max-w-2xl bg-white border-4 border-black brutal-shadow-xl flex flex-col" style={{ maxHeight: '90vh' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 overflow-y-auto">
+      <div className="w-full max-w-2xl bg-white border-4 border-black brutal-shadow-xl flex flex-col my-auto" style={{ maxHeight: '90vh' }}>
         {/* Fixed Header */}
-        <div className="flex items-start justify-between p-6 pb-4 border-b-4 border-black shrink-0">
-          <div className="flex items-center gap-3">
-            <Sparkles size={32} className="text-indigo-600" />
-            <h2 className="text-2xl font-black uppercase">Generate Your Story</h2>
+        <div className="flex items-start justify-between p-4 sm:p-6 pb-3 sm:pb-4 border-b-4 border-black shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Sparkles size={24} className="text-indigo-600" />
+            <h2 className="text-lg sm:text-2xl font-black uppercase">Generate Your Story</h2>
           </div>
           <button
             onClick={onClose}
@@ -71,7 +71,7 @@ const StoryGenerationDialog = ({ isOpen, onClose, student }) => {
         </div>
 
         {/* Scrollable Content */}
-        <div className="overflow-y-auto flex-1 p-6 space-y-4">
+        <div className="overflow-y-auto flex-1 p-4 sm:p-6 space-y-4">
           {/* Student Info */}
           <div className="bg-indigo-50 border-4 border-black p-4">
             <p className="font-bold text-sm uppercase mb-1">Story personalized for: <span className="text-lg">{student.full_name}</span></p>
@@ -133,7 +133,7 @@ const StoryGenerationDialog = ({ isOpen, onClose, student }) => {
         </div>
 
         {/* Fixed Footer Buttons */}
-        <div className="p-6 pt-4 border-t-4 border-black shrink-0 flex gap-4">
+        <div className="p-4 sm:p-6 pt-3 sm:pt-4 border-t-4 border-black shrink-0 flex gap-3 sm:gap-4">
           <BrutalButton
             type="button"
             variant="indigo"

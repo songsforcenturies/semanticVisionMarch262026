@@ -7,6 +7,8 @@ import WrittenAnswerModal from './WrittenAnswerModal';
 import VocabularyAssessment from './VocabularyAssessment';
 import WordDefinitionModal from './WordDefinitionModal';
 import ReadAloudRecorder from '@/components/ReadAloudRecorder';
+import SaveOfflineButton from '@/components/SaveOfflineButton';
+import MusicPlayerWidget from '@/components/MusicPlayerWidget';
 
 const C = {
   bg: '#0A0F1E', surface: '#111827', card: '#1A2236',
@@ -89,67 +91,72 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
     <div className="min-h-screen sv-dark" style={{ background: C.bg, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       {/* Sticky Header */}
       <header className="sticky top-0 z-50" style={{ background: C.surface, borderBottom: '1px solid rgba(212,168,83,0.15)' }}>
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button onClick={onClose} className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all hover:scale-105"
+        <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3">
+          {/* Top row: back button + title + timer */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <button onClick={onClose} className="flex items-center gap-1 px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all hover:scale-105 flex-shrink-0"
                 style={{ color: C.muted, border: '1px solid rgba(255,255,255,0.1)' }} data-testid="reader-back-btn">
-                <ArrowLeft size={16} /> Back
+                <ArrowLeft size={14} /> <span className="hidden sm:inline">Back</span>
               </button>
-              <div className="flex items-center gap-2" style={{ borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '12px' }}>
-                <Eye size={18} style={{ color: C.gold }} />
-                <div>
-                  <h1 className="text-sm font-bold" style={{ color: C.cream }} data-testid="story-title">{narrative.title}</h1>
-                  <p className="text-xs" style={{ color: C.muted }}>Chapter {currentChapter} of 5</p>
-                </div>
+              <div className="min-w-0" style={{ borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '8px' }}>
+                <h1 className="text-xs sm:text-sm font-bold truncate" style={{ color: C.cream }} data-testid="story-title">{narrative.title}</h1>
+                <p className="text-xs" style={{ color: C.muted }}>Ch. {currentChapter}/5</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }} data-testid="reading-timer">
-                <Clock size={14} style={{ color: '#34D399' }} className="animate-pulse" />
-                <span className="font-mono font-bold text-sm" style={{ color: C.cream }}>{formatTime(elapsedSeconds)}</span>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex items-center gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }} data-testid="reading-timer">
+                <Clock size={12} style={{ color: '#34D399' }} className="animate-pulse" />
+                <span className="font-mono font-bold text-xs sm:text-sm" style={{ color: C.cream }}>{formatTime(elapsedSeconds)}</span>
                 {elapsedSeconds > 0 && (
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(52,211,153,0.12)', color: '#34D399' }}>
+                  <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full hidden sm:inline" style={{ background: 'rgba(52,211,153,0.12)', color: '#34D399' }}>
                     {calculateWPM()} WPM
                   </span>
                 )}
               </div>
               {student.spellcheck_disabled && (
-                <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{ background: 'rgba(245,158,11,0.12)', color: '#FBBF24' }} data-testid="spellcheck-off-badge">
-                  <AlertTriangle size={10} className="inline mr-1" /> Spellcheck OFF
+                <span className="text-xs font-semibold px-2 py-1 rounded-full hidden sm:inline-flex" style={{ background: 'rgba(245,158,11,0.12)', color: '#FBBF24' }} data-testid="spellcheck-off-badge">
+                  <AlertTriangle size={10} className="inline mr-1" /> Off
                 </span>
               )}
             </div>
           </div>
+
+          {/* Controls row: music + save offline */}
+          <div className="flex items-center justify-between gap-2 mt-2">
+            <MusicPlayerWidget storyText={chapter?.content || ''} />
+            <SaveOfflineButton narrative={narrative} compact />
+          </div>
+
           {/* Progress bar */}
-          <div className="mt-3 w-full h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
-            <div className="h-1.5 rounded-full transition-all duration-500" style={{ width: `${(currentChapter / 5) * 100}%`, background: `linear-gradient(90deg, ${C.gold}, ${C.teal})` }} />
+          <div className="mt-2 w-full h-1 sm:h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${(currentChapter / 5) * 100}%`, background: `linear-gradient(90deg, ${C.gold}, ${C.teal})` }} />
           </div>
         </div>
       </header>
 
       {/* Reading Content */}
-      <div className="container mx-auto px-4 py-8 max-w-3xl">
-        <div className="p-8 rounded-2xl" style={{ background: C.card, border: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-3xl">
+        <div className="p-4 sm:p-8 rounded-2xl" style={{ background: C.card, border: '1px solid rgba(255,255,255,0.06)' }}>
           {/* Chapter Title */}
-          <div className="mb-8 pb-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-2xl font-bold" style={{ fontFamily: "'Sora', sans-serif", color: C.cream }}>{chapter.title}</h2>
+          <div className="mb-6 sm:mb-8 pb-4 sm:pb-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <h2 className="text-lg sm:text-2xl font-bold" style={{ fontFamily: "'Sora', sans-serif", color: C.cream }}>{chapter.title}</h2>
               {isChapterCompleted && (
-                <span className="flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full" style={{ background: 'rgba(52,211,153,0.12)', color: '#34D399' }}>
-                  <CheckCircle size={14} /> Completed
+                <span className="flex items-center gap-1 text-xs font-semibold px-2 sm:px-3 py-1 rounded-full flex-shrink-0" style={{ background: 'rgba(52,211,153,0.12)', color: '#34D399' }}>
+                  <CheckCircle size={12} /> Done
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-4 text-xs" style={{ color: C.muted }}>
+            <div className="flex items-center gap-3 text-xs" style={{ color: C.muted }}>
               <span>{chapter.word_count} words</span>
-              <span>~{Math.ceil(chapter.word_count / 200)} min read</span>
+              <span>~{Math.ceil(chapter.word_count / 200)} min</span>
             </div>
           </div>
 
-          {/* Story Text — warm reading color */}
-          <div className="mb-8">
-            <div className="text-lg leading-[1.9] font-medium" style={{ color: C.reading }}>
+          {/* Story Text */}
+          <div className="mb-6 sm:mb-8">
+            <div className="text-base sm:text-lg leading-[1.8] sm:leading-[1.9] font-medium" style={{ color: C.reading }}>
               {chapter.content.split(/(\s+)/).map((segment, idx) => {
                 const cleanWord = segment.replace(/[^a-zA-Z'-]/g, '');
                 if (!cleanWord || cleanWord.length < 2) return <span key={idx}>{segment}</span>;
@@ -173,16 +180,16 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
                 );
               })}
             </div>
-            <p className="text-xs mt-4 italic" style={{ color: C.muted }}>Tap any word to see its definition</p>
+            <p className="text-xs mt-3 italic" style={{ color: C.muted }}>Tap any word to see its definition</p>
           </div>
 
           {/* Vocabulary Tokens */}
           {chapter.embedded_tokens?.length > 0 && (
-            <div className="p-4 rounded-xl mb-6" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)' }}>
-              <p className="text-xs font-bold uppercase mb-2" style={{ color: '#818CF8' }}>Vocabulary in this chapter</p>
-              <div className="flex flex-wrap gap-2">
+            <div className="p-3 sm:p-4 rounded-xl mb-4 sm:mb-6" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)' }}>
+              <p className="text-xs font-bold uppercase mb-2" style={{ color: '#818CF8' }}>Vocabulary</p>
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 {chapter.embedded_tokens.map((token, idx) => (
-                  <span key={idx} className="text-xs font-semibold px-3 py-1 rounded-full"
+                  <span key={idx} className="text-xs font-semibold px-2 sm:px-3 py-1 rounded-full"
                     style={{ background: token.tier === 'stretch' ? 'rgba(244,63,94,0.12)' : token.tier === 'target' ? 'rgba(245,158,11,0.12)' : 'rgba(52,211,153,0.12)', color: token.tier === 'stretch' ? '#FB7185' : token.tier === 'target' ? '#FBBF24' : '#34D399' }}>
                     {token.word}
                   </span>
@@ -220,31 +227,31 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
           <div className="space-y-3">
             {!isChapterCompleted && (
               <button onClick={handleFinishChapter}
-                className="w-full py-3.5 rounded-xl text-base font-bold text-black transition-all hover:scale-[1.01]"
+                className="w-full py-3 sm:py-3.5 rounded-xl text-sm sm:text-base font-bold text-black transition-all hover:scale-[1.01]"
                 style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` }} data-testid="finish-chapter-btn">
-                <CheckCircle size={18} className="inline mr-2" /> Finish Chapter & Answer Question
+                <CheckCircle size={16} className="inline mr-2" /> Finish Chapter & Answer Question
               </button>
             )}
             {isChapterCompleted && (
-              <div className="flex gap-3">
+              <div className="flex gap-2 sm:gap-3">
                 {currentChapter > 1 && (
                   <button onClick={() => setCurrentChapter((p) => p - 1)}
-                    className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-all"
+                    className="flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-3 rounded-xl text-sm font-semibold transition-all"
                     style={{ color: C.muted, border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <ArrowLeft size={16} /> Previous
+                    <ArrowLeft size={14} /> <span className="hidden sm:inline">Previous</span>
                   </button>
                 )}
                 {!isLastChapter ? (
                   <button onClick={() => setCurrentChapter((p) => p + 1)}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-base font-bold text-black transition-all hover:scale-[1.01]"
+                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm sm:text-base font-bold text-black transition-all hover:scale-[1.01]"
                     style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` }}>
-                    Next Chapter <ArrowRight size={16} />
+                    Next Chapter <ArrowRight size={14} />
                   </button>
                 ) : (
                   <button onClick={onClose}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-base font-bold text-black transition-all hover:scale-[1.01]"
+                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm sm:text-base font-bold text-black transition-all hover:scale-[1.01]"
                     style={{ background: `linear-gradient(135deg, #34D399, #6EE7B7)` }}>
-                    <CheckCircle size={18} /> Complete Story
+                    <CheckCircle size={16} /> Complete Story
                   </button>
                 )}
               </div>

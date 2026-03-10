@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, LogOut } from 'lucide-react';
+import { Eye, LogOut, Menu, X } from 'lucide-react';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const C = {
@@ -16,32 +16,36 @@ const C = {
 
 const AppShell = ({ children, title, subtitle, onLogout, rightContent, showLogo = true }) => {
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen sv-dark" style={{ background: C.bg, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       {/* Header */}
       <header className="sticky top-0 z-50" style={{ background: C.surface, borderBottom: '1px solid rgba(212,168,83,0.15)' }}>
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <div className="container mx-auto px-3 sm:px-4 py-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
               {showLogo && (
-                <button onClick={() => navigate('/')} className="flex items-center gap-3 group" data-testid="app-logo">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center transition-transform group-hover:scale-105" style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.teal})` }}>
-                    <Eye size={22} className="text-black" />
+                <button onClick={() => navigate('/')} className="flex items-center gap-2 sm:gap-3 group flex-shrink-0" data-testid="app-logo">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center transition-transform group-hover:scale-105" style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.teal})` }}>
+                    <Eye size={18} className="text-black sm:hidden" />
+                    <Eye size={22} className="text-black hidden sm:block" />
                   </div>
-                  <span className="text-lg font-bold tracking-tight hidden sm:block" style={{ fontFamily: "'Sora', sans-serif", color: C.cream }}>
+                  <span className="text-base sm:text-lg font-bold tracking-tight hidden md:block" style={{ fontFamily: "'Sora', sans-serif", color: C.cream }}>
                     Semantic Vision
                   </span>
                 </button>
               )}
               {(title || subtitle) && (
-                <div className="ml-2" style={{ borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '16px' }}>
-                  {title && <h1 className="text-lg font-bold" style={{ color: C.cream }} data-testid="portal-title">{title}</h1>}
-                  {subtitle && <p className="text-xs" style={{ color: C.muted }} data-testid="welcome-user">{subtitle}</p>}
+                <div className="min-w-0 ml-1 sm:ml-2" style={{ borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '8px' }}>
+                  {title && <h1 className="text-sm sm:text-lg font-bold truncate" style={{ color: C.cream }} data-testid="portal-title">{title}</h1>}
+                  {subtitle && <p className="text-xs truncate hidden sm:block" style={{ color: C.muted }} data-testid="welcome-user">{subtitle}</p>}
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-3">
+
+            {/* Desktop actions */}
+            <div className="hidden md:flex items-center gap-3 flex-shrink-0">
               {rightContent}
               <LanguageSwitcher />
               {onLogout && (
@@ -53,7 +57,35 @@ const AppShell = ({ children, title, subtitle, onLogout, rightContent, showLogo 
                 </button>
               )}
             </div>
+
+            {/* Mobile menu toggle */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 rounded-lg flex-shrink-0"
+              style={{ color: C.muted, background: 'rgba(255,255,255,0.04)' }}
+              data-testid="mobile-menu-btn"
+            >
+              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
           </div>
+
+          {/* Mobile dropdown menu */}
+          {mobileMenuOpen && (
+            <div className="md:hidden mt-3 pt-3 pb-2 space-y-2" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+              {rightContent && <div className="flex flex-wrap gap-2">{rightContent}</div>}
+              <div className="flex items-center justify-between pt-2">
+                <LanguageSwitcher />
+                {onLogout && (
+                  <button onClick={onLogout}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold"
+                    style={{ color: C.muted, border: '1px solid rgba(255,255,255,0.1)' }}
+                    data-testid="logout-btn-mobile">
+                    <LogOut size={16} /> Logout
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </header>
 

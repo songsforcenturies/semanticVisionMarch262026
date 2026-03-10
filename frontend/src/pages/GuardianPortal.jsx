@@ -48,13 +48,13 @@ const GuardianPortal = () => {
   ];
 
   const rightContent = (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 flex-wrap">
       {user?.role === 'admin' && (
         <button onClick={() => navigate('/admin')}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:scale-105"
+          className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all hover:scale-105"
           style={{ color: '#D4A853', border: '1px solid rgba(212,168,83,0.3)', background: 'rgba(212,168,83,0.08)' }}
           data-testid="admin-link">
-          <Shield size={16} /> Admin
+          <Shield size={14} /> Admin
         </button>
       )}
       <button onClick={resetOnboarding}
@@ -73,20 +73,23 @@ const GuardianPortal = () => {
       onLogout={handleLogout}
       rightContent={rightContent}
     >
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex gap-2 mb-6 flex-wrap">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`sv-tab flex items-center gap-2 px-5 py-2.5 text-sm font-semibold transition-all ${isActive ? 'sv-tab-active' : ''}`}
-                data-testid={`tab-${tab.id}`}>
-                <Icon size={18} /> {tab.label}
-              </button>
-            );
-          })}
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        {/* Horizontally scrollable tabs */}
+        <div className="mb-4 sm:mb-6 -mx-3 sm:mx-0 px-3 sm:px-0 overflow-x-auto scrollbar-hide">
+          <div className="flex gap-1.5 sm:gap-2 pb-2 sm:flex-wrap min-w-max sm:min-w-0">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`sv-tab flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all whitespace-nowrap flex-shrink-0 sm:flex-shrink ${isActive ? 'sv-tab-active' : ''}`}
+                  data-testid={`tab-${tab.id}`}>
+                  <Icon size={16} /> {tab.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div>

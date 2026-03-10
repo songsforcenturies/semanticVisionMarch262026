@@ -104,3 +104,24 @@
 .animate-float {
   animation: float 3s ease-in-out infinite;
 }
+
+/* Hide scrollbar for tab bars */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Ensure no horizontal overflow globally */
+html, body, #root {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Fix modals on mobile */
+.fixed.inset-0 {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}

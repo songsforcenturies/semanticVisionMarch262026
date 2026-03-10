@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { studentAPI, narrativeAPI, classroomAPI } from '@/lib/api';
-import { BookOpen, Plus, TrendingUp, Clock, BookMarked, Users, ArrowRight, HelpCircle, RotateCcw } from 'lucide-react';
+import { BookOpen, Plus, TrendingUp, Clock, BookMarked, Users, ArrowRight, HelpCircle, RotateCcw, WifiOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import AppShell from '@/components/AppShell';
@@ -12,6 +12,7 @@ import OnboardingWizard from '@/components/OnboardingWizard';
 import { studentOnboardingSteps } from '@/components/onboardingSteps';
 import FAQSection from '@/components/FAQSection';
 import { studentFAQ } from '@/components/faqContent';
+import OfflineLibrary from '@/components/OfflineLibrary';
 
 const C = {
   bg: '#0A0F1E', card: '#1A2236', surface: '#111827',
@@ -20,15 +21,15 @@ const C = {
 };
 
 const StatCard = ({ icon: Icon, label, value, sub, accent }) => (
-  <div className="p-5 rounded-2xl" style={{ background: C.card, border: '1px solid rgba(255,255,255,0.08)' }}>
-    <div className="flex items-center gap-4">
-      <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: `${accent}18` }}>
-        <Icon size={24} style={{ color: accent }} />
+  <div className="p-4 sm:p-5 rounded-2xl" style={{ background: C.card, border: '1px solid rgba(255,255,255,0.08)' }}>
+    <div className="flex items-center gap-3 sm:gap-4">
+      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${accent}18` }}>
+        <Icon size={20} style={{ color: accent }} />
       </div>
-      <div>
+      <div className="min-w-0">
         <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: C.muted }}>{label}</p>
-        <p className="text-3xl font-bold mt-0.5" style={{ color: C.cream }}>{value}</p>
-        {sub && <p className="text-xs mt-1" style={{ color: C.muted }}>{sub}</p>}
+        <p className="text-2xl sm:text-3xl font-bold mt-0.5" style={{ color: C.cream }}>{value}</p>
+        {sub && <p className="text-xs mt-1 truncate" style={{ color: C.muted }}>{sub}</p>}
       </div>
     </div>
   </div>
@@ -44,6 +45,7 @@ const StudentAcademy = () => {
   const [joinedSession, setJoinedSession] = useState(null);
   const [wizardKey, setWizardKey] = useState(0);
   const [showFAQ, setShowFAQ] = useState(false);
+  const [showOffline, setShowOffline] = useState(false);
 
   const resetOnboarding = () => {
     localStorage.removeItem(`sv_onboarding_student_${student?.id || student?.student_code}`);
@@ -99,8 +101,14 @@ const StudentAcademy = () => {
   return (
     <AppShell title="Semantic Vision Academy" subtitle={`Welcome, ${studentData?.full_name}!`} onLogout={handleLogout}
       rightContent={
-        <div className="flex items-center gap-2">
-          <button onClick={() => setShowFAQ(!showFAQ)}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={() => { setShowOffline(!showOffline); setShowFAQ(false); }}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-105"
+            style={{ color: showOffline ? '#D4A853' : '#94A3B8', border: '1px solid rgba(255,255,255,0.1)', background: showOffline ? 'rgba(212,168,83,0.1)' : 'rgba(255,255,255,0.04)' }}
+            data-testid="student-offline-btn">
+            <WifiOff size={14} /> Offline
+          </button>
+          <button onClick={() => { setShowFAQ(!showFAQ); setShowOffline(false); }}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-105"
             style={{ color: showFAQ ? '#D4A853' : '#94A3B8', border: '1px solid rgba(255,255,255,0.1)', background: showFAQ ? 'rgba(212,168,83,0.1)' : 'rgba(255,255,255,0.04)' }}
             data-testid="student-faq-btn">
@@ -115,44 +123,52 @@ const StudentAcademy = () => {
         </div>
       }
     >
-      <div className="container mx-auto px-4 py-6">
-        {/* FAQ Section (toggleable) */}
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        {/* FAQ Section */}
         {showFAQ && (
           <div className="mb-6">
             <FAQSection items={studentFAQ} title="Student FAQ" />
           </div>
         )}
 
+        {/* Offline Library Section */}
+        {showOffline && (
+          <div className="mb-6">
+            <h2 className="text-lg sm:text-xl font-bold mb-3" style={{ fontFamily: "'Sora', sans-serif", color: C.cream }}>Offline Library</h2>
+            <OfflineLibrary studentId={student?.id} onReadStory={(story) => setSelectedNarrative(story)} />
+          </div>
+        )}
+
         {/* Stats */}
-        <div className="grid md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
           <StatCard icon={BookMarked} label="Vocabulary Mastered" value={masteredCount} sub={`Target: ${biologicalTarget} words`} accent="#818CF8" />
           <StatCard icon={TrendingUp} label="Agentic Reach Score" value={Math.round(agenticScore)} sub={agenticScore >= 600 ? 'Expert' : agenticScore >= 300 ? 'Adept' : agenticScore >= 100 ? 'Apprentice' : 'Initiate'} accent="#34D399" />
           <StatCard icon={Clock} label="Reading Time" value={`${Math.floor((studentData?.total_reading_seconds || 0) / 60)}m`} sub={`${studentData?.average_wpm || 0} WPM average`} accent="#FBBF24" />
         </div>
 
         {/* Join Classroom */}
-        <div className="p-5 rounded-2xl mb-6" style={{ background: C.card, border: '1px solid rgba(255,255,255,0.08)' }}>
-          <div className="flex items-center gap-4 flex-wrap">
+        <div className="p-4 sm:p-5 rounded-2xl mb-4 sm:mb-6" style={{ background: C.card, border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(56,189,248,0.12)' }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(56,189,248,0.12)' }}>
                 <Users size={20} style={{ color: C.teal }} />
               </div>
               <div>
-                <h3 className="text-base font-bold" style={{ color: C.cream }}>Join Classroom Session</h3>
-                <p className="text-xs" style={{ color: C.muted }}>Enter the code from your teacher</p>
+                <h3 className="text-sm sm:text-base font-bold" style={{ color: C.cream }}>Join Classroom</h3>
+                <p className="text-xs" style={{ color: C.muted }}>Enter teacher's code</p>
               </div>
             </div>
-            <form onSubmit={handleJoinSession} className="flex items-center gap-2 ml-auto">
+            <form onSubmit={handleJoinSession} className="flex items-center gap-2 sm:ml-auto">
               <input type="text" value={sessionCode} onChange={(e) => setSessionCode(e.target.value)}
                 placeholder="6-digit code" maxLength={6}
-                className="px-4 py-2 rounded-xl font-mono font-bold text-center w-36 text-sm outline-none"
+                className="px-3 sm:px-4 py-2 rounded-xl font-mono font-bold text-center w-28 sm:w-36 text-sm outline-none"
                 style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: C.cream }}
                 data-testid="session-code-input" />
               <button type="submit" disabled={joiningSession || sessionCode.length < 6}
-                className="px-5 py-2 rounded-xl text-sm font-bold text-black disabled:opacity-50"
+                className="px-4 sm:px-5 py-2 rounded-xl text-sm font-bold text-black disabled:opacity-50"
                 style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` }}
                 data-testid="join-session-btn">
-                {joiningSession ? 'Joining...' : 'Join'}
+                {joiningSession ? '...' : 'Join'}
               </button>
             </form>
           </div>
@@ -165,49 +181,48 @@ const StudentAcademy = () => {
 
         {/* Stories */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold" style={{ fontFamily: "'Sora', sans-serif", color: C.cream }}>Your Stories</h2>
+          <div className="flex items-center justify-between mb-4 gap-2">
+            <h2 className="text-xl sm:text-2xl font-bold" style={{ fontFamily: "'Sora', sans-serif", color: C.cream }}>Your Stories</h2>
             <button onClick={() => setShowStoryDialog(true)} disabled={!canGenerateStory}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-black transition-all hover:scale-105 disabled:opacity-50"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold text-black transition-all hover:scale-105 disabled:opacity-50 flex-shrink-0"
               style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` }}>
-              <Plus size={18} /> Create New Story
+              <Plus size={16} /> <span className="hidden sm:inline">Create New Story</span><span className="sm:hidden">New</span>
             </button>
           </div>
 
           {!canGenerateStory && (
-            <div className="p-4 rounded-xl mb-4" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)' }}>
-              <p className="text-sm font-semibold" style={{ color: '#FBBF24' }}>
-                No word banks assigned! Ask your guardian to assign word banks before generating stories.
+            <div className="p-3 sm:p-4 rounded-xl mb-4" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)' }}>
+              <p className="text-xs sm:text-sm font-semibold" style={{ color: '#FBBF24' }}>
+                No word banks assigned! Ask your guardian to assign word banks.
               </p>
             </div>
           )}
 
           {narratives.length === 0 ? (
-            <div className="text-center py-16 rounded-2xl" style={{ background: C.card, border: '1px solid rgba(255,255,255,0.08)' }}>
-              <BookOpen size={48} className="mx-auto mb-4" style={{ color: C.gold }} />
-              <p className="text-xl font-bold mb-2" style={{ color: C.cream }}>No stories yet</p>
-              <p className="text-sm mb-6" style={{ color: C.muted }}>Create your first AI-generated story and start learning!</p>
+            <div className="text-center py-12 sm:py-16 rounded-2xl" style={{ background: C.card, border: '1px solid rgba(255,255,255,0.08)' }}>
+              <BookOpen size={40} className="mx-auto mb-4" style={{ color: C.gold }} />
+              <p className="text-lg sm:text-xl font-bold mb-2" style={{ color: C.cream }}>No stories yet</p>
+              <p className="text-xs sm:text-sm mb-6" style={{ color: C.muted }}>Create your first AI-generated story and start learning!</p>
               {canGenerateStory && (
                 <button onClick={() => setShowStoryDialog(true)}
-                  className="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-black mx-auto hover:scale-105 transition-all"
+                  className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-black mx-auto hover:scale-105 transition-all"
                   style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` }}>
                   <Plus size={18} /> Create Your First Story
                 </button>
               )}
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {narratives.map((narrative) => {
                 const chaptersCompleted = narrative.chapters_completed?.length || 0;
                 const isCompleted = narrative.status === 'completed';
                 return (
                   <div key={narrative.id}
-                    className="p-5 rounded-2xl cursor-pointer transition-all hover:scale-[1.02]"
+                    className="p-4 sm:p-5 rounded-2xl cursor-pointer transition-all hover:scale-[1.02]"
                     style={{ background: C.card, border: '1px solid rgba(255,255,255,0.08)' }}
                     onClick={() => setSelectedNarrative(narrative)}>
-                    <h3 className="text-base font-bold mb-1" style={{ color: C.cream }}>{narrative.title}</h3>
-                    <p className="text-xs mb-4 line-clamp-2" style={{ color: C.muted }}>{narrative.theme}</p>
-                    {/* Progress bar */}
+                    <h3 className="text-sm sm:text-base font-bold mb-1" style={{ color: C.cream }}>{narrative.title}</h3>
+                    <p className="text-xs mb-3 sm:mb-4 line-clamp-2" style={{ color: C.muted }}>{narrative.theme}</p>
                     <div className="mb-3">
                       <div className="flex justify-between text-xs mb-1" style={{ color: C.muted }}>
                         <span>Progress</span>
@@ -218,14 +233,14 @@ const StudentAcademy = () => {
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold px-3 py-1 rounded-full"
+                      <span className="text-xs font-semibold px-2 sm:px-3 py-1 rounded-full"
                         style={{ background: isCompleted ? 'rgba(52,211,153,0.15)' : 'rgba(245,158,11,0.15)', color: isCompleted ? '#34D399' : '#FBBF24' }}>
                         {isCompleted ? 'Completed' : 'In Progress'}
                       </span>
                       <span className="text-xs" style={{ color: C.muted }}>{narrative.total_word_count} words</span>
                     </div>
                     <button onClick={(e) => { e.stopPropagation(); setSelectedNarrative(narrative); }}
-                      className="w-full mt-4 py-2 rounded-xl text-sm font-bold text-black transition-all hover:scale-[1.02]"
+                      className="w-full mt-3 sm:mt-4 py-2 rounded-xl text-sm font-bold text-black transition-all hover:scale-[1.02]"
                       style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` }}>
                       {isCompleted ? 'Read Again' : 'Continue Reading'} <ArrowRight size={14} className="inline ml-1" />
                     </button>

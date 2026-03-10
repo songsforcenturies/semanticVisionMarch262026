@@ -24,7 +24,6 @@ const WrittenAnswerModal = ({ question, chapterNumber, chapterContent, student, 
       });
       setResult(res.data);
     } catch (err) {
-      // If AI evaluation fails, be lenient and pass
       setResult({ passed: true, feedback: 'Great effort! Keep reading!', spelling_errors: [] });
     }
     setIsEvaluating(false);
@@ -35,29 +34,29 @@ const WrittenAnswerModal = ({ question, chapterNumber, chapterContent, student, 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
-      <BrutalCard shadow="xl" className="w-full max-w-2xl bg-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 overflow-y-auto">
+      <BrutalCard shadow="xl" className="w-full max-w-2xl bg-white my-auto">
         {!result ? (
           <>
-            <div className="mb-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="bg-indigo-500 text-white font-black text-2xl w-12 h-12 flex items-center justify-center border-4 border-black">?</div>
-                <h2 className="text-2xl font-black uppercase">Comprehension Check</h2>
+            <div className="mb-4 sm:mb-6">
+              <div className="flex items-center gap-3 mb-3 sm:mb-4">
+                <div className="bg-indigo-500 text-white font-black text-xl sm:text-2xl w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center border-4 border-black flex-shrink-0">?</div>
+                <h2 className="text-lg sm:text-2xl font-black uppercase">Comprehension Check</h2>
               </div>
-              <p className="text-lg font-bold mb-2">Chapter {chapterNumber}</p>
-              <p className="text-xl font-medium" data-testid="written-question">{question}</p>
+              <p className="text-base sm:text-lg font-bold mb-2">Chapter {chapterNumber}</p>
+              <p className="text-base sm:text-xl font-medium" data-testid="written-question">{question}</p>
             </div>
 
-            <div className="mb-6">
-              <label className="block mb-3 font-bold uppercase text-sm">Write your answer:</label>
+            <div className="mb-4 sm:mb-6">
+              <label className="block mb-2 sm:mb-3 font-bold uppercase text-sm">Write your answer:</label>
               <textarea
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
                 placeholder="Type your answer here... Use complete sentences."
-                rows={5}
+                rows={4}
                 spellCheck={!disableSpellcheck}
                 autoComplete={disableSpellcheck ? "off" : "on"}
-                className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500 resize-none"
+                className="w-full px-3 sm:px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500 resize-none text-sm sm:text-base"
                 data-testid="written-answer-input"
               />
               {disableSpellcheck && (
@@ -69,7 +68,7 @@ const WrittenAnswerModal = ({ question, chapterNumber, chapterContent, student, 
               disabled={isEvaluating || !answer.trim()} className="flex items-center justify-center gap-2"
               data-testid="submit-written-answer">
               {isEvaluating ? (
-                <><Loader size={20} className="animate-spin" /> Evaluating your answer...</>
+                <><Loader size={20} className="animate-spin" /> Evaluating...</>
               ) : (
                 <><Send size={20} /> Submit Answer</>
               )}
@@ -77,26 +76,27 @@ const WrittenAnswerModal = ({ question, chapterNumber, chapterContent, student, 
           </>
         ) : (
           <>
-            <div className="text-center mb-6">
+            <div className="text-center mb-4 sm:mb-6">
               <div className="flex justify-center mb-4">
                 {result.passed ? (
-                  <div className="bg-emerald-100 p-6 border-6 border-black brutal-shadow-lg">
-                    <CheckCircle size={80} className="text-emerald-600" />
+                  <div className="bg-emerald-100 p-4 sm:p-6 border-6 border-black brutal-shadow-lg">
+                    <CheckCircle size={60} className="text-emerald-600 sm:hidden" />
+                    <CheckCircle size={80} className="text-emerald-600 hidden sm:block" />
                   </div>
                 ) : (
-                  <div className="bg-rose-100 p-6 border-6 border-black brutal-shadow-lg">
-                    <XCircle size={80} className="text-rose-600" />
+                  <div className="bg-rose-100 p-4 sm:p-6 border-6 border-black brutal-shadow-lg">
+                    <XCircle size={60} className="text-rose-600 sm:hidden" />
+                    <XCircle size={80} className="text-rose-600 hidden sm:block" />
                   </div>
                 )}
               </div>
-              <h2 className="text-4xl font-black uppercase mb-4" data-testid="written-result">
+              <h2 className="text-2xl sm:text-4xl font-black uppercase mb-4" data-testid="written-result">
                 {result.passed ? 'Correct!' : 'Not Quite'}
               </h2>
               <BrutalCard variant={result.passed ? 'emerald' : 'rose'} className="mb-4">
-                <p className="text-lg font-bold">{result.feedback}</p>
+                <p className="text-base sm:text-lg font-bold">{result.feedback}</p>
               </BrutalCard>
 
-              {/* Spelling errors feedback */}
               {result.spelling_errors && result.spelling_errors.length > 0 && (
                 <BrutalCard className="bg-amber-50 border-amber-500 mb-4 text-left">
                   <p className="font-bold text-sm uppercase mb-2">Spelling Notes:</p>

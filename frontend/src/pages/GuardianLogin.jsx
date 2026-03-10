@@ -151,11 +151,12 @@ const GuardianLogin = () => {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: C.muted }}>{t('auth.pin')}</label>
-                  <input type="password" required value={formData.pin}
-                    onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
+                  <input type="text" inputMode="numeric" pattern="[0-9]*" required value={formData.pin}
+                    onChange={(e) => setFormData({ ...formData, pin: e.target.value.replace(/\D/g, '') })}
                     placeholder="Enter your PIN"
-                    className="w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all focus:ring-2 tracking-widest"
-                    style={inputStyle} data-testid="student-pin-input" />
+                    className="w-full px-4 py-3 rounded-xl outline-none transition-all focus:ring-2 text-center"
+                    style={{ ...inputStyle, fontFamily: "'Sora', monospace", fontSize: '1.5rem', letterSpacing: '0.5em', fontWeight: 700 }}
+                    data-testid="student-pin-input" />
                   <p className="text-xs mt-2" style={{ color: C.muted }}>{t('auth.pinHint')}</p>
                 </div>
               </>

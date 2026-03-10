@@ -1,0 +1,9 @@
+{
+  "short_name": "Semantic Vision",
+  "name": "Semantic Vision - AI Reading Platform",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#0A0F1E",
+  "background_color": "#0A0F1E",
+  "description": "AI-powered personalized reading platform with brand-funded narratives"
+}
