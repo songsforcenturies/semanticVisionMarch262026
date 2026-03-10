@@ -283,4 +283,26 @@ export const parentOffersAPI = {
   trackClick: (id) => apiClient.post(`/offers/${id}/click`),
 };
 
+export const recordingsAPI = {
+  upload: (formData) => apiClient.post('/recordings/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 60000 }),
+  analyze: (id) => apiClient.post(`/recordings/${id}/analyze`),
+  getForStudent: (studentId) => apiClient.get(`/recordings/student/${studentId}`),
+  getGuardianAll: () => apiClient.get('/recordings/guardian/all'),
+  stream: (id) => `${apiClient.defaults.baseURL}/recordings/${id}/stream`,
+  delete: (id) => apiClient.delete(`/recordings/${id}`),
+  getProgress: (studentId) => apiClient.get(`/recordings/student/${studentId}/progress`),
+};
+
+export const audioBooksAPI = {
+  contribute: (data) => apiClient.post('/audio-books/contribute', data),
+  getAll: (page = 1) => apiClient.get(`/audio-books?page=${page}`),
+  stream: (id) => `${apiClient.defaults.baseURL}/audio-books/${id}/stream`,
+  like: (id) => apiClient.post(`/audio-books/${id}/like`),
+  adminGetAll: () => apiClient.get('/admin/audio-books'),
+  adminUpdate: (id, data) => apiClient.put(`/admin/audio-books/${id}`, data),
+  adminDelete: (id) => apiClient.delete(`/admin/audio-books/${id}`),
+  adminGetSettings: () => apiClient.get('/admin/audio-books/settings'),
+  adminUpdateSettings: (data) => apiClient.put('/admin/audio-books/settings', data),
+};
+
 export default apiClient;

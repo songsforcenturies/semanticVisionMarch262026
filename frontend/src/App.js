@@ -17,6 +17,7 @@ import AdminPortal from "@/pages/AdminPortal";
 import DonatePage from "@/pages/DonatePage";
 import BrandPortal from "@/pages/BrandPortal";
 import AffiliateSignup from "@/pages/AffiliateSignup";
+import AudioBooksPage from "@/pages/AudioBooksPage";
 
 // Protected route component
 const ProtectedRoute = ({ children, requireAuth = true, allowedRoles = null }) => {
@@ -73,6 +74,7 @@ function AppContent() {
           <Route path="/teacher-register" element={<Navigate to="/register?role=teacher" replace />} />
           <Route path="/donate" element={<DonatePage />} />
           <Route path="/affiliate" element={<AffiliateSignup />} />
+          <Route path="/audio-books" element={<AudioBooksPage />} />
 
           {/* Guardian protected routes */}
           <Route

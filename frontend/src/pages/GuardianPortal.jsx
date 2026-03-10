@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import AppShell from '@/components/AppShell';
-import { Users, ShoppingBag, TrendingUp, Wallet, Share2, Crown, Shield, Gift, HelpCircle, RotateCcw } from 'lucide-react';
+import { Users, ShoppingBag, TrendingUp, Wallet, Share2, Crown, Shield, Gift, HelpCircle, RotateCcw, Mic, Headphones } from 'lucide-react';
 import StudentsTab from '@/components/guardian/StudentsTab';
 import MarketplaceTab from '@/components/guardian/MarketplaceTab';
 import ProgressTab from '@/components/guardian/ProgressTab';
@@ -12,6 +12,8 @@ import ReferralTab from '@/components/guardian/ReferralTab';
 import SubscriptionTab from '@/components/guardian/SubscriptionTab';
 import OffersTab from '@/components/guardian/OffersTab';
 import AffiliateTab from '@/components/guardian/AffiliateTab';
+import AudioMemoryTab from '@/components/guardian/AudioMemoryTab';
+import AudioBookCollection from '@/components/AudioBookCollection';
 import OnboardingWizard from '@/components/OnboardingWizard';
 import { guardianOnboardingSteps } from '@/components/onboardingSteps';
 import FAQSection from '@/components/FAQSection';
@@ -39,6 +41,8 @@ const GuardianPortal = () => {
     { id: 'referral', label: t('guardian.inviteEarn'), icon: Share2 },
     { id: 'offers', label: 'Offers', icon: Gift },
     { id: 'affiliate', label: 'Affiliate', icon: Share2 },
+    { id: 'audio-memories', label: 'Audio Memories', icon: Mic },
+    { id: 'audio-books', label: 'Audio Books', icon: Headphones },
     { id: 'progress', label: t('guardian.progress'), icon: TrendingUp },
     { id: 'faq', label: 'FAQ', icon: HelpCircle },
   ];
@@ -93,6 +97,8 @@ const GuardianPortal = () => {
           {activeTab === 'referral' && <ReferralTab />}
           {activeTab === 'offers' && <OffersTab />}
           {activeTab === 'affiliate' && <AffiliateTab />}
+          {activeTab === 'audio-memories' && <AudioMemoryTab />}
+          {activeTab === 'audio-books' && <AudioBookCollection embedded />}
           {activeTab === 'progress' && <ProgressTab />}
           {activeTab === 'faq' && <FAQSection items={parentFAQ} title="Parent & Guardian FAQ" />}
         </div>

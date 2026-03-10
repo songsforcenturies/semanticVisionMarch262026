@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, WebSocket, WebSocketDisconnect, Request, Body
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, WebSocket, WebSocketDisconnect, Request, Body, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -4436,7 +4436,7 @@ async def update_brand_profile(data: BrandProfileUpdate, current_user: dict = De
 
 # ==================== BRAND PORTAL: LOGO UPLOAD ====================
 
-from fastapi import UploadFile, File
+from fastapi import UploadFile, File, Form
 
 # Ensure uploads directory exists
 UPLOAD_DIR = Path(__file__).parent / "uploads" / "logos"
@@ -5748,8 +5748,7 @@ async def track_offer_click(offer_id: str, current_user: dict = Depends(get_curr
     return {"message": "Click tracked"}
 
 
-# Include router in app
-app.include_router(api_router)
+# NOTE: Router inclusion moved to end of file to include all routes
 
 # CORS middleware
 app.add_middleware(
@@ -5806,3 +5805,450 @@ async def startup_migrate():
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+
+# ==================== READ-ALOUD RECORDING SYSTEM ====================
+
+@api_router.post("/recordings/upload")
+async def upload_recording(
+    file: UploadFile = File(...),
+    student_id: str = Form(...),
+    narrative_id: str = Form(...),
+    chapter_number: int = Form(0),
+    recording_type: str = Form("audio"),
+    current_user=Depends(get_current_user)
+):
+    """Upload a read-aloud audio or video recording"""
+    import aiofiles
+    
+    allowed_audio = {"audio/webm", "audio/mp3", "audio/mpeg", "audio/wav", "audio/ogg", "audio/mp4", "audio/x-m4a"}
+    allowed_video = {"video/webm", "video/mp4"}
+    allowed = allowed_audio | allowed_video
+    
+    if file.content_type not in allowed:
+        raise HTTPException(status_code=400, detail=f"Unsupported file type: {file.content_type}")
+    
+    student = await db.students.find_one({"id": student_id}, {"_id": 0})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    
+    narrative = await db.narratives.find_one({"id": narrative_id}, {"_id": 0})
+    if not narrative:
+        raise HTTPException(status_code=404, detail="Narrative not found")
+    
+    ext = file.filename.split(".")[-1] if file.filename and "." in file.filename else "webm"
+    recording_id = generate_uuid()
+    filename = f"{recording_id}.{ext}"
+    filepath = f"/app/backend/uploads/recordings/{filename}"
+    
+    content = await file.read()
+    file_size = len(content)
+    
+    async with aiofiles.open(filepath, "wb") as f:
+        await f.write(content)
+    
+    chapter_text = ""
+    if narrative and narrative.get("chapters"):
+        for ch in narrative["chapters"]:
+            if ch.get("number") == chapter_number:
+                chapter_text = ch.get("content", "")
+                break
+    
+    recording = {
+        "id": recording_id,
+        "student_id": student_id,
+        "student_name": student.get("full_name", ""),
+        "student_age": student.get("age", 0),
+        "narrative_id": narrative_id,
+        "narrative_title": narrative.get("title", ""),
+        "chapter_number": chapter_number,
+        "chapter_text": chapter_text,
+        "recording_type": recording_type,
+        "file_path": filepath,
+        "file_name": filename,
+        "file_size": file_size,
+        "content_type": file.content_type,
+        "guardian_id": current_user["id"],
+        "diction_scores": None,
+        "transcription": None,
+        "analysis_status": "pending",
+        "shared_to_audiobooks": False,
+        "created_date": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.reading_recordings.insert_one({**recording, "_id": None})
+    await db.reading_recordings.update_one({"id": recording_id}, {"$unset": {"_id": ""}})
+    
+    return {"id": recording_id, "status": "uploaded", "file_size": file_size}
+
+
+@api_router.post("/recordings/{recording_id}/analyze")
+async def analyze_recording(recording_id: str, current_user=Depends(get_current_user)):
+    """Analyze a recording: transcribe with Whisper and score diction"""
+    from emergentintegrations.llm.openai import OpenAISpeechToText
+    
+    recording = await db.reading_recordings.find_one({"id": recording_id}, {"_id": 0})
+    if not recording:
+        raise HTTPException(status_code=404, detail="Recording not found")
+    
+    filepath = recording["file_path"]
+    chapter_text = recording.get("chapter_text", "")
+    
+    try:
+        stt = OpenAISpeechToText(api_key=os.environ.get("EMERGENT_LLM_KEY"))
+        
+        with open(filepath, "rb") as audio_file:
+            response = stt.transcribe(
+                file=audio_file,
+                model="whisper-1",
+                response_format="verbose_json",
+                language="en",
+                temperature=0.0
+            )
+        
+        transcribed_text = ""
+        if hasattr(response, 'text'):
+            transcribed_text = response.text.strip()
+        elif isinstance(response, dict):
+            transcribed_text = response.get("text", "").strip()
+        elif isinstance(response, str):
+            transcribed_text = response.strip()
+        else:
+            transcribed_text = str(response).strip()
+        
+        # Compute diction scores by comparing transcription to source text
+        scores = compute_diction_scores(transcribed_text, chapter_text)
+        
+        await db.reading_recordings.update_one(
+            {"id": recording_id},
+            {"$set": {
+                "transcription": transcribed_text,
+                "diction_scores": scores,
+                "analysis_status": "completed",
+                "analyzed_date": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        return {
+            "id": recording_id,
+            "transcription": transcribed_text,
+            "diction_scores": scores,
+            "status": "completed"
+        }
+    except Exception as e:
+        logger.error(f"Recording analysis failed: {e}")
+        await db.reading_recordings.update_one(
+            {"id": recording_id},
+            {"$set": {"analysis_status": "failed", "analysis_error": str(e)}}
+        )
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+
+
+def compute_diction_scores(transcribed: str, source: str) -> dict:
+    """Compare transcribed text against source text and compute diction scores"""
+    import difflib
+    
+    if not source.strip():
+        return {"pronunciation": 0, "fluency": 0, "completeness": 0, "prosody": 0, "overall": 0, "word_details": []}
+    
+    source_words = source.lower().split()
+    trans_words = transcribed.lower().split()
+    
+    # Completeness: what % of source words appear in transcription
+    source_set = set(source_words)
+    trans_set = set(trans_words)
+    matched_words = source_set & trans_set
+    completeness = (len(matched_words) / max(len(source_set), 1)) * 100
+    
+    # Pronunciation accuracy via sequence matching
+    matcher = difflib.SequenceMatcher(None, source_words, trans_words)
+    ratio = matcher.ratio()
+    pronunciation = min(ratio * 100, 100)
+    
+    # Fluency: based on how close the word count and ordering match
+    word_count_ratio = min(len(trans_words), len(source_words)) / max(len(source_words), 1)
+    fluency = min(word_count_ratio * 100, 100)
+    
+    # Prosody: estimate from how well words follow the source order
+    # Using longest common subsequence ratio
+    lcs_blocks = matcher.get_matching_blocks()
+    lcs_len = sum(b.size for b in lcs_blocks)
+    prosody = (lcs_len / max(len(source_words), 1)) * 100
+    
+    # Word-level details
+    word_details = []
+    for i, word in enumerate(source_words[:50]):
+        found = word in trans_set
+        word_details.append({"word": word, "correct": found, "position": i})
+    
+    overall = (pronunciation * 0.35 + fluency * 0.25 + completeness * 0.25 + prosody * 0.15)
+    
+    return {
+        "pronunciation": round(pronunciation, 1),
+        "fluency": round(fluency, 1),
+        "completeness": round(completeness, 1),
+        "prosody": round(prosody, 1),
+        "overall": round(overall, 1),
+        "words_in_source": len(source_words),
+        "words_transcribed": len(trans_words),
+        "words_matched": len(matched_words),
+        "word_details": word_details
+    }
+
+
+@api_router.get("/recordings/student/{student_id}")
+async def get_student_recordings(student_id: str, current_user=Depends(get_current_user)):
+    """Get all recordings for a student (Audio Memory Library)"""
+    recordings = await db.reading_recordings.find(
+        {"student_id": student_id},
+        {"_id": 0, "file_path": 0}
+    ).sort("created_date", -1).to_list(200)
+    return {"recordings": recordings}
+
+
+@api_router.get("/recordings/{recording_id}/stream")
+async def stream_recording(recording_id: str):
+    """Stream a recording file"""
+    from fastapi.responses import FileResponse
+    recording = await db.reading_recordings.find_one({"id": recording_id}, {"_id": 0})
+    if not recording:
+        raise HTTPException(status_code=404, detail="Recording not found")
+    
+    filepath = recording["file_path"]
+    if not Path(filepath).exists():
+        raise HTTPException(status_code=404, detail="Recording file not found")
+    
+    return FileResponse(filepath, media_type=recording.get("content_type", "audio/webm"))
+
+
+@api_router.get("/recordings/guardian/all")
+async def get_guardian_recordings(current_user=Depends(get_current_user)):
+    """Get all recordings for all students under this guardian (Memory Library)"""
+    students = await db.students.find(
+        {"guardian_id": current_user["id"]},
+        {"_id": 0, "id": 1, "full_name": 1}
+    ).to_list(50)
+    
+    student_ids = [s["id"] for s in students]
+    recordings = await db.reading_recordings.find(
+        {"student_id": {"$in": student_ids}},
+        {"_id": 0, "file_path": 0}
+    ).sort("created_date", -1).to_list(500)
+    
+    return {"recordings": recordings, "students": students}
+
+
+@api_router.delete("/recordings/{recording_id}")
+async def delete_recording(recording_id: str, current_user=Depends(get_current_user)):
+    """Delete a recording"""
+    recording = await db.reading_recordings.find_one({"id": recording_id}, {"_id": 0})
+    if not recording:
+        raise HTTPException(status_code=404, detail="Recording not found")
+    if recording["guardian_id"] != current_user["id"] and current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    filepath = recording.get("file_path", "")
+    if filepath and Path(filepath).exists():
+        Path(filepath).unlink()
+    
+    await db.reading_recordings.delete_one({"id": recording_id})
+    await db.audio_books.delete_many({"recording_id": recording_id})
+    return {"deleted": True}
+
+
+# ==================== AUDIO BOOK COLLECTION ====================
+
+@api_router.post("/audio-books/contribute")
+async def contribute_to_audiobooks(data: dict = Body(...), current_user=Depends(get_current_user)):
+    """Parent contributes a recording to the public audio book collection"""
+    recording_id = data.get("recording_id")
+    display_name = data.get("display_name", "Anonymous Reader")
+    
+    recording = await db.reading_recordings.find_one({"id": recording_id}, {"_id": 0})
+    if not recording:
+        raise HTTPException(status_code=404, detail="Recording not found")
+    if recording["guardian_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    settings = await db.system_config.find_one({"key": "audio_book_settings"}, {"_id": 0})
+    auto_approve = settings.get("value", {}).get("auto_approve", False) if settings else False
+    
+    audio_book = {
+        "id": generate_uuid(),
+        "recording_id": recording_id,
+        "narrative_id": recording["narrative_id"],
+        "narrative_title": recording.get("narrative_title", ""),
+        "student_name": display_name,
+        "student_age": recording.get("student_age", 0),
+        "chapter_number": recording.get("chapter_number", 0),
+        "diction_scores": recording.get("diction_scores"),
+        "duration_estimate": recording.get("file_size", 0) / 16000,
+        "recording_type": recording.get("recording_type", "audio"),
+        "guardian_id": current_user["id"],
+        "status": "approved" if auto_approve else "pending",
+        "is_visible": auto_approve,
+        "listens": 0,
+        "likes": 0,
+        "created_date": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.audio_books.insert_one({**audio_book, "_id": None})
+    await db.audio_books.update_one({"id": audio_book["id"]}, {"$unset": {"_id": ""}})
+    
+    await db.reading_recordings.update_one(
+        {"id": recording_id},
+        {"$set": {"shared_to_audiobooks": True}}
+    )
+    
+    return {"id": audio_book["id"], "status": audio_book["status"]}
+
+
+@api_router.get("/audio-books")
+async def get_audio_books(page: int = 1, limit: int = 20):
+    """Browse the public audio book collection"""
+    settings = await db.system_config.find_one({"key": "audio_book_settings"}, {"_id": 0})
+    enabled = settings.get("value", {}).get("enabled", True) if settings else True
+    
+    if not enabled:
+        return {"audio_books": [], "total": 0, "enabled": False}
+    
+    skip = (page - 1) * limit
+    total = await db.audio_books.count_documents({"is_visible": True, "status": "approved"})
+    audio_books = await db.audio_books.find(
+        {"is_visible": True, "status": "approved"},
+        {"_id": 0}
+    ).sort("created_date", -1).skip(skip).limit(limit).to_list(limit)
+    
+    return {"audio_books": audio_books, "total": total, "enabled": True}
+
+
+@api_router.get("/audio-books/{book_id}/stream")
+async def stream_audio_book(book_id: str):
+    """Stream an audio book recording"""
+    book = await db.audio_books.find_one({"id": book_id}, {"_id": 0})
+    if not book or not book.get("is_visible"):
+        raise HTTPException(status_code=404, detail="Audio book not found")
+    
+    recording = await db.reading_recordings.find_one({"id": book["recording_id"]}, {"_id": 0})
+    if not recording:
+        raise HTTPException(status_code=404, detail="Recording not found")
+    
+    await db.audio_books.update_one({"id": book_id}, {"$inc": {"listens": 1}})
+    
+    from fastapi.responses import FileResponse
+    return FileResponse(recording["file_path"], media_type=recording.get("content_type", "audio/webm"))
+
+
+@api_router.post("/audio-books/{book_id}/like")
+async def like_audio_book(book_id: str):
+    """Like an audio book"""
+    await db.audio_books.update_one({"id": book_id}, {"$inc": {"likes": 1}})
+    return {"liked": True}
+
+
+# ==================== AUDIO BOOK ADMIN ====================
+
+@api_router.get("/admin/audio-books")
+async def admin_get_audio_books(current_user=Depends(get_current_user)):
+    """Admin: Get all audio books including pending"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    books = await db.audio_books.find({}, {"_id": 0}).sort("created_date", -1).to_list(500)
+    return {"audio_books": books}
+
+
+@api_router.put("/admin/audio-books/{book_id}")
+async def admin_update_audio_book(book_id: str, data: dict = Body(...), current_user=Depends(get_current_user)):
+    """Admin: Approve, reject, or toggle visibility of an audio book"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    update = {}
+    if "status" in data:
+        update["status"] = data["status"]
+    if "is_visible" in data:
+        update["is_visible"] = data["is_visible"]
+    
+    if update:
+        if update.get("status") == "approved":
+            update["is_visible"] = True
+        await db.audio_books.update_one({"id": book_id}, {"$set": update})
+    
+    return {"updated": True}
+
+
+@api_router.delete("/admin/audio-books/{book_id}")
+async def admin_delete_audio_book(book_id: str, current_user=Depends(get_current_user)):
+    """Admin: Delete an audio book entry"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    book = await db.audio_books.find_one({"id": book_id}, {"_id": 0})
+    if book:
+        await db.reading_recordings.update_one(
+            {"id": book["recording_id"]},
+            {"$set": {"shared_to_audiobooks": False}}
+        )
+    await db.audio_books.delete_one({"id": book_id})
+    return {"deleted": True}
+
+
+@api_router.get("/admin/audio-books/settings")
+async def get_audio_book_settings(current_user=Depends(get_current_user)):
+    """Get audio book collection settings"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    settings = await db.system_config.find_one({"key": "audio_book_settings"}, {"_id": 0})
+    defaults = {"enabled": True, "auto_approve": False, "show_on_landing": True}
+    return settings.get("value", defaults) if settings else defaults
+
+
+@api_router.put("/admin/audio-books/settings")
+async def update_audio_book_settings(data: dict = Body(...), current_user=Depends(get_current_user)):
+    """Update audio book collection settings"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    await db.system_config.update_one(
+        {"key": "audio_book_settings"},
+        {"$set": {"key": "audio_book_settings", "value": data}},
+        upsert=True
+    )
+    return {"updated": True}
+
+
+# ==================== DICTION PROGRESS ====================
+
+@api_router.get("/recordings/student/{student_id}/progress")
+async def get_diction_progress(student_id: str, current_user=Depends(get_current_user)):
+    """Get diction improvement over time for a student"""
+    recordings = await db.reading_recordings.find(
+        {"student_id": student_id, "analysis_status": "completed"},
+        {"_id": 0, "id": 1, "diction_scores": 1, "created_date": 1, "narrative_title": 1}
+    ).sort("created_date", 1).to_list(200)
+    
+    progress = []
+    for r in recordings:
+        if r.get("diction_scores"):
+            progress.append({
+                "date": r["created_date"],
+                "title": r.get("narrative_title", ""),
+                "scores": r["diction_scores"]
+            })
+    
+    # Compute improvement
+    improvement = {}
+    if len(progress) >= 2:
+        first = progress[0]["scores"]
+        last = progress[-1]["scores"]
+        for key in ["pronunciation", "fluency", "completeness", "prosody", "overall"]:
+            improvement[key] = round(last.get(key, 0) - first.get(key, 0), 1)
+    
+    return {"progress": progress, "improvement": improvement, "total_sessions": len(progress)}
+
+
+# ==================== INCLUDE ROUTER IN APP ====================
+# This must be AFTER all route definitions to ensure all routes are registered
+app.include_router(api_router)

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { adminAPI, wordBankAPI, adminAffiliateAPI } from '@/lib/api';
 import AffiliatesTab from '@/components/admin/AffiliatesTab';
+import AdminAudioBooksTab from '@/components/admin/AdminAudioBooksTab';
 import apiClient from '@/lib/api';
 import { BrutalCard, BrutalButton, BrutalBadge, BrutalInput } from '@/components/brutal';
 import {
@@ -408,6 +409,7 @@ const AdminPortal = () => {
     { id: 'billing', label: 'Billing/ROI', icon: Sliders },
     { id: 'features', label: 'Features', icon: ToggleLeft },
     { id: 'affiliates', label: 'Affiliates', icon: Link2 },
+    { id: 'audiobooks', label: 'Audio Books', icon: BookOpen },
     { id: 'config', label: 'LLM Config', icon: Settings },
     { id: 'settings', label: 'App Settings', icon: Shield },
   ];
@@ -1659,6 +1661,7 @@ const AdminPortal = () => {
 
         {/* =================== AFFILIATES TAB =================== */}
         {activeTab === 'affiliates' && <AffiliatesTab />}
+        {activeTab === 'audiobooks' && <AdminAudioBooksTab />}
 
         {/* =================== LLM CONFIG TAB =================== */}
         {activeTab === 'config' && (
