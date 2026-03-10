@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { studentAPI, narrativeAPI, classroomAPI } from '@/lib/api';
-import { BookOpen, Plus, TrendingUp, Clock, BookMarked, Users, ArrowRight, HelpCircle, RotateCcw, WifiOff } from 'lucide-react';
+import { BookOpen, Plus, TrendingUp, Clock, BookMarked, Users, ArrowRight, HelpCircle, RotateCcw, WifiOff, Award } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import AppShell from '@/components/AppShell';
@@ -13,6 +13,7 @@ import { studentOnboardingSteps } from '@/components/onboardingSteps';
 import FAQSection from '@/components/FAQSection';
 import { studentFAQ } from '@/components/faqContent';
 import OfflineLibrary from '@/components/OfflineLibrary';
+import SpellingBee from '@/components/student/SpellingBee';
 
 const C = {
   bg: '#0A0F1E', card: '#1A2236', surface: '#111827',
@@ -46,6 +47,7 @@ const StudentAcademy = () => {
   const [wizardKey, setWizardKey] = useState(0);
   const [showFAQ, setShowFAQ] = useState(false);
   const [showOffline, setShowOffline] = useState(false);
+  const [showSpelling, setShowSpelling] = useState(false);
 
   const resetOnboarding = () => {
     localStorage.removeItem(`sv_onboarding_student_${student?.id || student?.student_code}`);
@@ -100,15 +102,22 @@ const StudentAcademy = () => {
 
   return (
     <AppShell title="Semantic Vision Academy" subtitle={`Welcome, ${studentData?.full_name}!`} onLogout={handleLogout}
+      isStudent={true} studentId={student?.id}
       rightContent={
         <div className="flex items-center gap-2 flex-wrap">
-          <button onClick={() => { setShowOffline(!showOffline); setShowFAQ(false); }}
+          <button onClick={() => { setShowSpelling(!showSpelling); setShowOffline(false); setShowFAQ(false); }}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-105"
+            style={{ color: showSpelling ? '#D4A853' : '#94A3B8', border: '1px solid rgba(255,255,255,0.1)', background: showSpelling ? 'rgba(212,168,83,0.1)' : 'rgba(255,255,255,0.04)' }}
+            data-testid="student-spelling-btn">
+            <Award size={14} /> Spelling Bee
+          </button>
+          <button onClick={() => { setShowOffline(!showOffline); setShowSpelling(false); setShowFAQ(false); }}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-105"
             style={{ color: showOffline ? '#D4A853' : '#94A3B8', border: '1px solid rgba(255,255,255,0.1)', background: showOffline ? 'rgba(212,168,83,0.1)' : 'rgba(255,255,255,0.04)' }}
             data-testid="student-offline-btn">
             <WifiOff size={14} /> Offline
           </button>
-          <button onClick={() => { setShowFAQ(!showFAQ); setShowOffline(false); }}
+          <button onClick={() => { setShowFAQ(!showFAQ); setShowOffline(false); setShowSpelling(false); }}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-105"
             style={{ color: showFAQ ? '#D4A853' : '#94A3B8', border: '1px solid rgba(255,255,255,0.1)', background: showFAQ ? 'rgba(212,168,83,0.1)' : 'rgba(255,255,255,0.04)' }}
             data-testid="student-faq-btn">
@@ -136,6 +145,14 @@ const StudentAcademy = () => {
           <div className="mb-6">
             <h2 className="text-lg sm:text-xl font-bold mb-3" style={{ fontFamily: "'Sora', sans-serif", color: C.cream }}>Offline Library</h2>
             <OfflineLibrary studentId={student?.id} onReadStory={(story) => setSelectedNarrative(story)} />
+          </div>
+        )}
+
+        {/* Spelling Bee Section */}
+        {showSpelling && (
+          <div className="mb-6">
+            <h2 className="text-lg sm:text-xl font-bold mb-3" style={{ fontFamily: "'Sora', sans-serif", color: C.cream }}>Spelling Bee Contests</h2>
+            <SpellingBee studentId={student?.id} studentName={studentData?.full_name} />
           </div>
         )}
 

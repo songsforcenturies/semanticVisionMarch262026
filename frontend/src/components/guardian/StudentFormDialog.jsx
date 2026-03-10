@@ -49,6 +49,55 @@ const VIRTUE_OPTIONS = [
   { value: 'fairness', label: 'Fairness', desc: 'Treating everyone equally and playing by the rules' },
   { value: 'trustworthiness', label: 'Trustworthiness', desc: 'Being someone others can rely on and believe in' },
   { value: 'teamwork', label: 'Teamwork', desc: 'Working well with others toward a common goal' },
+  { value: 'compassion', label: 'Compassion', desc: 'Deep awareness of others\' suffering and desire to help' },
+  { value: 'integrity', label: 'Integrity', desc: 'Doing the right thing even when no one is watching' },
+  { value: 'loyalty', label: 'Loyalty', desc: 'Standing by those you care about through thick and thin' },
+  { value: 'wisdom', label: 'Wisdom', desc: 'Making thoughtful decisions based on knowledge and experience' },
+  { value: 'creativity', label: 'Creativity', desc: 'Thinking outside the box and expressing ideas uniquely' },
+  { value: 'diligence', label: 'Diligence', desc: 'Careful and persistent work toward a goal' },
+  { value: 'optimism', label: 'Optimism', desc: 'Seeing the bright side and believing things will work out' },
+  { value: 'resilience', label: 'Resilience', desc: 'Bouncing back from setbacks and adversity' },
+  { value: 'self-discipline', label: 'Self-Discipline', desc: 'Staying focused and doing what needs to be done' },
+  { value: 'tolerance', label: 'Tolerance', desc: 'Accepting differences in people and perspectives' },
+  { value: 'mindfulness', label: 'Mindfulness', desc: 'Being present and aware of thoughts and surroundings' },
+  { value: 'adaptability', label: 'Adaptability', desc: 'Adjusting well to new situations and changes' },
+  { value: 'curiosity', label: 'Curiosity', desc: 'Eager desire to learn and explore new things' },
+  { value: 'independence', label: 'Independence', desc: 'Thinking and acting for oneself with confidence' },
+  { value: 'cooperation', label: 'Cooperation', desc: 'Working harmoniously with others' },
+  { value: 'determination', label: 'Determination', desc: 'Firm resolve to achieve goals no matter what' },
+];
+
+const EMOTION_OPTIONS = [
+  { value: 'joy', label: 'Joy', desc: 'Deep happiness and delight' },
+  { value: 'love', label: 'Love', desc: 'Warm affection and deep caring for others' },
+  { value: 'hope', label: 'Hope', desc: 'Optimistic expectation for good things ahead' },
+  { value: 'pride', label: 'Pride', desc: 'Satisfaction from one\'s own achievements' },
+  { value: 'contentment', label: 'Contentment', desc: 'Peaceful satisfaction with what one has' },
+  { value: 'excitement', label: 'Excitement', desc: 'Enthusiasm and eagerness about something' },
+  { value: 'wonder', label: 'Wonder', desc: 'Amazement and awe at the world around us' },
+  { value: 'confidence', label: 'Confidence', desc: 'Trust in one\'s own abilities and worth' },
+  { value: 'calm', label: 'Calm', desc: 'Inner peace and tranquility' },
+  { value: 'belonging', label: 'Belonging', desc: 'Feeling accepted and part of a group' },
+  { value: 'sadness', label: 'Sadness', desc: 'Understanding and processing feelings of loss' },
+  { value: 'anger', label: 'Anger', desc: 'Learning to recognize and manage frustration' },
+  { value: 'fear', label: 'Fear', desc: 'Acknowledging fears and finding courage within' },
+  { value: 'anxiety', label: 'Anxiety', desc: 'Coping with worry and nervous feelings' },
+  { value: 'frustration', label: 'Frustration', desc: 'Dealing with things that don\'t go as planned' },
+  { value: 'loneliness', label: 'Loneliness', desc: 'Navigating feelings of isolation and finding connection' },
+  { value: 'jealousy', label: 'Jealousy', desc: 'Understanding envy and learning to appreciate oneself' },
+  { value: 'embarrassment', label: 'Embarrassment', desc: 'Handling moments of self-consciousness with grace' },
+  { value: 'disappointment', label: 'Disappointment', desc: 'Processing unmet expectations with maturity' },
+  { value: 'guilt', label: 'Guilt', desc: 'Recognizing wrongs and making amends' },
+  { value: 'grief', label: 'Grief', desc: 'Processing deep loss and finding healing' },
+  { value: 'confusion', label: 'Confusion', desc: 'Navigating uncertainty and finding clarity' },
+  { value: 'surprise', label: 'Surprise', desc: 'Handling unexpected events positively' },
+  { value: 'sympathy', label: 'Sympathy', desc: 'Feeling concern for others\' misfortunes' },
+  { value: 'trust', label: 'Trust', desc: 'Building and maintaining faith in others' },
+  { value: 'awe', label: 'Awe', desc: 'Experiencing reverence and wonder' },
+  { value: 'relief', label: 'Relief', desc: 'Feeling comfort after stress or worry passes' },
+  { value: 'nostalgia', label: 'Nostalgia', desc: 'Bittersweet longing for happy memories' },
+  { value: 'determination-emotion', label: 'Determination', desc: 'Strong resolve when facing emotional challenges' },
+  { value: 'acceptance', label: 'Acceptance', desc: 'Embracing reality and finding peace with it' },
 ];
 
 const STEPS = [
@@ -302,43 +351,107 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
             </>
           )}
 
-          {/* STEP 1: Virtues */}
+          {/* STEP 1: Virtues & Emotions */}
           {step === 1 && (
             <>
               <div className="rounded-xl p-4" style={{ background: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.15)' }}>
-                <h3 className="text-base font-bold text-amber-400 mb-1">Which virtues would you like your child to develop?</h3>
-                <p className="text-sm text-slate-400">Select the character traits and life lessons you'd like the AI to weave into your child's stories. These are areas where you feel your child could grow.</p>
+                <h3 className="text-base font-bold text-amber-400 mb-1">Virtues & Emotional Intelligence</h3>
+                <p className="text-sm text-slate-400">Select unlimited virtues and emotions you'd like the AI to weave into your child's stories. You can also add custom ones.</p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {VIRTUE_OPTIONS.map(v => {
-                  const virtuesArr = Array.isArray(formData.virtues) ? formData.virtues : [];
-                  const selected = virtuesArr.includes(v.value);
-                  return (
-                    <button key={v.value} type="button" onClick={() => handleVirtueToggle(v.value)}
-                      className={`flex items-start gap-3 p-3 rounded-xl text-left transition-all ${
-                        selected ? 'ring-2 ring-amber-500' : 'hover:bg-white/5'
-                      }`}
-                      style={{ background: selected ? 'rgba(212,168,83,0.12)' : 'rgba(255,255,255,0.03)', border: '1px solid ' + (selected ? 'rgba(212,168,83,0.4)' : 'rgba(255,255,255,0.06)') }}
-                      data-testid={`virtue-${v.value}`}
-                    >
-                      <div className={`w-5 h-5 mt-0.5 rounded flex-shrink-0 flex items-center justify-center ${
-                        selected ? 'bg-amber-500 text-black' : 'border border-slate-600'
-                      }`}>
-                        {selected && <Check size={14} />}
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-white">{v.label}</p>
-                        <p className="text-xs text-slate-400 mt-0.5">{v.desc}</p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+
+              {/* Search */}
+              <DarkInput type="text" placeholder="Search virtues & emotions..."
+                value={formData._virtueSearch || ''}
+                onChange={(e) => setFormData({ ...formData, _virtueSearch: e.target.value })} />
+
+              {/* Selected count */}
               {(Array.isArray(formData.virtues) ? formData.virtues : []).length > 0 && (
                 <p className="text-sm text-amber-400 font-medium">
-                  {(Array.isArray(formData.virtues) ? formData.virtues : []).length} virtue{(Array.isArray(formData.virtues) ? formData.virtues : []).length !== 1 ? 's' : ''} selected
+                  {(Array.isArray(formData.virtues) ? formData.virtues : []).length} selected — no limit!
                 </p>
               )}
+
+              {/* Custom Virtue Input */}
+              <div className="flex gap-2">
+                <DarkInput type="text" placeholder="Add a custom virtue or emotion..."
+                  value={formData._customVirtue || ''}
+                  onChange={(e) => setFormData({ ...formData, _customVirtue: e.target.value })} />
+                <button type="button" onClick={() => {
+                  const val = (formData._customVirtue || '').trim().toLowerCase();
+                  if (val) {
+                    handleVirtueToggle(val);
+                    setFormData(prev => ({ ...prev, _customVirtue: '' }));
+                  }
+                }}
+                  className="px-4 py-2 rounded-lg text-sm font-bold flex-shrink-0"
+                  style={{ background: '#D4A853', color: '#000' }}>
+                  Add
+                </button>
+              </div>
+
+              {/* Virtues Section */}
+              <div>
+                <p className="text-xs font-bold uppercase text-amber-400 mb-2">Character Virtues</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {VIRTUE_OPTIONS
+                    .filter(v => !formData._virtueSearch || v.label.toLowerCase().includes((formData._virtueSearch || '').toLowerCase()))
+                    .map(v => {
+                    const virtuesArr = Array.isArray(formData.virtues) ? formData.virtues : [];
+                    const selected = virtuesArr.includes(v.value);
+                    return (
+                      <button key={v.value} type="button" onClick={() => handleVirtueToggle(v.value)}
+                        className={`flex items-start gap-3 p-3 rounded-xl text-left transition-all ${
+                          selected ? 'ring-2 ring-amber-500' : 'hover:bg-white/5'
+                        }`}
+                        style={{ background: selected ? 'rgba(212,168,83,0.12)' : 'rgba(255,255,255,0.03)', border: '1px solid ' + (selected ? 'rgba(212,168,83,0.4)' : 'rgba(255,255,255,0.06)') }}
+                        data-testid={`virtue-${v.value}`}
+                      >
+                        <div className={`w-5 h-5 mt-0.5 rounded flex-shrink-0 flex items-center justify-center ${
+                          selected ? 'bg-amber-500 text-black' : 'border border-slate-600'
+                        }`}>
+                          {selected && <Check size={14} />}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-white">{v.label}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">{v.desc}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Emotions Section */}
+              <div>
+                <p className="text-xs font-bold uppercase text-sky-400 mb-2">Emotional Intelligence</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {EMOTION_OPTIONS
+                    .filter(v => !formData._virtueSearch || v.label.toLowerCase().includes((formData._virtueSearch || '').toLowerCase()))
+                    .map(v => {
+                    const virtuesArr = Array.isArray(formData.virtues) ? formData.virtues : [];
+                    const selected = virtuesArr.includes(v.value);
+                    return (
+                      <button key={v.value} type="button" onClick={() => handleVirtueToggle(v.value)}
+                        className={`flex items-start gap-3 p-3 rounded-xl text-left transition-all ${
+                          selected ? 'ring-2 ring-sky-500' : 'hover:bg-white/5'
+                        }`}
+                        style={{ background: selected ? 'rgba(56,189,248,0.12)' : 'rgba(255,255,255,0.03)', border: '1px solid ' + (selected ? 'rgba(56,189,248,0.4)' : 'rgba(255,255,255,0.06)') }}
+                        data-testid={`emotion-${v.value}`}
+                      >
+                        <div className={`w-5 h-5 mt-0.5 rounded flex-shrink-0 flex items-center justify-center ${
+                          selected ? 'bg-sky-500 text-black' : 'border border-slate-600'
+                        }`}>
+                          {selected && <Check size={14} />}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-white">{v.label}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">{v.desc}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </>
           )}
 

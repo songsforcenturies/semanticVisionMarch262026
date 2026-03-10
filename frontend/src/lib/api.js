@@ -305,4 +305,24 @@ export const audioBooksAPI = {
   adminUpdateSettings: (data) => apiClient.put('/admin/audio-books/settings', data),
 };
 
+export const messagesAPI = {
+  adminCreate: (data) => apiClient.post('/admin/messages', data),
+  adminList: () => apiClient.get('/admin/messages'),
+  adminDelete: (id) => apiClient.delete(`/admin/messages/${id}`),
+  getNotifications: () => apiClient.get('/notifications'),
+  getStudentNotifications: (studentId) => apiClient.get(`/student-notifications/${studentId}`),
+  markRead: (id) => apiClient.post(`/notifications/${id}/read`),
+  markStudentRead: (id, studentId) => apiClient.post(`/student-notifications/${id}/read`, { student_id: studentId }),
+};
+
+export const spellingContestsAPI = {
+  adminCreate: (data) => apiClient.post('/admin/spelling-contests', data),
+  adminList: () => apiClient.get('/admin/spelling-contests'),
+  adminToggle: (id) => apiClient.put(`/admin/spelling-contests/${id}/toggle`),
+  adminDelete: (id) => apiClient.delete(`/admin/spelling-contests/${id}`),
+  listActive: () => apiClient.get('/spelling-contests'),
+  submit: (data) => apiClient.post('/spelling-contests/submit', data),
+  leaderboard: (id) => apiClient.get(`/spelling-contests/${id}/leaderboard`),
+};
+
 export default apiClient;

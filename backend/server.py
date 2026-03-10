@@ -6249,6 +6249,217 @@ async def get_diction_progress(student_id: str, current_user=Depends(get_current
     return {"progress": progress, "improvement": improvement, "total_sessions": len(progress)}
 
 
+
+# ==================== ADMIN MESSAGING ====================
+
+class AdminMessageCreate(BaseModel):
+    title: str
+    body: str
+    target: str = "all"  # "all", "guardians", "students", "teachers"
+    target_ids: Optional[List[str]] = None  # specific user/student IDs
+    priority: str = "normal"  # "low", "normal", "high", "urgent"
+
+@api_router.post("/admin/messages")
+async def create_admin_message(msg: AdminMessageCreate, current_user=Depends(get_current_admin)):
+    doc = {
+        "id": str(uuid.uuid4()),
+        "title": msg.title,
+        "body": msg.body,
+        "target": msg.target,
+        "target_ids": msg.target_ids or [],
+        "priority": msg.priority,
+        "sent_by": current_user["id"],
+        "sent_by_name": current_user.get("full_name", "Admin"),
+        "created_date": datetime.now(timezone.utc).isoformat(),
+        "read_by": [],
+    }
+    await db.admin_messages.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+@api_router.get("/admin/messages")
+async def list_admin_messages(current_user=Depends(get_current_admin)):
+    msgs = await db.admin_messages.find({}, {"_id": 0}).sort("created_date", -1).to_list(200)
+    return msgs
+
+@api_router.delete("/admin/messages/{message_id}")
+async def delete_admin_message(message_id: str, current_user=Depends(get_current_admin)):
+    await db.admin_messages.delete_one({"id": message_id})
+    return {"status": "deleted"}
+
+@api_router.get("/notifications")
+async def get_user_notifications(current_user=Depends(get_current_user)):
+    user_role = current_user.get("role", "guardian")
+    user_id = current_user["id"]
+    
+    # Get messages targeted at this user's role or specific IDs or "all"
+    query = {
+        "$or": [
+            {"target": "all"},
+            {"target": user_role + "s"},
+            {"target_ids": user_id},
+        ]
+    }
+    msgs = await db.admin_messages.find(query, {"_id": 0}).sort("created_date", -1).to_list(50)
+    
+    for m in msgs:
+        m["is_read"] = user_id in (m.get("read_by") or [])
+    
+    unread_count = sum(1 for m in msgs if not m["is_read"])
+    return {"messages": msgs, "unread_count": unread_count}
+
+@api_router.get("/student-notifications/{student_id}")
+async def get_student_notifications(student_id: str):
+    query = {
+        "$or": [
+            {"target": "all"},
+            {"target": "students"},
+            {"target_ids": student_id},
+        ]
+    }
+    msgs = await db.admin_messages.find(query, {"_id": 0}).sort("created_date", -1).to_list(50)
+    
+    for m in msgs:
+        m["is_read"] = student_id in (m.get("read_by") or [])
+    
+    unread_count = sum(1 for m in msgs if not m["is_read"])
+    return {"messages": msgs, "unread_count": unread_count}
+
+@api_router.post("/notifications/{message_id}/read")
+async def mark_notification_read(message_id: str, current_user=Depends(get_current_user)):
+    await db.admin_messages.update_one(
+        {"id": message_id},
+        {"$addToSet": {"read_by": current_user["id"]}}
+    )
+    return {"status": "read"}
+
+@api_router.post("/student-notifications/{message_id}/read")
+async def mark_student_notification_read(message_id: str, student_id: str = Body(..., embed=True)):
+    await db.admin_messages.update_one(
+        {"id": message_id},
+        {"$addToSet": {"read_by": student_id}}
+    )
+    return {"status": "read"}
+
+
+# ==================== SPELLING CONTESTS ====================
+
+class SpellingContestCreate(BaseModel):
+    title: str
+    description: Optional[str] = ""
+    word_list: List[str]  # words for the contest
+    time_limit_seconds: int = 120
+    start_date: str
+    end_date: str
+    grade_levels: Optional[List[str]] = None
+
+@api_router.post("/admin/spelling-contests")
+async def create_spelling_contest(data: SpellingContestCreate, current_user=Depends(get_current_admin)):
+    doc = {
+        "id": str(uuid.uuid4()),
+        "title": data.title,
+        "description": data.description,
+        "word_list": data.word_list,
+        "time_limit_seconds": data.time_limit_seconds,
+        "start_date": data.start_date,
+        "end_date": data.end_date,
+        "grade_levels": data.grade_levels or [],
+        "is_active": True,
+        "created_by": current_user["id"],
+        "created_date": datetime.now(timezone.utc).isoformat(),
+        "participants": [],
+    }
+    await db.spelling_contests.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+@api_router.get("/admin/spelling-contests")
+async def list_spelling_contests_admin(current_user=Depends(get_current_admin)):
+    contests = await db.spelling_contests.find({}, {"_id": 0}).sort("created_date", -1).to_list(100)
+    return contests
+
+@api_router.put("/admin/spelling-contests/{contest_id}/toggle")
+async def toggle_spelling_contest(contest_id: str, current_user=Depends(get_current_admin)):
+    contest = await db.spelling_contests.find_one({"id": contest_id})
+    if not contest:
+        raise HTTPException(404, "Contest not found")
+    new_status = not contest.get("is_active", True)
+    await db.spelling_contests.update_one({"id": contest_id}, {"$set": {"is_active": new_status}})
+    return {"is_active": new_status}
+
+@api_router.delete("/admin/spelling-contests/{contest_id}")
+async def delete_spelling_contest(contest_id: str, current_user=Depends(get_current_admin)):
+    await db.spelling_contests.delete_one({"id": contest_id})
+    await db.spelling_submissions.delete_many({"contest_id": contest_id})
+    return {"status": "deleted"}
+
+@api_router.get("/spelling-contests")
+async def list_active_spelling_contests():
+    now = datetime.now(timezone.utc).isoformat()
+    contests = await db.spelling_contests.find(
+        {"is_active": True, "end_date": {"$gte": now}}, {"_id": 0}
+    ).sort("start_date", -1).to_list(50)
+    
+    for c in contests:
+        subs = await db.spelling_submissions.count_documents({"contest_id": c["id"]})
+        c["participant_count"] = subs
+    return contests
+
+class SpellingSubmission(BaseModel):
+    contest_id: str
+    student_id: str
+    student_name: str
+    answers: Dict[str, str]  # {word: student_spelling}
+    time_taken_seconds: int
+
+@api_router.post("/spelling-contests/submit")
+async def submit_spelling_contest(data: SpellingSubmission):
+    contest = await db.spelling_contests.find_one({"id": data.contest_id})
+    if not contest:
+        raise HTTPException(404, "Contest not found")
+    
+    # Score the submission
+    correct = 0
+    results = []
+    for word in contest["word_list"]:
+        student_answer = data.answers.get(word, "").strip().lower()
+        is_correct = student_answer == word.lower()
+        if is_correct:
+            correct += 1
+        results.append({"word": word, "answer": student_answer, "correct": is_correct})
+    
+    total = len(contest["word_list"])
+    score = round((correct / total) * 100) if total > 0 else 0
+    
+    doc = {
+        "id": str(uuid.uuid4()),
+        "contest_id": data.contest_id,
+        "student_id": data.student_id,
+        "student_name": data.student_name,
+        "answers": data.answers,
+        "results": results,
+        "correct_count": correct,
+        "total_words": total,
+        "score": score,
+        "time_taken_seconds": data.time_taken_seconds,
+        "submitted_date": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.spelling_submissions.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+@api_router.get("/spelling-contests/{contest_id}/leaderboard")
+async def get_spelling_leaderboard(contest_id: str):
+    subs = await db.spelling_submissions.find(
+        {"contest_id": contest_id}, {"_id": 0}
+    ).sort([("score", -1), ("time_taken_seconds", 1)]).to_list(100)
+    
+    for i, s in enumerate(subs):
+        s["rank"] = i + 1
+    return subs
+
+
+
 # ==================== INCLUDE ROUTER IN APP ====================
 # This must be AFTER all route definitions to ensure all routes are registered
 app.include_router(api_router)

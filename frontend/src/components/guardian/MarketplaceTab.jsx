@@ -340,7 +340,7 @@ const MarketplaceTab = () => {
                 {/* Price */}
                 <div className="mb-4">
                   <div className={`text-center py-2 border-4 border-black ${isFree ? 'bg-emerald-100' : 'bg-amber-100'}`}>
-                    <p className="text-2xl font-black">{formatPrice(bank.price)}</p>
+                    <p className="text-2xl font-black" style={{ color: isFree ? '#064e3b' : '#78350f' }}>{formatPrice(bank.price)}</p>
                   </div>
                 </div>
 

@@ -167,7 +167,7 @@ const GuardianLogin = () => {
                       textShadow: '0 0 4px rgba(212,168,83,0.3)',
                     }}
                     data-testid="student-pin-input" />
-                  <p className="text-xs mt-2" style={{ color: C.muted }}>{t('auth.pinHint')}</p>
+                  <p className="text-xs mt-2" style={{ color: 'rgba(148,163,184,0.5)' }}>{t('auth.pinHint')}</p>
                 </div>
               </>
             ) : (

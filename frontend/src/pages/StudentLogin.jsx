@@ -85,7 +85,7 @@ const StudentLogin = () => {
                   textShadow: '0 0 4px rgba(212,168,83,0.3)',
                 }}
                 data-testid="student-pin-input" />
-              <p className="text-xs mt-2" style={{ color: C.muted }}>{t('auth.pinHint')}</p>
+              <p className="text-xs mt-2" style={{ color: 'rgba(148,163,184,0.5)' }}>{t('auth.pinHint')}</p>
             </div>
             <button type="submit" disabled={loading}
               className="w-full py-3.5 rounded-xl text-base font-bold text-black transition-all duration-300 hover:scale-[1.02] hover:shadow-lg disabled:opacity-50"

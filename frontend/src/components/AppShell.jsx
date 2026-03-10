@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, LogOut, Menu, X } from 'lucide-react';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import NotificationBell from '@/components/NotificationBell';
 
 const C = {
   bg: '#0A0F1E',
@@ -14,7 +15,7 @@ const C = {
   muted: '#94A3B8',
 };
 
-const AppShell = ({ children, title, subtitle, onLogout, rightContent, showLogo = true }) => {
+const AppShell = ({ children, title, subtitle, onLogout, rightContent, showLogo = true, isStudent = false, studentId = null }) => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -47,6 +48,7 @@ const AppShell = ({ children, title, subtitle, onLogout, rightContent, showLogo 
             {/* Desktop actions */}
             <div className="hidden md:flex items-center gap-3 flex-shrink-0">
               {rightContent}
+              <NotificationBell isStudent={isStudent} studentId={studentId} />
               <LanguageSwitcher />
               {onLogout && (
                 <button onClick={onLogout}
@@ -74,7 +76,10 @@ const AppShell = ({ children, title, subtitle, onLogout, rightContent, showLogo 
             <div className="md:hidden mt-3 pt-3 pb-2 space-y-2" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
               {rightContent && <div className="flex flex-wrap gap-2">{rightContent}</div>}
               <div className="flex items-center justify-between pt-2">
-                <LanguageSwitcher />
+                <div className="flex items-center gap-2">
+                  <NotificationBell isStudent={isStudent} studentId={studentId} />
+                  <LanguageSwitcher />
+                </div>
                 {onLogout && (
                   <button onClick={onLogout}
                     className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold"
