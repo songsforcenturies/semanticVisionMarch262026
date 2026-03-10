@@ -13,7 +13,7 @@ import { BrutalCard, BrutalButton, BrutalBadge, BrutalInput } from '@/components
 import {
   DollarSign, Cpu, Users, BarChart3, Settings, Shield,
   Ticket, Crown, PlusCircle, Trash2, UserCheck, BookOpen, Clock, Zap, Sliders, ToggleLeft,
-  Megaphone, Building2, Edit, Trophy, Wallet, Link2, Send, CheckCircle, XCircle, MessageSquare, Award, Key,
+  Megaphone, Building2, Edit, Trophy, Wallet, Link2, Send, CheckCircle, XCircle, MessageSquare, Award, Key, TrendingUp,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
@@ -701,25 +701,33 @@ const AdminPortal = () => {
         {/* =================== AI COSTS TAB =================== */}
         {activeTab === 'costs' && (
           <div className="space-y-6" data-testid="costs-tab">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="bg-rose-50 border-4 border-black p-5 brutal-shadow-sm" data-testid="stat-total-cost">
-                <div className="flex items-center gap-2 mb-2"><DollarSign size={18} className="text-rose-600" /><p className="font-bold text-xs uppercase text-gray-600">Total Cost</p></div>
+                <div className="flex items-center gap-2 mb-2"><DollarSign size={18} className="text-rose-600" /><p className="font-bold text-xs uppercase text-gray-600">Total Expense</p></div>
                 <p className="text-3xl font-black">${costs?.total_cost?.toFixed(4) || '0.0000'}</p>
+              </div>
+              <div className="bg-emerald-50 border-4 border-black p-5 brutal-shadow-sm">
+                <div className="flex items-center gap-2 mb-2"><DollarSign size={18} className="text-emerald-600" /><p className="font-bold text-xs uppercase text-gray-600">Gross Income</p></div>
+                <p className="text-3xl font-black">${costs?.total_revenue?.toFixed(2) || '0.00'}</p>
+              </div>
+              <div className={`border-4 border-black p-5 brutal-shadow-sm ${(costs?.total_net || 0) >= 0 ? 'bg-emerald-50' : 'bg-rose-50'}`}>
+                <div className="flex items-center gap-2 mb-2"><TrendingUp size={18} className={(costs?.total_net || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'} /><p className="font-bold text-xs uppercase text-gray-600">Net Income</p></div>
+                <p className="text-3xl font-black">${costs?.total_net?.toFixed(2) || '0.00'}</p>
               </div>
               <div className="bg-indigo-50 border-4 border-black p-5 brutal-shadow-sm" data-testid="stat-total-stories">
                 <div className="flex items-center gap-2 mb-2"><BarChart3 size={18} className="text-indigo-600" /><p className="font-bold text-xs uppercase text-gray-600">Total Stories</p></div>
                 <p className="text-3xl font-black">{costs?.total_stories || 0}</p>
               </div>
-              <div className="bg-amber-50 border-4 border-black p-5 brutal-shadow-sm">
-                <div className="flex items-center gap-2 mb-2"><Users size={18} className="text-amber-600" /><p className="font-bold text-xs uppercase text-gray-600">Users</p></div>
-                <p className="text-3xl font-black">{costs?.per_user?.length || 0}</p>
-              </div>
-              <div className="bg-emerald-50 border-4 border-black p-5 brutal-shadow-sm">
-                <div className="flex items-center gap-2 mb-2"><Cpu size={18} className="text-emerald-600" /><p className="font-bold text-xs uppercase text-gray-600">Avg/Story</p></div>
-                <p className="text-3xl font-black">${costs?.total_stories ? (costs.total_cost / costs.total_stories).toFixed(4) : '0.0000'}</p>
+              <div className={`border-4 border-black p-5 brutal-shadow-sm ${(costs?.total_roi || 0) >= 0 ? 'bg-amber-50' : 'bg-rose-50'}`}>
+                <div className="flex items-center gap-2 mb-2"><TrendingUp size={18} className="text-amber-600" /><p className="font-bold text-xs uppercase text-gray-600">ROI</p></div>
+                <p className="text-3xl font-black">{costs?.total_roi?.toFixed(1) || '0'}%</p>
               </div>
             </div>
+
+            {/* Charts Row */}
             <div className="grid md:grid-cols-2 gap-6">
+              {/* Cost by User */}
               <BrutalCard shadow="lg">
                 <h3 className="text-xl font-black uppercase mb-4">Cost by User</h3>
                 {costs?.per_user?.length > 0 ? (
@@ -734,19 +742,69 @@ const AdminPortal = () => {
                   </div>
                 ) : <p className="text-center py-8 text-gray-500 font-bold">No cost data yet</p>}
               </BrutalCard>
+
+              {/* Cost by Model — Pie Chart + Legend */}
               <BrutalCard shadow="lg">
                 <h3 className="text-xl font-black uppercase mb-4">Cost by Model</h3>
                 {costs?.per_model?.length > 0 ? (
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart><Pie data={costs.per_model} cx="50%" cy="50%" outerRadius={80} dataKey="total_cost" label={({ model, total_cost }) => `${model}: $${total_cost.toFixed(4)}`}>
-                        {costs.per_model.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="#000" strokeWidth={2} />)}
-                      </Pie><Tooltip formatter={v => `$${Number(v).toFixed(4)}`} /></PieChart>
-                    </ResponsiveContainer>
+                  <div className="flex items-center gap-4">
+                    <div className="h-56 flex-1">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart><Pie data={costs.per_model} cx="50%" cy="50%" outerRadius={75} dataKey="total_cost">
+                          {costs.per_model.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="#000" strokeWidth={2} />)}
+                        </Pie><Tooltip formatter={v => `$${Number(v).toFixed(4)}`} /></PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="space-y-2 min-w-[140px]" data-testid="model-legend">
+                      {costs.per_model.map((m, i) => (
+                        <div key={m.model} className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-sm border border-black flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
+                          <div className="text-xs">
+                            <p className="font-black leading-tight">{m.model}</p>
+                            <p className="text-gray-500">${m.total_cost.toFixed(4)} ({m.usage_count} calls)</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ) : <p className="text-center py-8 text-gray-500 font-bold">No model data yet</p>}
               </BrutalCard>
             </div>
+
+            {/* Family Breakdown Table */}
+            <BrutalCard shadow="lg">
+              <h3 className="text-xl font-black uppercase mb-4">Family Breakdown — Expenses, Income & ROI</h3>
+              {costs?.per_family?.length > 0 ? (
+                <div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="border-b-4 border-black">
+                  <th className="py-3 px-3 font-black text-xs uppercase">Family</th>
+                  <th className="py-3 px-3 font-black text-xs uppercase">Students</th>
+                  <th className="py-3 px-3 font-black text-xs uppercase">Stories</th>
+                  <th className="py-3 px-3 font-black text-xs uppercase text-rose-600">Expense</th>
+                  <th className="py-3 px-3 font-black text-xs uppercase text-emerald-600">Income</th>
+                  <th className="py-3 px-3 font-black text-xs uppercase">Net</th>
+                  <th className="py-3 px-3 font-black text-xs uppercase">ROI</th>
+                </tr></thead><tbody>
+                  {costs.per_family.map((f, i) => (
+                    <tr key={i} className="border-b-2 border-gray-200 hover:bg-gray-50">
+                      <td className="py-2 px-3">
+                        <p className="font-bold text-sm">{f.family_name}</p>
+                        <p className="text-[10px] text-gray-400">{f.email}</p>
+                      </td>
+                      <td className="py-2 px-3 text-sm">{f.students.length > 0 ? f.students.join(', ') : `${f.student_count} students`}</td>
+                      <td className="py-2 px-3 text-sm font-bold">{f.story_count}</td>
+                      <td className="py-2 px-3 text-sm font-bold text-rose-600">${f.total_expense.toFixed(4)}</td>
+                      <td className="py-2 px-3 text-sm font-bold text-emerald-600">${f.gross_income.toFixed(2)}</td>
+                      <td className={`py-2 px-3 text-sm font-bold ${f.net_income >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>${f.net_income.toFixed(2)}</td>
+                      <td className="py-2 px-3">
+                        <BrutalBadge variant={f.roi_percent >= 0 ? 'emerald' : 'rose'} size="sm">{f.roi_percent}%</BrutalBadge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody></table></div>
+              ) : <p className="text-center py-8 text-gray-500 font-bold">No family data yet</p>}
+            </BrutalCard>
+
+            {/* Recent Logs */}
             <BrutalCard shadow="lg">
               <h3 className="text-xl font-black uppercase mb-4">Recent Logs</h3>
               {costs?.recent_logs?.length > 0 ? (

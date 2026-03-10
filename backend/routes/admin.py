@@ -41,12 +41,11 @@ class PurchaseRequest(BaseModel):
 
 @router.get("/admin/costs")
 async def get_admin_costs(current_user: dict = Depends(get_current_user)):
-    """Get cost tracking data for admin"""
+    """Get cost tracking data for admin — includes per-user, per-family, per-model breakdowns"""
     if current_user.get("role") not in ["admin", "guardian", "teacher"]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    # Get all cost logs
-    cost_logs = await db.cost_logs.find({}, {"_id": 0}).sort("created_date", -1).to_list(500)
+    cost_logs = await db.cost_logs.find({}, {"_id": 0}).sort("created_date", -1).to_list(2000)
 
     # Aggregate by user
     user_costs = {}
@@ -68,11 +67,61 @@ async def get_admin_costs(current_user: dict = Depends(get_current_user)):
         model_costs[model]["total_cost"] += cost
         model_costs[model]["usage_count"] += 1
 
+    # Family-level aggregation: group users by guardian_id
+    family_data = {}
+    all_users = await db.users.find({}, {"_id": 0, "id": 1, "full_name": 1, "email": 1}).to_list(5000)
+    user_lookup = {u["id"]: u for u in all_users}
+    all_students = await db.students.find({}, {"_id": 0, "guardian_id": 1, "full_name": 1}).to_list(5000)
+    guardian_students = {}
+    for s in all_students:
+        gid = s.get("guardian_id", "")
+        if gid not in guardian_students:
+            guardian_students[gid] = []
+        guardian_students[gid].append(s.get("full_name", ""))
+
+    # Get payment/revenue per user
+    all_payments = await db.payment_transactions.find(
+        {"payment_status": "paid"}, {"_id": 0, "user_id": 1, "amount": 1}
+    ).to_list(5000)
+    user_revenue = {}
+    total_revenue = 0
+    for p in all_payments:
+        uid = p.get("user_id", "")
+        amt = p.get("amount", 0)
+        user_revenue[uid] = user_revenue.get(uid, 0) + amt
+        total_revenue += amt
+
+    # Build family breakdown
+    for uid, udata in user_costs.items():
+        guardian_info = user_lookup.get(uid, {})
+        family_name = guardian_info.get("full_name", udata["user_name"])
+        family_email = guardian_info.get("email", "")
+        students = guardian_students.get(uid, [])
+        revenue = user_revenue.get(uid, 0)
+        expense = round(udata["total_cost"], 4)
+        roi = round(((revenue - expense) / expense) * 100, 1) if expense > 0 else 0
+
+        family_data[uid] = {
+            "family_name": family_name,
+            "email": family_email,
+            "students": students,
+            "student_count": len(students),
+            "total_expense": expense,
+            "gross_income": round(revenue, 2),
+            "net_income": round(revenue - expense, 2),
+            "roi_percent": roi,
+            "story_count": udata["story_count"],
+        }
+
     return {
         "total_cost": round(total_cost, 4),
+        "total_revenue": round(total_revenue, 2),
+        "total_net": round(total_revenue - total_cost, 2),
+        "total_roi": round(((total_revenue - total_cost) / total_cost) * 100, 1) if total_cost > 0 else 0,
         "total_stories": len(cost_logs),
         "per_user": sorted(user_costs.values(), key=lambda x: x["total_cost"], reverse=True),
         "per_model": sorted(model_costs.values(), key=lambda x: x["total_cost"], reverse=True),
+        "per_family": sorted(family_data.values(), key=lambda x: x["total_expense"], reverse=True),
         "recent_logs": cost_logs[:50],
     }
 
