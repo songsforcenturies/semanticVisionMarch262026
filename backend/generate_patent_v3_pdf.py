@@ -13,8 +13,8 @@ NAVY = HexColor('#0A0F1E')
 GOLD = HexColor('#D4A853')
 GRAY = HexColor('#6B7280')
 WATERMARK_COLOR = Color(0.83, 0.66, 0.33, alpha=0.06)
-OUTPUT_PATH = "/app/PATENT_FILING_MARCH_2026_v3.pdf"
-MD_PATH = "/app/PATENT_FILING_MARCH_2026_v3.md"
+OUTPUT_PATH = "/app/PATENT_FILING_FINAL_v4.pdf"
+MD_PATH = "/app/PATENT_FILING_FINAL_v4.md"
 
 styles = getSampleStyleSheet()
 title_style = ParagraphStyle('PT', parent=styles['Title'], fontSize=20, textColor=NAVY, spaceAfter=12, alignment=TA_CENTER, fontName='Helvetica-Bold', leading=26)
@@ -38,7 +38,7 @@ def watermark(canvas, doc):
     canvas.saveState()
     canvas.setFont('Helvetica', 7)
     canvas.setFillColor(GRAY)
-    canvas.drawString(72, 36, "Semantic Vision - Provisional Patent Application v3.0 - Allen Tyrone Johnson - Filed March 10, 2026")
+    canvas.drawString(72, 36, "Semantic Vision - Provisional Patent Application v4.0 FINAL - Allen Tyrone Johnson - Filed March 10, 2026")
     canvas.drawRightString(letter[0]-72, 36, f"Page {doc.page}")
     canvas.restoreState()
 
