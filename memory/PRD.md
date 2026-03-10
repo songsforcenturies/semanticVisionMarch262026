@@ -78,8 +78,11 @@ Build a comprehensive AI-powered personalized educational narrative platform ("S
 - [ ] Switch PayPal mode from Sandbox to Live when ready (via Integrations tab)
 
 ### P1 (High)
+- [x] ~~Chunked auto-save recording~~ -- COMPLETED (March 2026). Auto-saves every 15s to sessionStorage.
+- [x] ~~Parent notification on audio memory creation~~ -- COMPLETED. Notification sent to parent on upload.
+- [x] ~~Clearer "Allow for Audio Books" button~~ -- COMPLETED. Text + icon label.
+- [x] ~~User ID / Invitation Cards~~ -- COMPLETED. Downloadable PNG for guardians (referral code) and students (student code).
 - [ ] On-Device LLM Integration -- WebLLM or similar for offline story generation
-- [ ] Payment Gateway Integrations -- Cash App, Zelle, Venmo, PayPal
 
 ### P2 (Medium)
 - [ ] Dynamic Music Generation -- Replace MusicPlayer placeholder with actual logic
