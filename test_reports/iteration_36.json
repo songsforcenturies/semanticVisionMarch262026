@@ -1,0 +1,143 @@
+{
+  "summary": "Iteration 36: Public Affiliate Signup + Coupon & Wallet Credit System - ALL TESTS PASSED. Backend: 13/13 pytest tests passed. Frontend: All features verified - affiliate signup page, landing page affiliate link, admin coupon management, parent wallet tab, subscription tab coupon redemption.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration_36_affiliate_coupon.py",
+    "/app/test_reports/pytest/iteration_36_affiliate_coupon.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Public affiliate signup endpoint properly exposed without authentication",
+    "Affiliate code generation format: AFF-XXXXXXXX (12 chars total)",
+    "Coupon system supports multiple types: wallet_credit, percentage_discount, free_stories, free_students, free_days",
+    "Duplicate redemption blocking implemented correctly",
+    "Wallet transactions properly recorded with balance_after field"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration_36_affiliate_coupon.py"
+  ],
+  "success_rate": {
+    "backend": "100% (13/13 tests passed)",
+    "frontend": "100% - All features verified"
+  },
+  "test_credentials": {
+    "admin_user": {
+      "email": "allen@songsforcenturies.com",
+      "password": "LexiAdmin2026!"
+    }
+  },
+  "seed_data_creation": "Multiple test coupons and affiliates created during testing",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Affiliate signup and coupon system fully tested. Admin can create/manage coupons. Parents can redeem coupons in Wallet and Subscription tabs. Wallet balance updates correctly after coupon redemption.",
+  "tests_executed": {
+    "backend_api_tests": {
+      "affiliate_signup": [
+        "POST /api/affiliates/signup with valid name+email returns affiliate_code - PASSED",
+        "Affiliate code format: AFF-XXXXXXXX (12 chars) - PASSED",
+        "Confirmed status returned in response - PASSED",
+        "Duplicate email signup returns 400 'already registered' - PASSED",
+        "Missing email/name returns 400 - PASSED"
+      ],
+      "coupon_management": [
+        "GET /api/admin/coupons returns list of coupons - PASSED",
+        "POST /api/admin/coupons creates wallet_credit coupon - PASSED",
+        "POST /api/admin/coupons creates percentage_discount coupon - PASSED"
+      ],
+      "coupon_redemption": [
+        "POST /api/coupons/redeem with valid code adds to wallet balance - PASSED",
+        "POST /api/coupons/redeem duplicate blocked with 400 'already redeemed' - PASSED",
+        "POST /api/coupons/redeem invalid code returns 404 - PASSED"
+      ],
+      "wallet_system": [
+        "GET /api/wallet/balance returns current balance - PASSED",
+        "GET /api/wallet/transactions returns transaction history - PASSED",
+        "GET /api/wallet/packages returns available top-up packages - PASSED"
+      ]
+    },
+    "frontend_tests": {
+      "affiliate_signup_page": [
+        "/affiliate route loads correctly - PASSED",
+        "Page heading 'Become an Affiliate' visible - PASSED",
+        "Benefits section (Earn Per Referral, Help Families Learn, Track Your Impact) displayed - PASSED",
+        "Form fields: data-testid='affiliate-name', 'affiliate-email', 'affiliate-submit' present - PASSED",
+        "Form submission with valid data shows success state - PASSED",
+        "Success state shows affiliate code (AFF-XXXXXXXX format) - PASSED",
+        "Success state shows referral link with affiliate code - PASSED",
+        "Copy link button (data-testid='copy-link-btn') present - PASSED"
+      ],
+      "landing_page_affiliate_link": [
+        "Landing page has 'Become an Affiliate' link (data-testid='affiliate-link') - PASSED",
+        "Clicking affiliate link navigates to /affiliate - PASSED"
+      ],
+      "admin_coupon_tab": [
+        "Admin portal Coupons tab loads - PASSED",
+        "Create Coupon form visible with Code, Type, Value, Max Uses, Description - PASSED",
+        "Active Coupons list shows 10 coupons - PASSED",
+        "Known coupons visible: WELCOME25, BONUS10, HACKATHON, WELCOME10 - PASSED",
+        "Coupon types displayed: wallet_credit, percentage_discount - PASSED"
+      ],
+      "parent_wallet_tab": [
+        "Wallet tab loads with data-testid='wallet-tab' - PASSED",
+        "Account Balance displayed (data-testid='wallet-balance'): $1000.02 - PASSED",
+        "Add Funds section with $5, $10, $25, $50, $100 packages - PASSED",
+        "Redeem Coupon section with input (data-testid='coupon-input') and button (data-testid='redeem-btn') - PASSED",
+        "Transaction History section shows coupon redemptions - PASSED"
+      ],
+      "parent_subscription_tab": [
+        "Subscription tab loads with data-testid='subscription-tab' - PASSED",
+        "Current plan displayed (data-testid='current-plan-name'): FAMILY - PASSED",
+        "Redeem Coupon/Invitation Code section present - PASSED",
+        "data-testid='subscription-coupon-input' and 'subscription-redeem-btn' present - PASSED",
+        "Available Plans section shows Starter, Family, Academy - PASSED"
+      ],
+      "admin_user_management": [
+        "Admin Users tab loads with data-testid='users-tab' - PASSED",
+        "Plan Membership overview: 68 Parents, 20 With Plans, 49 No Plan, 8 Students - PASSED",
+        "All Users table shows NAME, EMAIL, ROLE, BALANCE, STATUS, ACTIONS - PASSED",
+        "User list shows wallet balance for each user - PASSED",
+        "Action buttons include Wallet edit icon - PASSED"
+      ]
+    }
+  },
+  "verified_features": {
+    "affiliate_signup": {
+      "endpoint": "POST /api/affiliates/signup (public, no auth)",
+      "request_body": {"full_name": "string", "email": "string"},
+      "response": {"message": "string", "affiliate_code": "AFF-XXXXXXXX", "confirmed": true},
+      "auto_approve": true,
+      "sends_welcome_email": true
+    },
+    "coupon_types": [
+      "wallet_credit - adds $ to user wallet",
+      "percentage_discount - applies discount to next purchase",
+      "free_stories - adds bonus stories to subscription",
+      "free_students - adds student seats",
+      "free_days - adds trial/premium days"
+    ],
+    "existing_coupons": [
+      "WELCOME25 - 25% percentage_discount, 0/100 used",
+      "BONUS10 - $10 wallet_credit, 1/50 used",
+      "HACKATHON - $15 wallet_credit",
+      "WELCOME10 - $10 wallet_credit"
+    ],
+    "wallet_features": {
+      "balance_display": "Shows current balance with proper currency formatting",
+      "top_up_packages": ["$5", "$10", "$25", "$50", "$100"],
+      "stripe_integration": "Powered by Stripe with Google Pay, Apple Pay",
+      "transaction_history": "Shows type, description, amount, date, balance_after"
+    }
+  },
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "note": "All APIs are real implementations, no mocking"
+  }
+}

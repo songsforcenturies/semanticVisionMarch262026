@@ -5,7 +5,7 @@ import { motion, useInView } from 'framer-motion';
 import {
   BookOpen, Eye, Sparkles, Users, GraduationCap, Shield,
   Globe, ArrowRight, ChevronRight, Brain, Layers, Heart,
-  Megaphone, Zap, TrendingUp, Star, Check
+  Megaphone, Zap, TrendingUp, Star, Check, Share2
 } from 'lucide-react';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 
@@ -105,6 +105,7 @@ const LandingPage = () => {
                 <button onClick={() => navigate('/teacher-login')} className="hover:underline flex items-center gap-1" data-testid="teacher-login-link"><Users size={14} /> {t('landing.teacherLogin')}</button>
                 <button onClick={() => navigate('/donate')} className="hover:underline flex items-center gap-1" data-testid="donate-link"><Heart size={14} /> {t('landing.sponsorReader')}</button>
                 <button onClick={() => navigate('/register?role=brand_partner')} className="hover:underline flex items-center gap-1" data-testid="brand-partner-link"><Megaphone size={14} /> {t('landing.brandPartners')}</button>
+                <button onClick={() => navigate('/affiliate')} className="hover:underline flex items-center gap-1" data-testid="affiliate-link"><Share2 size={14} /> Become an Affiliate</button>
               </motion.div>
             </div>
             <motion.div variants={fadeIn} transition={{ duration: 0.8 }} className="relative flex justify-center lg:justify-end">
