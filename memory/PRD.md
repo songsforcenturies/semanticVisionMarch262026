@@ -3,35 +3,45 @@
 ## Original Problem Statement
 Semantic Vision is an AI-powered personalized reading platform replacing static educational materials with infinite, AI-generated, culturally-aware, faith-aligned, brand-funded narratives spanning Pre-K through College.
 
-## Patent Filing Status
-- **Version:** v4.0 FINAL (March 10, 2026)
-- **Total Claims:** 75 (8 independent + 42 dependent + 13 future embodiment + 12 audio/video/device/lifelong)
-- **Infringement Risk:** NONE found after prior art search (BEN Labs has no blocking patents for AI-generated educational video brand integration)
-- **Download:** `/api/patent-filing-2026/bundle` (ZIP with MD + PDF + 11 screenshots)
+## What's Been Implemented (March 10, 2026)
 
-## Core Innovations Claimed
-1. Brand Comprehension measurement
-2. Competitive brand bidding for educational narrative placement
-3. 60/30/10 three-tier vocabulary distribution
-4. Multi-dimensional student profiling (belief, culture, virtues, strengths, weaknesses)
-5. Read-aloud recording with diction scoring and improvement tracking
-6. Audio Memory Library for parents
-7. Peer Audio Book Section (children narrating for other children)
-8. On-device LLM for offline story generation
-9. AI-generated video content with brand integration
-10. Lifelong learning continuum (Pre-K to College)
-11. Default-false consent architecture
-12. Brand opt-out analytics
+### Core Features (Previously Built)
+- Onboarding Wizards, Unified Auth, FAQ Sections
+- Brand Competition System (bidding/rotation, 34 brands)
+- Affiliate & Coupon System with user-facing dashboard
+- Patent-Pending badge, clear affiliate login instructions
+
+### Read-Aloud Recording & Audio System (NEW - March 10, 2026)
+- **ReadAloudRecorder** component in student NarrativeReader (audio + video modes)
+- **Diction Analysis** via OpenAI Whisper: transcription → text comparison → 4-dimensional scoring (pronunciation, fluency, completeness, prosody)
+- **Audio Memory Library** tab in Guardian Portal: browse/play/delete all recordings, share to collection
+- **Audio Book Collection**: public page at `/audio-books`, also embedded in Guardian Portal as tab
+- **Admin Audio Books** management: approve/reject submissions, settings (enable/disable, auto-approve, show on landing)
+- **Diction Progress Tracking**: longitudinal improvement across recording sessions
+- **19 backend endpoints** for recordings, audio books, admin controls
+- **Recording Storage**: `/app/backend/uploads/recordings/`
+
+### Patent Filing v4.0 (75 Claims)
+- Filed March 10, 2026 with all audio/video/device/lifelong features claimed
+- Download: `/api/patent-filing-2026/bundle`
+
+## Key API Endpoints (NEW)
+- `POST /api/recordings/upload` - Upload recording (multipart)
+- `POST /api/recordings/{id}/analyze` - Whisper transcription + diction scoring
+- `GET /api/recordings/guardian/all` - All recordings for guardian's students
+- `GET /api/recordings/student/{id}/progress` - Diction improvement over time
+- `GET /api/audio-books` - Public audio book collection
+- `POST /api/audio-books/contribute` - Share recording to collection
+- `GET/PUT /api/admin/audio-books/settings` - Admin controls
 
 ## Credentials
 - Admin/Guardian: `allen@songsforcenturies.com` / `LexiAdmin2026!`
 
 ## Prioritized Backlog
 ### P1
-- [ ] Refactor server.py into modular FastAPI routers
+- [ ] Refactor server.py into modular FastAPI routers (now 6000+ lines)
 ### P2
 - [ ] Payment gateways (Cash App, Zelle, Venmo, PayPal)
+- [ ] AI-generated background music for audio books
 ### P3
-- [ ] Implement read-aloud recording system
-- [ ] User Demo Flow
-- [ ] Accessibility Features
+- [ ] User Demo Flow, Accessibility, Admin Analytics
