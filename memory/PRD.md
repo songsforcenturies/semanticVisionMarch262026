@@ -12,67 +12,64 @@ Semantic Vision is an AI-powered personalized reading platform replacing static 
 - Patent-Pending badge, clear affiliate login instructions
 
 ### Read-Aloud Recording & Audio System
-- **ReadAloudRecorder** component in student NarrativeReader (audio + video modes)
-- **Diction Analysis** via OpenAI Whisper: transcription, text comparison, 4-dimensional scoring
-- **Audio Memory Library** tab in Guardian Portal
-- **Audio Book Collection**: public page at `/audio-books`
-- **Admin Audio Books** management: approve/reject submissions
-- **19 backend endpoints** for recordings, audio books, admin controls
+- ReadAloudRecorder component (audio + video modes) - positioned AT TOP of each chapter
+- Diction Analysis via OpenAI Whisper: transcription, text comparison, 4-dimensional scoring
+- Audio Memory Library tab in Guardian Portal with student filter buttons
+- Audio Book Collection: public page at /audio-books
+- Admin Audio Books management: approve/reject submissions
 
 ### Patent Filing v6.0 (81 Claims)
-- Filed with all audio/video/device/lifelong features claimed
-- Download: `/api/patent-filing/v6/zip`
+- Download: /api/patent-filing/v6/zip
 
 ### Mobile Responsiveness & PWA (March 10, 2026)
-- **Mobile-responsive design** across all pages (tested at 375px, 768px, 1920px)
-- **AppShell** with hamburger menu on mobile, responsive header
-- **Guardian Portal** with horizontally scrollable tabs on mobile
-- **NarrativeReader** fully responsive with compact header controls
-- **Modals** (OnboardingWizard, WrittenAnswerModal, StoryGenerationDialog) fit mobile without horizontal overflow
-- **PWA manifest.json** with standalone display mode
-- **Service Worker** registered for offline caching
-- **PIN input fix**: Visible digits with large monospace font (type=text, inputMode=numeric)
+- Mobile-responsive design across all pages (tested at 375px, 768px, 1920px)
+- AppShell with hamburger menu on mobile
+- Guardian Portal with horizontally scrollable tabs
+- NarrativeReader fully responsive with compact header
+- All modals fit mobile without horizontal overflow
+- PWA manifest.json + Service Worker registered
 
 ### Offline Story Caching (March 10, 2026)
-- **IndexedDB-based** offline storage (`offlineCache.js`)
-- **SaveOfflineButton** integrated in NarrativeReader header (compact mode)
-- **OfflineLibrary** section accessible from StudentAcademy via "Offline" button
-- **Service Worker** for PWA caching at `/service-worker.js`
-- Dark theme styling consistent with app
+- IndexedDB-based offline storage (offlineCache.js)
+- SaveOfflineButton integrated in NarrativeReader header
+- OfflineLibrary section accessible from StudentAcademy
 
 ### Ambient Background Music (March 10, 2026)
-- **MusicPlayerWidget** integrated in NarrativeReader header
-- **Web Audio API** generates mood-based ambient sounds (8 moods: adventurous, calm, mysterious, joyful, emotional, exciting, peaceful, inspiring)
-- Auto-mood detection from story text content
-- Volume control and mood selector
+- MusicPlayerWidget in NarrativeReader header
+- Web Audio API with 8 mood-based ambient sounds
+- Auto-mood detection from story text
 
-### Dark Theme Consistency (March 10, 2026)
-- ReadAloudRecorder, SaveOfflineButton, MusicPlayerWidget, OfflineLibrary all updated to dark theme (#1A2236 card, #F8F5EE cream text)
+### Font/Text Visibility Fixes (March 10, 2026)
+- BrutalCard: inline styles for backgroundColor + color (prevents dark theme inheritance)
+- PIN input: type=text, inputMode=numeric, white text with gold border, 1.5rem font
+- Student code boxes: explicit dark-indigo text (#1e1b4b) on indigo-100 bg
+- PIN display boxes: explicit dark-brown text (#78350f) on yellow-100 bg
+- Audio Memories filter buttons: text-gray-900 on gray-100 bg
+- Global CSS rule: .sv-dark .bg-white/.bg-gray-50/.bg-gray-100 { color: #111827 }
 
 ## Key API Endpoints
-- `POST /api/recordings/upload` - Upload recording (multipart)
-- `POST /api/recordings/{id}/analyze` - Whisper transcription + diction scoring
-- `GET /api/recordings/guardian/all` - All recordings for guardian's students
-- `GET /api/recordings/student/{id}/progress` - Diction improvement over time
-- `GET /api/audio-books` - Public audio book collection
-- `POST /api/audio-books/contribute` - Share recording to collection
-- `GET/PUT /api/admin/audio-books/settings` - Admin controls
+- POST /api/recordings/upload
+- POST /api/recordings/{id}/analyze
+- GET /api/recordings/guardian/all
+- GET /api/audio-books
+- GET/PUT /api/admin/audio-books/settings
 
 ## Credentials
-- Admin/Guardian: `allen@songsforcenturies.com` / `LexiAdmin2026!`
-- Test Student: `STU-DR40V7` / PIN: `914027`
+- Admin/Guardian: allen@songsforcenturies.com / LexiAdmin2026!
+- Test Student: STU-DR40V7 / PIN: 914027
 
 ## Prioritized Backlog
 
 ### P0 (User Requested - Next)
-- [ ] Parent Control System: mandatory read-aloud/video, chapter thresholds, settings in parent portal
+- [ ] Parent Control System: mandatory read-aloud/video per child, chapter thresholds
 - [ ] Video recording at top of story with auto-start/confirm (parent-controlled)
-- [ ] Task reminder messages for children to complete audiobook readings
+- [ ] Task reminder messages for children to complete readings
 - [ ] Remember Me / save credentials with opt-in
+- [ ] Push notifications for parents when child completes audio
 
 ### P1
 - [ ] Server-side audio diction analysis with comparison over time
-- [ ] Audio Memories background upload improvements
+- [ ] Audio Memories background upload
 - [ ] On-Device LLM for offline story generation
 - [ ] Refactor server.py into modular FastAPI routers (6000+ lines)
 
