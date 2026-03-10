@@ -50,12 +50,16 @@ const CardFace = ({ data, type }) => {
                 <p className="text-sm font-mono font-black text-white tracking-wider">{data.student_code}</p>
               </div>
               <div>
-                <p className="text-[9px] font-bold uppercase" style={{ color: `${accent}70` }}>Reading Level</p>
-                <p className="text-sm font-bold text-white capitalize">{data.reading_level}</p>
+                <p className="text-[9px] font-bold uppercase" style={{ color: `${accent}70` }}>Student PIN</p>
+                <p className="text-sm font-mono font-black text-white tracking-wider">{data.access_pin}</p>
               </div>
-              <div className="col-span-2 mt-1">
+              <div>
+                <p className="text-[9px] font-bold uppercase" style={{ color: `${accent}70` }}>Reading Level</p>
+                <p className="text-[11px] font-bold text-white capitalize">{data.reading_level}</p>
+              </div>
+              <div>
                 <p className="text-[9px] font-bold uppercase" style={{ color: `${accent}70` }}>Login At</p>
-                <p className="text-[11px] font-mono font-medium" style={{ color: 'rgba(255,255,255,0.6)' }}>{data.login_url}</p>
+                <p className="text-[11px] font-mono font-medium truncate" style={{ color: 'rgba(255,255,255,0.6)' }}>{data.login_url}</p>
               </div>
             </>
           ) : (
