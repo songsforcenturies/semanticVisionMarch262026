@@ -72,6 +72,21 @@ Build "Semantic Vision," an educational platform — "Learning How to Read incre
 - 34 real US brands seeded across 13 categories (education_tech, sports_active, healthy_food, etc.)
 - 12 real brand offers to parents (LeapFrog, Nike, LEGO, Audible, Gabb, etc.)
 
+### Coupon & Credit System — Verified (March 10, 2026)
+- Admin creates coupons: wallet_credit, percentage_discount, free_stories, free_students, free_days
+- Parent redeems coupons from Wallet tab and Subscription tab
+- Wallet balance updates in real-time after redemption
+- Duplicate redemption blocked, invalid/expired codes rejected
+- 4 active coupons: WELCOME25 (25% off), BONUS10 ($10), HACKATHON ($15), WELCOME10 ($10)
+
+### Public Affiliate Signup Page (March 10, 2026)
+- New page at /affiliate accessible from landing page footer
+- Benefits section (Earn Per Referral, Help Families Learn, Track Impact)
+- Name + email form, auto-approved, generates AFF-XXXXXX code
+- Success page shows code, referral link, copy button
+- Confirmation email sent via Resend with affiliate link
+- Landing page now has "Become an Affiliate" link
+
 ## Bug Fixes
 - P0: Vocabulary Mastered/Agentic Reach Score ZERO -> normalized mastered_tokens
 - Fixed strengths/weaknesses font visibility (dark theme input styling)
@@ -81,8 +96,8 @@ Build "Semantic Vision," an educational platform — "Learning How to Read incre
 - Student SJ: STU-DR40V7 / 914027
 
 ## Backlog
-- [ ] P1: Finalize Coupon & Credit System end-to-end verification
-- [ ] P1: Refactor server.py (~5600 lines) into modular APIRouter
+- [ ] P1: Refactor server.py (~5800 lines) into modular APIRouter
+- [ ] P1: Update patent document with brand competition claims + embedded screenshots
 - [ ] P2: Payment gateway integrations (Cash App, Zelle, Venmo, PayPal)
 - [ ] P2: Brand Engagement Score metric
 - [ ] P2: Translate remaining i18n locales
