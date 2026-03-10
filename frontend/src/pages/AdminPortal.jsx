@@ -13,7 +13,7 @@ import { BrutalCard, BrutalButton, BrutalBadge, BrutalInput } from '@/components
 import {
   DollarSign, Cpu, Users, BarChart3, Settings, Shield,
   Ticket, Crown, PlusCircle, Trash2, UserCheck, BookOpen, Clock, Zap, Sliders, ToggleLeft,
-  Megaphone, Building2, Edit, Trophy, Wallet, Link2, Send, CheckCircle, XCircle, MessageSquare, Award, Key, TrendingUp,
+  Megaphone, Building2, Edit, Trophy, Wallet, Link2, Send, CheckCircle, XCircle, MessageSquare, Award, Key, TrendingUp, Eye, Video, Copy,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
@@ -29,6 +29,37 @@ const AdminPortal = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('stats');
   const [userSearch, setUserSearch] = useState('');
+
+  const handleImpersonate = async (targetUser) => {
+    try {
+      const res = await adminAPI.impersonateUser(targetUser.id);
+      const impData = res.data;
+      // Store original admin credentials
+      const currentToken = localStorage.getItem('token');
+      const currentUser = localStorage.getItem('user');
+      localStorage.setItem('admin_original_token', currentToken);
+      localStorage.setItem('admin_original_user', currentUser);
+      // Switch to impersonated user
+      localStorage.setItem('token', impData.access_token);
+      localStorage.setItem('user', JSON.stringify({ ...impData.user, _impersonated: true }));
+      toast.success(`Now viewing as ${impData.user.full_name || impData.user.email}`);
+      window.location.href = '/portal';
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Impersonation failed');
+    }
+  };
+
+  const handleCreateSupportSession = async () => {
+    setCreatingSupportSession(true);
+    try {
+      const res = await adminAPI.createSupportSession();
+      setSupportLink(res.data);
+      toast.success('Support session created!');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to create session');
+    }
+    setCreatingSupportSession(false);
+  };
 
   // === Data Queries ===
   const { data: costs } = useQuery({
@@ -131,6 +162,8 @@ const AdminPortal = () => {
   });
   const [assignSubUser, setAssignSubUser] = useState(null);
   const [assignPlanId, setAssignPlanId] = useState('');
+  const [supportLink, setSupportLink] = useState(null);
+  const [creatingSupportSession, setCreatingSupportSession] = useState(false);
   const [planForm, setPlanForm] = useState({
     name: '', description: '', price_monthly: '', student_seats: '10', story_limit: '-1',
   });
@@ -417,6 +450,7 @@ const AdminPortal = () => {
     { id: 'spelling', label: 'Spelling Bee', icon: Award },
     { id: 'config', label: 'LLM Config', icon: Settings },
     { id: 'integrations', label: 'Integrations', icon: Key },
+    { id: 'support', label: 'Screen Share', icon: Video },
     { id: 'settings', label: 'App Settings', icon: Shield },
   ];
 
@@ -1231,6 +1265,9 @@ const AdminPortal = () => {
                               <BrutalButton variant="default" size="sm" onClick={() => { setEditingUser(u); setEditForm({ email: u.email, full_name: u.full_name }); }} data-testid={`edit-${u.id}`}>
                                 <Edit size={13} />
                               </BrutalButton>
+                              <BrutalButton variant="indigo" size="sm" onClick={() => handleImpersonate(u)} title="View as this user" data-testid={`view-as-${u.id}`}>
+                                <Eye size={13} />
+                              </BrutalButton>
                               <BrutalButton variant="emerald" size="sm" onClick={() => { setEditWalletUser(u); setEditWalletAmount(String((u.wallet_balance || 0).toFixed(2))); }} data-testid={`wallet-${u.id}`}>
                                 <Wallet size={13} />
                               </BrutalButton>
@@ -1729,6 +1766,45 @@ const AdminPortal = () => {
         {activeTab === 'messaging' && <AdminMessagingTab />}
         {activeTab === 'spelling' && <AdminSpellingContestsTab />}
         {activeTab === 'integrations' && <IntegrationsTab />}
+        {activeTab === 'support' && (
+          <div className="space-y-6" data-testid="support-tab">
+            <BrutalCard shadow="xl" className="bg-gradient-to-r from-slate-800 to-slate-900 text-white border-indigo-500">
+              <div className="flex items-center gap-3 mb-2">
+                <Video size={24} className="text-indigo-400" />
+                <h3 className="text-xl font-black uppercase">Screen Share & Remote Support</h3>
+              </div>
+              <p className="text-sm text-slate-400">Create a support session to screen share with users. Powered by Daily.co — requires API key in Integrations.</p>
+            </BrutalCard>
+
+            <BrutalCard shadow="lg">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="font-black text-lg uppercase">Start New Session</h4>
+                <BrutalButton variant="indigo" size="lg" onClick={handleCreateSupportSession} disabled={creatingSupportSession}
+                  data-testid="create-support-session-btn" className="flex items-center gap-2">
+                  <Video size={18} /> {creatingSupportSession ? 'Creating...' : 'Start Support Session'}
+                </BrutalButton>
+              </div>
+
+              {supportLink && (
+                <div className="p-4 bg-indigo-50 border-4 border-black space-y-3 mt-4" data-testid="support-session-info">
+                  <p className="font-black text-sm uppercase text-indigo-800">Session Created</p>
+                  <div className="flex items-center gap-2">
+                    <input type="text" readOnly value={supportLink.room_url} className="flex-1 border-2 border-black px-3 py-2 font-mono text-sm bg-white" />
+                    <BrutalButton variant="default" size="sm" onClick={() => { navigator.clipboard.writeText(supportLink.room_url); toast.success('Link copied!'); }} data-testid="copy-support-link">
+                      <Copy size={16} />
+                    </BrutalButton>
+                  </div>
+                  <p className="text-xs text-gray-600">Share this link with the user. Both of you can join to video call and share screens.</p>
+                  <div className="flex gap-3">
+                    <BrutalButton variant="indigo" onClick={() => window.open(supportLink.room_url, '_blank')} data-testid="join-support-session">
+                      Join Session
+                    </BrutalButton>
+                  </div>
+                </div>
+              )}
+            </BrutalCard>
+          </div>
+        )}
 
         {/* =================== LLM CONFIG TAB =================== */}
         {activeTab === 'config' && (

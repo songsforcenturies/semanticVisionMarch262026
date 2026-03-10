@@ -77,6 +77,36 @@ const GuardianPortal = () => {
     >
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         {/* Horizontally scrollable tabs */}
+        {/* Impersonation Banner */}
+        {(() => {
+          const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
+          if (savedUser?._impersonated) {
+            return (
+              <div className="mb-4 p-3 border-4 border-amber-500 bg-amber-50 flex items-center justify-between" data-testid="impersonation-banner">
+                <p className="font-bold text-sm text-amber-800">
+                  Viewing as: <span className="text-amber-900">{savedUser.full_name || savedUser.email}</span> (Admin Preview)
+                </p>
+                <button onClick={() => {
+                  const origToken = localStorage.getItem('admin_original_token');
+                  const origUser = localStorage.getItem('admin_original_user');
+                  if (origToken && origUser) {
+                    localStorage.setItem('token', origToken);
+                    localStorage.setItem('user', origUser);
+                    localStorage.removeItem('admin_original_token');
+                    localStorage.removeItem('admin_original_user');
+                    window.location.href = '/admin';
+                  }
+                }}
+                  className="px-4 py-1.5 bg-amber-600 text-white font-bold text-sm border-2 border-black hover:bg-amber-700 transition-all"
+                  data-testid="exit-impersonation-btn">
+                  Exit to Admin
+                </button>
+              </div>
+            );
+          }
+          return null;
+        })()}
+
         <div className="mb-4 sm:mb-6 -mx-3 sm:mx-0 px-3 sm:px-0 overflow-x-auto scrollbar-hide">
           <div className="flex gap-1.5 sm:gap-2 pb-2 sm:flex-wrap min-w-max sm:min-w-0">
             {tabs.map((tab) => {

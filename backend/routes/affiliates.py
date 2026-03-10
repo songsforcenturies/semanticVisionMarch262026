@@ -58,7 +58,7 @@ async def affiliate_signup(data: dict = Body(...)):
         resend_key = os.environ.get("RESEND_API_KEY")
         if resend_key:
             resend.api_key = resend_key
-            affiliate_link = f"{os.environ.get('FRONTEND_URL', 'https://patent-filing-deploy.preview.emergentagent.com')}/register?ref={affiliate.affiliate_code}"
+            affiliate_link = f"{os.environ.get('FRONTEND_URL', 'https://daily-screen-share.preview.emergentagent.com')}/register?ref={affiliate.affiliate_code}"
             resend.Emails.send({
                 "from": f"Semantic Vision <{os.environ.get('SENDER_EMAIL', 'hello@semanticvision.ai')}>",
                 "to": [email],

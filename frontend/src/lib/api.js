@@ -179,6 +179,11 @@ export const adminAPI = {
   // Integrations / API Keys
   getIntegrations: () => apiClient.get('/admin/integrations'),
   updateIntegrations: (data) => apiClient.put('/admin/integrations', data),
+  // Impersonation
+  impersonateUser: (userId) => apiClient.post(`/admin/impersonate/${userId}`),
+  // Support Sessions (Daily.co)
+  createSupportSession: () => apiClient.post('/admin/support-session'),
+  getSupportSessions: () => apiClient.get('/admin/support-sessions'),
 };
 
 // ==================== WALLET API ====================

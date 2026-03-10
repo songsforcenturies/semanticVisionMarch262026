@@ -7,7 +7,7 @@
 **Version:** 1.0
 **Date:** March 9, 2026
 **Author:** Allen Tyrone Johnson
-**Platform URL:** https://patent-filing-deploy.preview.emergentagent.com
+**Platform URL:** https://daily-screen-share.preview.emergentagent.com
 
 ---
 

@@ -13,11 +13,13 @@ const IntegrationsTab = () => {
     paypal_client_id: '',
     paypal_secret: '',
     resend_api_key: '',
+    daily_api_key: '',
     sender_email: 'Semantic Vision <hello@semanticvision.ai>',
     paypal_mode: 'sandbox',
     stripe_enabled: true,
     paypal_enabled: false,
     resend_enabled: true,
+    daily_enabled: false,
   });
 
   const { data: integrations, isLoading } = useQuery({
@@ -32,11 +34,13 @@ const IntegrationsTab = () => {
         paypal_client_id: integrations.paypal.client_id_masked || '',
         paypal_secret: integrations.paypal.secret_masked || '',
         resend_api_key: integrations.resend.api_key_masked || '',
+        daily_api_key: integrations.daily?.api_key_masked || '',
         sender_email: integrations.resend.sender_email || 'Semantic Vision <hello@semanticvision.ai>',
         paypal_mode: integrations.paypal.mode || 'sandbox',
         stripe_enabled: integrations.stripe.enabled,
         paypal_enabled: integrations.paypal.enabled,
         resend_enabled: integrations.resend.enabled,
+        daily_enabled: integrations.daily?.enabled || false,
       });
     }
   }, [integrations]);
@@ -267,6 +271,44 @@ const IntegrationsTab = () => {
             />
             <p className="text-xs text-gray-500 mt-1">Format: Name &lt;email@domain.com&gt;. Domain must be verified in Resend.</p>
           </div>
+        </div>
+      </BrutalCard>
+
+      {/* Daily.co (Screen Share) */}
+      <BrutalCard shadow="lg">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-100 border-2 border-black flex items-center justify-center">
+              <svg className="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
+            </div>
+            <div>
+              <h4 className="font-black text-lg uppercase">Daily.co (Screen Share)</h4>
+              <p className="text-xs text-gray-500">Video calls and screen sharing for support</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <StatusDot active={integrations?.daily?.has_key} />
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={form.daily_enabled}
+                onChange={(e) => handleKeyChange('daily_enabled', e.target.checked)}
+                className="w-5 h-5" data-testid="daily-enabled-toggle" />
+              <span className="text-sm font-bold">Enabled</span>
+            </label>
+          </div>
+        </div>
+        <div>
+          <label className="block font-bold text-sm uppercase mb-2">API Key</label>
+          <div className="flex gap-2">
+            <input type={showKeys.daily ? 'text' : 'password'} value={form.daily_api_key}
+              onChange={(e) => handleKeyChange('daily_api_key', e.target.value)}
+              onFocus={() => { if (form.daily_api_key.startsWith('*')) handleKeyChange('daily_api_key', ''); }}
+              placeholder="your_daily_api_key..."
+              className="flex-1 border-4 border-black px-4 py-3 font-mono text-sm" data-testid="daily-api-key-input" />
+            <button onClick={() => toggleShowKey('daily')} className="border-4 border-black px-3 bg-gray-100 hover:bg-gray-200">
+              {showKeys.daily ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">Get your key from <a href="https://dashboard.daily.co/developers" target="_blank" rel="noreferrer" className="text-indigo-600 underline">Daily.co Dashboard</a> (free: 10,000 min/month)</p>
         </div>
       </BrutalCard>
 

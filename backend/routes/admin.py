@@ -1897,11 +1897,13 @@ class IntegrationUpdate(BaseModel):
     paypal_client_id: str = ""
     paypal_secret: str = ""
     resend_api_key: str = ""
+    daily_api_key: str = ""
     sender_email: str = "Semantic Vision <hello@semanticvision.ai>"
     paypal_mode: str = "sandbox"  # sandbox or live
     stripe_enabled: bool = True
     paypal_enabled: bool = False
     resend_enabled: bool = True
+    daily_enabled: bool = False
 
 
 @router.get("/admin/integrations")
@@ -1939,6 +1941,11 @@ async def get_integrations(current_user: dict = Depends(get_current_user)):
             "enabled": stored.get("resend_enabled", bool(resend_key)),
             "sender_email": sender,
         },
+        "daily": {
+            "api_key_masked": _mask_key(stored.get("daily_api_key", "")),
+            "has_key": bool(stored.get("daily_api_key", "")),
+            "enabled": stored.get("daily_enabled", False),
+        },
     }
 
 
@@ -1974,11 +1981,17 @@ async def update_integrations(data: IntegrationUpdate, current_user: dict = Depe
     else:
         update["resend_api_key"] = existing.get("resend_api_key", os.environ.get("RESEND_API_KEY", ""))
 
+    if data.daily_api_key and not data.daily_api_key.startswith("*"):
+        update["daily_api_key"] = data.daily_api_key
+    else:
+        update["daily_api_key"] = existing.get("daily_api_key", "")
+
     update["sender_email"] = data.sender_email
     update["paypal_mode"] = data.paypal_mode
     update["stripe_enabled"] = data.stripe_enabled
     update["paypal_enabled"] = data.paypal_enabled
     update["resend_enabled"] = data.resend_enabled
+    update["daily_enabled"] = data.daily_enabled
     update["updated_at"] = datetime.now(timezone.utc).isoformat()
 
     await db.system_config.update_one(
@@ -2006,3 +2019,100 @@ async def update_integrations(data: IntegrationUpdate, current_user: dict = Depe
         pass
 
     return {"message": "Integration settings saved successfully"}
+
+
+# ==================== ADMIN IMPERSONATION ====================
+
+@router.post("/admin/impersonate/{user_id}")
+async def impersonate_user(user_id: str, current_user: dict = Depends(get_current_user)):
+    """Generate a token to view app as another user (admin only)"""
+    if current_user.get("role") != "admin" and not current_user.get("is_delegated_admin"):
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    target = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Generate a JWT for the target user
+    import jwt
+    secret = os.environ.get("JWT_SECRET_KEY", "lexi-secret-2026")
+    token_data = {
+        "sub": target["id"],
+        "role": target.get("role", "guardian"),
+        "impersonated_by": current_user["id"],
+        "exp": datetime.now(timezone.utc).timestamp() + 3600,  # 1 hour
+    }
+    token = jwt.encode(token_data, secret, algorithm="HS256")
+
+    return {
+        "access_token": token,
+        "user": {
+            "id": target["id"],
+            "email": target.get("email", ""),
+            "full_name": target.get("full_name", ""),
+            "role": target.get("role", ""),
+            "is_delegated_admin": target.get("is_delegated_admin", False),
+            "impersonated_by": current_user.get("full_name", "Admin"),
+        },
+    }
+
+
+# ==================== DAILY.CO SCREEN SHARE ====================
+
+@router.post("/admin/support-session")
+async def create_support_session(current_user: dict = Depends(get_current_user)):
+    """Create a Daily.co room for screen sharing support"""
+    if current_user.get("role") != "admin" and not current_user.get("is_delegated_admin"):
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    config = await db.system_config.find_one({"key": "integration_keys"}, {"_id": 0})
+    stored = config.get("value", {}) if config else {}
+    daily_key = stored.get("daily_api_key") or os.environ.get("DAILY_API_KEY", "")
+
+    if not daily_key:
+        raise HTTPException(status_code=500, detail="Daily.co not configured. Add your API key in Admin > Integrations.")
+
+    import httpx
+    room_name = f"sv-support-{generate_uuid()[:8]}"
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            "https://api.daily.co/v1/rooms",
+            headers={"Authorization": f"Bearer {daily_key}", "Content-Type": "application/json"},
+            json={
+                "name": room_name,
+                "properties": {
+                    "enable_screenshare": True,
+                    "enable_chat": True,
+                    "exp": int((datetime.now(timezone.utc).timestamp()) + 7200),  # 2 hours
+                    "max_participants": 4,
+                },
+            },
+            timeout=15,
+        )
+        if resp.status_code not in (200, 201):
+            logger.error(f"Daily.co room creation failed: {resp.text}")
+            raise HTTPException(status_code=502, detail="Failed to create support room")
+        room = resp.json()
+
+    session = {
+        "id": generate_uuid(),
+        "room_name": room_name,
+        "room_url": room.get("url", f"https://semanticvision.daily.co/{room_name}"),
+        "created_by": current_user["id"],
+        "created_by_name": current_user.get("full_name", "Admin"),
+        "status": "active",
+        "created_date": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.support_sessions.insert_one({**session, "_id": None})
+    await db.support_sessions.update_one({"id": session["id"]}, {"$unset": {"_id": ""}})
+
+    return session
+
+
+@router.get("/admin/support-sessions")
+async def get_support_sessions(current_user: dict = Depends(get_current_user)):
+    """List active support sessions"""
+    if current_user.get("role") != "admin" and not current_user.get("is_delegated_admin"):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    sessions = await db.support_sessions.find({"status": "active"}, {"_id": 0}).sort("created_date", -1).to_list(20)
+    return sessions
