@@ -5454,6 +5454,35 @@ async def get_user_manual_md():
     return FileResponse(md_path, media_type="text/markdown", filename="Semantic_Vision_User_Manual.md")
 
 
+@api_router.get("/patent/definitive-pdf")
+async def get_patent_definitive_pdf():
+    """Serve the Definitive v6 Patent Filing as PDF"""
+    from fastapi.responses import FileResponse
+    pdf_path = Path(__file__).parent.parent / "PROVISIONAL_PATENT_DEFINITIVE_v6.pdf"
+    if not pdf_path.exists():
+        raise HTTPException(status_code=404, detail="Patent PDF not found")
+    return FileResponse(pdf_path, media_type="application/pdf", filename="Semantic_Vision_Provisional_Patent_DEFINITIVE_v6.pdf")
+
+@api_router.get("/patent/definitive-md")
+async def get_patent_definitive_md():
+    """Serve the Definitive v6 Patent Filing as Markdown"""
+    from fastapi.responses import FileResponse
+    md_path = Path(__file__).parent.parent / "PROVISIONAL_PATENT_DEFINITIVE_v6.md"
+    if not md_path.exists():
+        raise HTTPException(status_code=404, detail="Patent markdown not found")
+    return FileResponse(md_path, media_type="text/markdown", filename="Semantic_Vision_Provisional_Patent_DEFINITIVE_v6.md")
+
+@api_router.get("/patent/definitive-bundle")
+async def get_patent_definitive_bundle():
+    """Serve the Definitive v6 Patent Filing Bundle (ZIP)"""
+    from fastapi.responses import FileResponse
+    zip_path = Path(__file__).parent.parent / "patent_filing_definitive_v6.zip"
+    if not zip_path.exists():
+        raise HTTPException(status_code=404, detail="Patent bundle not found")
+    return FileResponse(zip_path, media_type="application/zip", filename="Semantic_Vision_Patent_Filing_DEFINITIVE_v6.zip")
+
+
+
 # ================================
 # AFFILIATE SYSTEM ENDPOINTS
 # ================================
