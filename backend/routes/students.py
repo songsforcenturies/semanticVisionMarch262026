@@ -137,6 +137,54 @@ async def reset_student_pin(
     return {"message": "PIN reset successfully", "new_pin": new_pin}
 
 
+
+class ChangePinRequest(BaseModel):
+    current_pin: str
+    new_pin: str
+
+
+@router.post("/students/{student_id}/change-pin")
+async def change_student_pin(
+    student_id: str,
+    data: ChangePinRequest,
+    current_user: dict = Depends(get_current_guardian)
+):
+    """Allow parent or student to change their PIN to a custom one"""
+    student = await db.students.find_one({"id": student_id})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    if student["guardian_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    if str(student.get("access_pin", "")) != str(data.current_pin):
+        raise HTTPException(status_code=400, detail="Current PIN is incorrect")
+    if len(data.new_pin) < 4 or len(data.new_pin) > 10:
+        raise HTTPException(status_code=400, detail="PIN must be 4-10 digits")
+    if not data.new_pin.isdigit():
+        raise HTTPException(status_code=400, detail="PIN must be numbers only")
+    existing = await db.students.find_one({"access_pin": data.new_pin, "id": {"$ne": student_id}})
+    if existing:
+        raise HTTPException(status_code=400, detail="This PIN is already in use. Please choose another.")
+    await db.students.update_one({"id": student_id}, {"$set": {"access_pin": data.new_pin}})
+    return {"message": "PIN changed successfully"}
+
+
+@router.post("/student/change-my-pin")
+async def student_change_own_pin(data: ChangePinRequest):
+    """Allow a student to change their own PIN (no auth needed, just current PIN)"""
+    student = await db.students.find_one({"access_pin": str(data.current_pin)})
+    if not student:
+        raise HTTPException(status_code=400, detail="Current PIN is incorrect")
+    if len(data.new_pin) < 4 or len(data.new_pin) > 10:
+        raise HTTPException(status_code=400, detail="PIN must be 4-10 digits")
+    if not data.new_pin.isdigit():
+        raise HTTPException(status_code=400, detail="PIN must be numbers only")
+    existing = await db.students.find_one({"access_pin": data.new_pin, "id": {"$ne": student["id"]}})
+    if existing:
+        raise HTTPException(status_code=400, detail="This PIN is already in use. Please choose another.")
+    await db.students.update_one({"id": student["id"]}, {"$set": {"access_pin": data.new_pin}})
+    return {"message": "PIN changed successfully"}
+
+
 @router.delete("/students/{student_id}")
 async def delete_student(
     student_id: str,

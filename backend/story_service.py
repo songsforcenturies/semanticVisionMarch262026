@@ -100,7 +100,9 @@ class StoryGenerationService:
         guardian_id: str = "",
         guardian_name: str = "",
         belief_system: str = "",
-        cultural_context: str = "",
+        cultural_context: Any = "",
+        custom_heritage: str = "",
+        culture_learning: List[str] = [],
         language: str = "English",
         brand_placements: List[Dict[str, Any]] = [],
         strengths: str = "",
@@ -135,11 +137,43 @@ Characters should demonstrate behaviors and decision-making consistent with {bel
 Show how a person following {belief_system} would navigate the story's challenges with wisdom and virtue."""
         
         culture_section = ""
-        if cultural_context:
+        # Handle array or string cultural_context
+        heritage_items = cultural_context if isinstance(cultural_context, list) else ([cultural_context] if cultural_context else [])
+        if custom_heritage:
+            heritage_items.extend([h.strip() for h in custom_heritage.split(',') if h.strip()])
+        if heritage_items:
+            heritage_str = ', '.join(heritage_items)
             culture_section = f"""
-CULTURAL CONTEXT: Incorporate culturally relevant elements from {cultural_context} culture.
-Include names, settings, traditions, foods, or customs that resonate with {cultural_context} heritage.
+CULTURAL CONTEXT: Incorporate culturally relevant elements from these heritages: {heritage_str}.
+Include names, settings, traditions, foods, or customs that resonate with these cultural backgrounds.
 Ensure respectful and authentic representation."""
+
+        # Culture learning topics
+        culture_learning_section = ""
+        if culture_learning:
+            TOPIC_LABELS = {
+                'black_history': 'Black History & Culture — African American heritage, leaders, and contributions',
+                'black_women': 'Black Women in History — trailblazing Black women and their achievements',
+                'hispanic_heritage': 'Hispanic Heritage — Latino/Latina culture, traditions, and leaders',
+                'asian_pacific': 'Asian & Pacific Islander Heritage — diverse cultures across Asia and the Pacific',
+                'native_american': 'Native American Heritage — Indigenous peoples, traditions, and history',
+                'womens_history': "Women's History — women who changed the world across cultures",
+                'african_culture': 'African Culture & History — rich traditions across the African continent',
+                'middle_eastern': 'Middle Eastern Culture — ancient civilizations, art, and modern contributions',
+                'european_history': 'European History & Culture — traditions, inventions, and diversity',
+                'caribbean_culture': 'Caribbean Culture — island traditions, music, food, and stories',
+                'lgbtq_history': 'LGBTQ+ History — stories of courage, identity, and acceptance',
+                'disability_awareness': 'Disability Awareness — celebrating abilities and understanding differences',
+                'world_religions': 'World Religions & Spirituality — understanding different faith traditions',
+                'stem_pioneers': 'STEM Pioneers of Color — scientists and innovators from diverse backgrounds',
+                'civil_rights': 'Civil Rights Movement — the fight for equality and justice',
+                'immigration_stories': 'Immigration Stories — journeys of courage and new beginnings',
+            }
+            topics = [TOPIC_LABELS.get(t, t) for t in culture_learning]
+            culture_learning_section = f"""
+CULTURE LEARNING FOCUS: The parent specifically wants this story to incorporate educational elements about:
+{chr(10).join('- ' + t for t in topics)}
+Weave in historical facts, notable figures, and cultural knowledge naturally into the story."""
 
         language_section = ""
         if language and language.lower() != "english":
@@ -232,6 +266,7 @@ Vocabulary Distribution:
 {f"CHARACTER EDUCATION: Weave lessons about {', '.join(virtues)} into the story." if virtues else ""}
 {belief_section}
 {culture_section}
+{culture_learning_section}
 {language_section}
 {brand_section}
 {brand_question_section}

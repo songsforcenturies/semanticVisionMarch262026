@@ -59,6 +59,8 @@ export const studentAPI = {
   update: (id, data) => apiClient.patch(`/students/${id}`, data),
   delete: (id) => apiClient.delete(`/students/${id}`),
   resetPin: (id) => apiClient.post(`/students/${id}/reset-pin`),
+  changePin: (id, data) => apiClient.post(`/students/${id}/change-pin`, data),
+  changeMyPin: (data) => apiClient.post('/student/change-my-pin', data),
   getProgress: (id) => apiClient.get(`/students/${id}/progress`),
   getExportUrl: (id, format) => `${API}/students/${id}/export?format=${format}`,
   toggleSpellcheck: (id) => apiClient.post(`/students/${id}/spellcheck`),

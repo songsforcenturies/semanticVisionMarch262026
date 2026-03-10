@@ -36,16 +36,16 @@ const GuardianPortal = () => {
 
   const tabs = [
     { id: 'students', label: t('guardian.students'), icon: Users },
-    { id: 'subscription', label: 'Subscription', icon: Crown },
-    { id: 'marketplace', label: t('guardian.marketplace'), icon: ShoppingBag },
-    { id: 'wallet', label: t('guardian.wallet'), icon: Wallet },
-    { id: 'referral', label: t('guardian.inviteEarn'), icon: Share2 },
-    { id: 'offers', label: 'Offers', icon: Gift },
-    { id: 'affiliate', label: 'Affiliate', icon: Share2 },
+    { id: 'marketplace', label: 'Word Bank', icon: ShoppingBag },
     { id: 'audio-memories', label: 'Audio Memories', icon: Mic },
     { id: 'audio-books', label: 'Audio Books', icon: Headphones },
-    { id: 'id-cards', label: 'ID Cards', icon: CreditCard },
     { id: 'progress', label: t('guardian.progress'), icon: TrendingUp },
+    { id: 'id-cards', label: 'ID Cards', icon: CreditCard },
+    { id: 'referral', label: t('guardian.inviteEarn'), icon: Share2 },
+    { id: 'subscription', label: 'Subscription', icon: Crown },
+    { id: 'wallet', label: t('guardian.wallet'), icon: Wallet },
+    { id: 'offers', label: 'Offers', icon: Gift },
+    { id: 'affiliate', label: 'Affiliate', icon: Share2 },
     { id: 'faq', label: 'FAQ', icon: HelpCircle },
   ];
 

@@ -113,6 +113,8 @@ async def create_narrative(narrative_data: NarrativeCreate):
             guardian_name=guardian.get("full_name", "") if guardian else "",
             belief_system=student.get("belief_system", ""),
             cultural_context=student.get("cultural_context", ""),
+            custom_heritage=student.get("custom_heritage", ""),
+            culture_learning=student.get("culture_learning", []),
             language=student.get("language", "English"),
             brand_placements=brand_placements,
             strengths=student.get("strengths", ""),

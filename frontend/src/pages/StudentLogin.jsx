@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
+import { studentAPI } from '@/lib/api';
 import { toast } from 'sonner';
-import { Eye, GraduationCap } from 'lucide-react';
+import { Eye, GraduationCap, Key } from 'lucide-react';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const C = {
@@ -18,6 +19,27 @@ const StudentLogin = () => {
   const { studentLogin } = useAuth();
   const [formData, setFormData] = useState({ studentCode: '', pin: '' });
   const [loading, setLoading] = useState(false);
+  const [showChangePin, setShowChangePin] = useState(false);
+  const [pinChangeData, setPinChangeData] = useState({ current_pin: '', new_pin: '', confirm_pin: '' });
+  const [changingPin, setChangingPin] = useState(false);
+
+  const handleChangePin = async (e) => {
+    e.preventDefault();
+    if (pinChangeData.new_pin !== pinChangeData.confirm_pin) {
+      toast.error('New PINs do not match');
+      return;
+    }
+    setChangingPin(true);
+    try {
+      await studentAPI.changeMyPin({ current_pin: pinChangeData.current_pin, new_pin: pinChangeData.new_pin });
+      toast.success('PIN changed! Use your new PIN to login.');
+      setShowChangePin(false);
+      setPinChangeData({ current_pin: '', new_pin: '', confirm_pin: '' });
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to change PIN');
+    }
+    setChangingPin(false);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -94,10 +116,41 @@ const StudentLogin = () => {
               {loading ? t('common.loggingIn') : t('auth.enterAcademy')}
             </button>
             <div className="text-center space-y-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <button type="button" onClick={() => setShowChangePin(!showChangePin)}
+                className="flex items-center gap-1.5 mx-auto text-xs font-semibold hover:underline transition-all"
+                style={{ color: C.teal }} data-testid="change-pin-toggle">
+                <Key size={12} /> {showChangePin ? 'Back to Login' : 'Change My PIN'}
+              </button>
               <p className="text-xs" style={{ color: C.muted }}>{t('auth.askGuardian')}</p>
               <Link to="/login" className="text-sm font-semibold hover:underline" style={{ color: C.gold }}>{t('auth.guardianLoginLink')}</Link>
             </div>
           </form>
+
+          {showChangePin && (
+            <form onSubmit={handleChangePin} className="mt-4 p-4 rounded-xl space-y-3" style={{ background: 'rgba(56,189,248,0.06)', border: '1px solid rgba(56,189,248,0.2)' }}>
+              <p className="text-sm font-bold" style={{ color: C.teal }}>Change Your PIN</p>
+              <input type="password" inputMode="numeric" required placeholder="Current PIN"
+                value={pinChangeData.current_pin}
+                onChange={(e) => setPinChangeData({ ...pinChangeData, current_pin: e.target.value.replace(/\D/g, '') })}
+                className="w-full px-4 py-2.5 rounded-lg text-sm outline-none" style={inputStyle}
+                data-testid="change-current-pin" />
+              <input type="password" inputMode="numeric" required placeholder="New PIN (4-10 digits)"
+                value={pinChangeData.new_pin}
+                onChange={(e) => setPinChangeData({ ...pinChangeData, new_pin: e.target.value.replace(/\D/g, '') })}
+                className="w-full px-4 py-2.5 rounded-lg text-sm outline-none" style={inputStyle}
+                data-testid="change-new-pin" />
+              <input type="password" inputMode="numeric" required placeholder="Confirm New PIN"
+                value={pinChangeData.confirm_pin}
+                onChange={(e) => setPinChangeData({ ...pinChangeData, confirm_pin: e.target.value.replace(/\D/g, '') })}
+                className="w-full px-4 py-2.5 rounded-lg text-sm outline-none" style={inputStyle}
+                data-testid="change-confirm-pin" />
+              <button type="submit" disabled={changingPin}
+                className="w-full py-2.5 rounded-lg text-sm font-bold text-black transition-all"
+                style={{ background: C.teal }} data-testid="change-pin-submit">
+                {changingPin ? 'Changing...' : 'Save New PIN'}
+              </button>
+            </form>
+          )}
         </div>
       </div>
     </div>

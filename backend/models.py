@@ -208,7 +208,9 @@ class Student(MongoBaseModel):
     avatar_url: Optional[str] = None
     # Belief system & culture
     belief_system: str = ""  # e.g. "Christian - Methodist", "Baha'i", "Buddhist", "Hindu"
-    cultural_context: str = ""  # e.g. "African American", "Hispanic/Latino", "East Asian"
+    cultural_context: Any = ""  # Array or string: heritage backgrounds
+    custom_heritage: str = ""  # Free-text additional heritage
+    culture_learning: List[str] = Field(default_factory=list)  # Topics parent wants child to learn
     language: str = "English"  # Story generation language
     ad_preferences: Dict[str, Any] = Field(default_factory=lambda: {
         "allow_brand_stories": False,
@@ -241,7 +243,9 @@ class StudentUpdate(BaseModel):
     assigned_banks: Optional[List[str]] = None
     status: Optional[StudentStatus] = None
     belief_system: Optional[str] = None
-    cultural_context: Optional[str] = None
+    cultural_context: Optional[Any] = None
+    custom_heritage: Optional[str] = None
+    culture_learning: Optional[List[str]] = None
     language: Optional[str] = None
 
 

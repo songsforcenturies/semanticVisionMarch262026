@@ -1,0 +1,87 @@
+{
+  "summary": "Iteration 47: PIN Change, Tab Reorder, Heritage Multi-select, Culture Learning Testing. Backend: All 13 tests PASSED (100%). Frontend: Tab order correct, Word Bank rename verified, Change PIN button on student cards works, Heritage multi-select and Culture Learning topics visible. ONE BUG: Student 'Change My PIN' feature exists in code (StudentLogin.jsx) but NOT accessible - /student-login redirects to unified login page which lacks this feature.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "StudentLogin",
+        "issue": "Student 'Change My PIN' feature NOT accessible. StudentLogin.jsx has the feature but route /student-login redirects to /login?type=student which uses GuardianLogin.jsx (no Change My PIN)",
+        "selector": "[data-testid='change-pin-toggle']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/pytest/iteration_47_pin_change.xml",
+    "/app/backend/tests/test_iteration_47_pin_change.py"
+  ],
+  "action_items": [
+    "FIX: Change App.js route from `<Route path=\"/student-login\" element={<Navigate to=\"/login?type=student\" replace />} />` to `<Route path=\"/student-login\" element={<StudentLogin />} />` so students can access 'Change My PIN' feature",
+    "Add import for StudentLogin in App.js if not present"
+  ],
+  "critical_code_review_comments": [
+    "POST /api/students/{id}/change-pin - Parent can change student PIN (requires auth, validates current PIN)",
+    "POST /api/student/change-my-pin - Student can change own PIN (no auth needed, just current PIN)",
+    "Both endpoints validate: current PIN correct, new PIN 4-10 digits, numeric only, unique across students",
+    "Tab order in GuardianPortal.jsx is correct: Students, Word Bank, Audio Memories, Audio Books, Progress, ID Cards, Invite & Earn, Subscription, Wallet, Offers, Affiliate, FAQ",
+    "Marketplace renamed to 'Word Bank' in tab label (line 39)",
+    "Heritage multi-select implemented with CULTURAL_CONTEXTS array and custom_heritage write-in",
+    "Culture Learning Topics (CULTURE_LEARNING_TOPICS) added with 16 options affecting story generation"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration_47_pin_change.py"
+  ],
+  "success_rate": {
+    "backend": "100% (13/13 tests passed)",
+    "frontend": "90% - All features work except student login Change My PIN is inaccessible due to routing"
+  },
+  "test_credentials": {
+    "admin_guardian": {
+      "email": "allen@songsforcenturies.com",
+      "password": "LexiAdmin2026!"
+    },
+    "test_student_sj": {
+      "id": "18316e14-9f7f-4960-9aba-e809fad104a2",
+      "code": "STU-DR40V7",
+      "pin": "914027"
+    }
+  },
+  "seed_data_creation": "None - used existing test data",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "PIN change APIs fully work. Parent can change student PIN from student card UI (Change PIN button visible). Student 'Change My PIN' at login page NOT working - needs route fix in App.js. Heritage is now multi-select with custom write-in. Culture Learning Topics available in student form.",
+  "verified_features": {
+    "tab_order_and_rename": {
+      "status": "PASSED",
+      "tabs": ["Students", "Word Bank", "Audio Memories", "Audio Books", "Progress", "ID Cards", "Invite & Earn", "Subscription", "Wallet", "Offers", "Affiliate", "FAQ"]
+    },
+    "parent_change_student_pin": {
+      "status": "PASSED",
+      "endpoint": "POST /api/students/{id}/change-pin",
+      "ui_location": "Student card -> Change PIN button -> form with Current PIN, New PIN, Confirm New PIN"
+    },
+    "student_change_own_pin": {
+      "backend_status": "PASSED",
+      "frontend_status": "NOT ACCESSIBLE",
+      "endpoint": "POST /api/student/change-my-pin",
+      "issue": "StudentLogin.jsx exists with Change My PIN but route redirects to unified login"
+    },
+    "heritage_multiselect": {
+      "status": "PASSED",
+      "options": ["African American", "African (Sub-Saharan)", "Arab / Middle Eastern", "Caribbean", "East Asian", "European", "Hispanic / Latino", "Indigenous / Native American", "Pacific Islander", "South Asian", "Southeast Asian", "Mixed Heritage", "Other"],
+      "custom_heritage_input": "PASSED"
+    },
+    "culture_learning_topics": {
+      "status": "PASSED",
+      "sample_topics": ["Black History & Culture", "Black Women in History", "Hispanic Heritage", "Asian & Pacific Islander Heritage", "Native American Heritage", "Women's History"]
+    }
+  },
+  "mocked_apis": {
+    "has_mocked_apis": false
+  }
+}

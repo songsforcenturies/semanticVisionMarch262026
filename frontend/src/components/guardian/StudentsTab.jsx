@@ -18,6 +18,8 @@ const StudentsTab = () => {
   const [copiedPin, setCopiedPin] = useState(null);
   const [assigningBanksStudent, setAssigningBanksStudent] = useState(null);
   const [resettingPin, setResettingPin] = useState(null);
+  const [changingPin, setChangingPin] = useState(null);
+  const [pinForm, setPinForm] = useState({ current_pin: '', new_pin: '', confirm_pin: '' });
 
   // Fetch students
   const { data: students = [], isLoading: studentsLoading } = useQuery({
@@ -69,6 +71,26 @@ const StudentsTab = () => {
   });
 
   // Spellcheck toggle mutation
+  const changePinMutation = useMutation({
+    mutationFn: ({ studentId, data }) => studentAPI.changePin(studentId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['students']);
+      toast.success('PIN changed successfully!');
+      setChangingPin(null);
+      setPinForm({ current_pin: '', new_pin: '', confirm_pin: '' });
+    },
+    onError: (error) => toast.error(error.response?.data?.detail || 'Failed to change PIN'),
+  });
+
+  const handleChangePin = (studentId) => {
+    if (pinForm.new_pin !== pinForm.confirm_pin) {
+      toast.error('New PINs do not match');
+      return;
+    }
+    changePinMutation.mutate({ studentId, data: { current_pin: pinForm.current_pin, new_pin: pinForm.new_pin } });
+  };
+
+  // Spellcheck toggle mutation (original)
   const spellcheckMutation = useMutation({
     mutationFn: (studentId) => studentAPI.toggleSpellcheck(studentId),
     onSuccess: (response) => {
@@ -259,10 +281,36 @@ const StudentsTab = () => {
                       </BrutalButton>
                     </div>
                   </div>
+                  <div className="flex gap-2 mt-1">
+                    <BrutalButton variant="amber" size="sm"
+                      onClick={() => { setChangingPin(changingPin === student.id ? null : student.id); setPinForm({ current_pin: '', new_pin: '', confirm_pin: '' }); }}
+                      className="text-xs" data-testid={`change-pin-btn-${student.id}`}>
+                      {changingPin === student.id ? 'Cancel' : 'Change PIN'}
+                    </BrutalButton>
+                  </div>
+                  {changingPin === student.id && (
+                    <div className="mt-2 p-3 bg-yellow-50 border-4 border-black space-y-2" data-testid={`change-pin-form-${student.id}`}>
+                      <input type="password" placeholder="Current PIN" value={pinForm.current_pin}
+                        onChange={(e) => setPinForm({ ...pinForm, current_pin: e.target.value })}
+                        className="w-full border-2 border-black px-3 py-2 font-mono text-sm" />
+                      <input type="password" placeholder="New PIN (4-10 digits)" value={pinForm.new_pin}
+                        onChange={(e) => setPinForm({ ...pinForm, new_pin: e.target.value })}
+                        className="w-full border-2 border-black px-3 py-2 font-mono text-sm" />
+                      <input type="password" placeholder="Confirm New PIN" value={pinForm.confirm_pin}
+                        onChange={(e) => setPinForm({ ...pinForm, confirm_pin: e.target.value })}
+                        className="w-full border-2 border-black px-3 py-2 font-mono text-sm" />
+                      <BrutalButton variant="indigo" size="sm" fullWidth
+                        onClick={() => handleChangePin(student.id)}
+                        disabled={changePinMutation.isPending}
+                        data-testid={`submit-change-pin-${student.id}`}>
+                        {changePinMutation.isPending ? 'Changing...' : 'Save New PIN'}
+                      </BrutalButton>
+                    </div>
+                  )}
                 </div>
 
-                {/* Details */}
-                <div className="space-y-2">
+              {/* Details */}
+              <div className="space-y-2">
                   {student.age && (
                     <p className="font-medium">
                       <span className="font-bold">Age:</span> {student.age} years

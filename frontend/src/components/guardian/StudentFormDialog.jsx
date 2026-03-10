@@ -27,9 +27,28 @@ const BELIEF_SYSTEMS = [
 ];
 
 const CULTURAL_CONTEXTS = [
-  '', 'African American', 'African (Sub-Saharan)', 'Arab / Middle Eastern', 'Caribbean',
+  'African American', 'African (Sub-Saharan)', 'Arab / Middle Eastern', 'Caribbean',
   'East Asian', 'European', 'Hispanic / Latino', 'Indigenous / Native American',
   'Pacific Islander', 'South Asian', 'Southeast Asian', 'Mixed Heritage', 'Other',
+];
+
+const CULTURE_LEARNING_TOPICS = [
+  { value: 'black_history', label: 'Black History & Culture', desc: 'African American heritage, leaders, and contributions' },
+  { value: 'black_women', label: 'Black Women in History', desc: 'Trailblazing Black women and their achievements' },
+  { value: 'hispanic_heritage', label: 'Hispanic Heritage', desc: 'Latino/Latina culture, traditions, and leaders' },
+  { value: 'asian_pacific', label: 'Asian & Pacific Islander Heritage', desc: 'Diverse cultures across Asia and the Pacific' },
+  { value: 'native_american', label: 'Native American Heritage', desc: 'Indigenous peoples, traditions, and history' },
+  { value: 'womens_history', label: "Women's History", desc: 'Women who changed the world across cultures' },
+  { value: 'african_culture', label: 'African Culture & History', desc: 'Rich traditions and history across the African continent' },
+  { value: 'middle_eastern', label: 'Middle Eastern Culture', desc: 'Ancient civilizations, art, and modern contributions' },
+  { value: 'european_history', label: 'European History & Culture', desc: 'European traditions, inventions, and diversity' },
+  { value: 'caribbean_culture', label: 'Caribbean Culture', desc: 'Island traditions, music, food, and stories' },
+  { value: 'lgbtq_history', label: 'LGBTQ+ History', desc: 'Stories of courage, identity, and acceptance' },
+  { value: 'disability_awareness', label: 'Disability Awareness', desc: 'Celebrating abilities and understanding differences' },
+  { value: 'world_religions', label: 'World Religions & Spirituality', desc: 'Understanding different faith traditions' },
+  { value: 'stem_pioneers', label: 'STEM Pioneers of Color', desc: 'Scientists and innovators from diverse backgrounds' },
+  { value: 'civil_rights', label: 'Civil Rights Movement', desc: 'The fight for equality and justice' },
+  { value: 'immigration_stories', label: 'Immigration Stories', desc: 'Journeys of courage and new beginnings' },
 ];
 
 const VIRTUE_OPTIONS = [
@@ -152,7 +171,8 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
   const [formData, setFormData] = useState({
     full_name: '', age: '', grade_level: '', interests: '',
     virtues: [], strengths: '', weaknesses: '',
-    assigned_banks: [], belief_system: '', cultural_context: '', language: 'English',
+    assigned_banks: [], belief_system: '', cultural_context: [], custom_heritage: '',
+    language: 'English', culture_learning: [],
   });
 
   const { data: subscription } = useQuery({
@@ -175,15 +195,19 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
         grade_level: student.grade_level || '', interests: student.interests?.join(', ') || '',
         virtues: student.virtues || [], strengths: student.strengths || '',
         weaknesses: student.weaknesses || '', assigned_banks: student.assigned_banks || [],
-        belief_system: student.belief_system || '', cultural_context: student.cultural_context || '',
+        belief_system: student.belief_system || '',
+        cultural_context: Array.isArray(student.cultural_context) ? student.cultural_context : (student.cultural_context ? [student.cultural_context] : []),
+        custom_heritage: student.custom_heritage || '',
         language: student.language || 'English',
+        culture_learning: student.culture_learning || [],
       });
       setStep(focusOnBanks ? 4 : 0);
     } else {
       setFormData({
         full_name: '', age: '', grade_level: '', interests: '',
         virtues: [], strengths: '', weaknesses: '',
-        assigned_banks: [], belief_system: '', cultural_context: '', language: 'English',
+        assigned_banks: [], belief_system: '', cultural_context: [], custom_heritage: '',
+        language: 'English', culture_learning: [],
       });
       setStep(0);
     }
@@ -226,7 +250,8 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
       full_name: formData.full_name, age: formData.age ? parseInt(formData.age) : null,
       grade_level: formData.grade_level || null, interests: interestsArray, virtues: virtuesArray,
       guardian_id: guardianId, belief_system: formData.belief_system,
-      cultural_context: formData.cultural_context, language: formData.language,
+      cultural_context: formData.cultural_context, custom_heritage: formData.custom_heritage,
+      language: formData.language, culture_learning: formData.culture_learning,
       strengths: formData.strengths, weaknesses: formData.weaknesses,
     };
     if (student) {
@@ -490,7 +515,7 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
             <>
               <div className="rounded-xl p-4" style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.15)' }}>
                 <h3 className="text-base font-bold text-violet-400 mb-1">Story Worldview & Culture</h3>
-                <p className="text-sm text-slate-400">Stories will reflect your family's faith, cultural traditions, and language. All settings are optional.</p>
+                <p className="text-sm text-slate-400">Stories will reflect your family's faith, heritage, and language. Select as many as apply.</p>
               </div>
               <DarkSelect label="Belief System / Faith" value={formData.belief_system}
                 onChange={(e) => setFormData({ ...formData, belief_system: e.target.value })}
@@ -498,12 +523,59 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
                 <option value="">None / Secular</option>
                 {BELIEF_SYSTEMS.filter(Boolean).map(b => <option key={b} value={b}>{b}</option>)}
               </DarkSelect>
-              <DarkSelect label="Cultural Context" value={formData.cultural_context}
-                onChange={(e) => setFormData({ ...formData, cultural_context: e.target.value })}
-                hint="Stories will include culturally relevant elements" data-testid="cultural-context-select">
-                <option value="">Universal / No Preference</option>
-                {CULTURAL_CONTEXTS.filter(Boolean).map(c => <option key={c} value={c}>{c}</option>)}
-              </DarkSelect>
+
+              {/* Multi-select Heritage */}
+              <div>
+                <label className="block mb-1.5 text-sm font-semibold text-slate-200">Heritage / Cultural Background</label>
+                <p className="text-xs text-slate-400 mb-2">Select all that apply — stories will include elements from each</p>
+                <div className="flex flex-wrap gap-2" data-testid="heritage-multi-select">
+                  {CULTURAL_CONTEXTS.map(c => {
+                    const selected = formData.cultural_context.includes(c);
+                    return (
+                      <button key={c} type="button"
+                        onClick={() => setFormData(prev => ({
+                          ...prev,
+                          cultural_context: selected ? prev.cultural_context.filter(x => x !== c) : [...prev.cultural_context, c],
+                        }))}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                          selected ? 'bg-violet-600 border-violet-500 text-white' : 'bg-slate-800 border-slate-600 text-slate-400 hover:border-violet-500'
+                        }`}>
+                        {c}
+                      </button>
+                    );
+                  })}
+                </div>
+                <DarkInput label="" placeholder="Write in additional heritage (e.g., Jamaican, Nigerian Yoruba, Creole...)"
+                  value={formData.custom_heritage}
+                  onChange={(e) => setFormData({ ...formData, custom_heritage: e.target.value })}
+                  hint="Separate multiple with commas" data-testid="custom-heritage-input"
+                  style={{ marginTop: '8px' }} />
+              </div>
+
+              {/* Culture Learning Preferences */}
+              <div>
+                <label className="block mb-1.5 text-sm font-semibold text-slate-200">Culture Learning Topics</label>
+                <p className="text-xs text-slate-400 mb-2">Choose cultures and topics you'd like your child to learn about through stories</p>
+                <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-1" data-testid="culture-learning-select">
+                  {CULTURE_LEARNING_TOPICS.map(t => {
+                    const selected = formData.culture_learning.includes(t.value);
+                    return (
+                      <button key={t.value} type="button"
+                        onClick={() => setFormData(prev => ({
+                          ...prev,
+                          culture_learning: selected ? prev.culture_learning.filter(x => x !== t.value) : [...prev.culture_learning, t.value],
+                        }))}
+                        className={`text-left px-3 py-2 rounded-lg text-xs border transition-all ${
+                          selected ? 'bg-amber-600/20 border-amber-500/50 text-amber-200' : 'bg-slate-800 border-slate-600 text-slate-400 hover:border-amber-500/50'
+                        }`}>
+                        <span className="font-bold">{t.label}</span>
+                        <span className="block text-[10px] opacity-70 mt-0.5">{t.desc}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <DarkSelect label="Story Language" value={formData.language}
                 onChange={(e) => setFormData({ ...formData, language: e.target.value })}
                 hint="AI stories will be generated in this language" data-testid="language-select">
@@ -523,7 +595,7 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
                 <div className="rounded-xl p-6 text-center" style={{ background: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.15)' }}>
                   <BookOpen size={32} className="mx-auto text-amber-400 mb-3" />
                   <p className="text-sm text-slate-300">No word banks available yet.</p>
-                  <p className="text-xs text-slate-500 mt-1">Visit the Marketplace tab to add word banks to your library.</p>
+                  <p className="text-xs text-slate-500 mt-1">Visit the Word Bank tab to add word banks to your library.</p>
                 </div>
               ) : (
                 <>
