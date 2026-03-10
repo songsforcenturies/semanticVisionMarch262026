@@ -5481,6 +5481,15 @@ async def get_patent_definitive_bundle():
         raise HTTPException(status_code=404, detail="Patent bundle not found")
     return FileResponse(zip_path, media_type="application/zip", filename="Semantic_Vision_Patent_Filing_DEFINITIVE_v6.zip")
 
+@api_router.get("/patent/screenshots-pdf")
+async def get_patent_screenshots_pdf():
+    """Serve all 31 patent screenshots as a single PDF"""
+    from fastapi.responses import FileResponse
+    pdf_path = Path(__file__).parent.parent / "PATENT_SCREENSHOTS_ALL_FIGURES.pdf"
+    if not pdf_path.exists():
+        raise HTTPException(status_code=404, detail="Screenshots PDF not found")
+    return FileResponse(pdf_path, media_type="application/pdf", filename="Semantic_Vision_Patent_Screenshots_31_Figures.pdf")
+
 
 @api_router.get("/user-manual/master-pdf")
 async def get_master_user_manual_pdf():
