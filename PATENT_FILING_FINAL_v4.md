@@ -528,6 +528,70 @@ Rewards both vocabulary depth (mastering many words) and breadth (reading many s
 
 **17.9 Referral Contests.** Time-bound with start/end dates, prize descriptions, live leaderboard, automatic expiration.
 
+### 18. Biological Vocabulary Target System
+
+The present invention includes a novel age-mapped vocabulary target system:
+
+**18.1 Developmental Target Mapping.** The system maintains a research-derived mapping of student ages to expected vocabulary word counts. For example: age 3 = 500 words, age 6 = 6,000 words, age 10 = 20,000 words, age 15 = 35,000 words, age 20+ = 50,000 words (polymath level).
+
+**18.2 Target Computation.** For each student, the system computes the biological vocabulary target based on age, providing a developmental benchmark.
+
+**18.3 Mastery Percentage.** The system calculates mastery percentage as: `(mastered_tokens_count / biological_target) * 100`, providing age-normalized progress measurement. This enables meaningful comparison across students of different ages -- a 6-year-old who has mastered 3,000 words (50% of target) and a 10-year-old who has mastered 10,000 words (50% of target) show equivalent relative progress.
+
+**18.4 Progress Report Integration.** Biological targets are displayed in student progress cards, export reports, and guardian dashboards alongside current mastery counts.
+
+### 19. AI-Powered Contextual Word Definition
+
+**19.1 On-Demand Vocabulary Assistance.** When a student or guardian encounters an unfamiliar word within a narrative or word bank, they can request an AI-generated definition.
+
+**19.2 Contextual Enhancement.** If the word appears within a narrative, the surrounding sentence context is included in the AI request, enabling context-specific definitions rather than generic dictionary entries.
+
+**19.3 Structured Response.** The AI returns: definition, part of speech, example sentence, pronunciation hint, and synonyms -- all formatted for the student's grade level.
+
+### 20. Student Progress Export System
+
+**20.1 Multi-Format Export.** Student progress can be exported as JSON data or as a printable HTML report.
+
+**20.2 Comprehensive Report Content.** The HTML report includes: student profile data, biological vocabulary target with mastery percentage, reading statistics (total time, sessions, WPM), vocabulary mastered (listed individually), character virtues assigned, assessment history table, story history table, and assigned word banks.
+
+**20.3 Print-Ready Design.** The HTML report includes print-optimized CSS with proper page margins, and a "Print / Save as PDF" button for one-click physical report generation.
+
+### 21. Brand Story Preview System
+
+**21.1 Preview Generation.** Brand partners can generate sample narratives showing how their products would be integrated into stories, without requiring a real student profile.
+
+**21.2 Integration Demonstration.** The preview uses the brand's actual product catalog and problem statement, generating a realistic demonstration of the organic, problem-solving brand integration.
+
+**21.3 Campaign Optimization.** Preview capability enables brands to refine their product descriptions, problem statements, and targeting parameters before committing campaign budgets.
+
+### 22. Donation and Reader Sponsorship
+
+**22.1 Community Funding Model.** Any authenticated user can donate money to fund story generation for other students who cannot afford subscriptions.
+
+**22.2 Cost-Based Calculation.** The system calculates how many educational narratives a donation can fund based on current AI generation costs per story.
+
+**22.3 Educational Equity.** This creates a community-funded model where financially disadvantaged students receive the same quality of personalized education as paying subscribers.
+
+### 23. Classroom Sponsorship by Brands
+
+**23.1 Brand-Funded Classrooms.** Brand partners can sponsor entire classrooms, funding personalized narrative generation for all students in a group.
+
+**23.2 Aggregate Analytics.** Sponsors receive classroom-level Brand Comprehension analytics showing aggregate engagement across all sponsored students.
+
+### 24. Configurable AI Model Selection
+
+**24.1 Provider Abstraction.** The system abstracts AI operations behind a provider-agnostic interface supporting multiple LLM providers (OpenAI, Anthropic, Google, and custom endpoints via OpenRouter).
+
+**24.2 Administrator Control.** Administrators select the active model provider and model version through a settings interface, with changes applying to all subsequent generations.
+
+**24.3 Cost and Quality Tracking.** Each generation logs the model used, enabling cost comparison and quality analysis across different AI models.
+
+### 25. Subscription Plan Management
+
+**25.1 Flexible Plan Creation.** Administrators create subscription plans with configurable parameters: plan name, price, student seat limits, word bank access levels, and included features.
+
+**25.2 Self-Service Upgrade.** Guardians browse available plans and upgrade their subscription, with the system enforcing plan limits (maximum students, word bank categories, etc.).
+
 ---
 
 ## CLAIMS
@@ -742,11 +806,135 @@ Rewards both vocabulary depth (mastering many words) and breadth (reading many s
 
 **Claim 42.** The method of Claim 7, wherein the system maintains a record of all narratives generated for each student, forming a continuously expanding personalized library that tracks the student's educational journey over time.
 
+**Claim 43.** The method of Claim 1, further comprising a Biological Vocabulary Target system that:
+(a) maintains a mapping of student ages to scientifically-derived expected vocabulary counts based on developmental research;
+(b) computes a target vocabulary count for each student based on their age;
+(c) presents the target alongside the student's actual mastered vocabulary count, providing guardians and educators with a measurable gap analysis between current performance and developmental expectations; and
+(d) uses the Biological Vocabulary Target as a denominator in mastery percentage calculations, enabling age-normalized progress tracking across students of different ages.
+
+**Claim 44.** The system of Claim 3, further comprising an AI-powered contextual word definition module wherein:
+(a) a student or guardian requests a definition for any word encountered within a narrative or vocabulary assessment;
+(b) the system transmits the word, along with optional narrative context in which the word appeared, to a Large Language Model;
+(c) the LLM returns a structured response comprising: a clear definition, part of speech, an example sentence, a pronunciation hint, and a list of synonyms; and
+(d) the definition is presented inline within the reading interface, enabling vocabulary exploration without leaving the narrative.
+
+**Claim 45.** The system of Claim 3, further comprising a student progress export module that:
+(a) aggregates all student data including vocabulary mastery, reading statistics, assessment history, narrative completion records, assigned word banks, and biological vocabulary targets;
+(b) generates a formatted, printable HTML progress report with visual statistics, mastered word lists, virtue assignments, assessment history tables, and story history tables; and
+(c) supports export in multiple formats including JSON data export and browser-printable HTML.
+
+**Claim 46.** The system of Claim 3, further comprising a brand story preview module wherein:
+(a) a brand partner requests a preview of how their products would be integrated into a narrative;
+(b) the system generates a sample narrative using the brand's product catalog, problem statement, and target demographic without requiring a real student profile;
+(c) the preview narrative demonstrates the organic, problem-solving integration of the brand's products; and
+(d) the brand partner can review, evaluate, and adjust their product catalog and problem statements before committing campaign budgets.
+
+**Claim 47.** The system of Claim 3, further comprising a donation and reader sponsorship module wherein:
+(a) any authenticated user can create a monetary donation to fund story generation for other students;
+(b) the donation amount is collected via a third-party payment processor;
+(c) the system calculates the number of educational narratives the donation can fund based on current AI generation costs; and
+(d) the donated funds are allocated to generate personalized educational content for students whose guardians cannot afford subscription fees, creating a community-funded educational equity model.
+
+**Claim 48.** The system of Claim 3, further comprising a classroom sponsorship module wherein:
+(a) a brand partner sponsors an entire classroom or group of students;
+(b) the sponsorship includes a defined budget, target student count, and content parameters;
+(c) all students within the sponsored classroom receive brand-integrated educational narratives funded by the sponsor's budget; and
+(d) the sponsor receives aggregate Brand Comprehension analytics for the entire classroom.
+
+**Claim 49.** The system of Claim 3, further comprising a configurable AI model selection module wherein:
+(a) an administrator selects from a plurality of Large Language Model providers and model versions;
+(b) the selection is stored in a system configuration collection and applied to all subsequent content generation and assessment evaluation requests;
+(c) the system abstracts the LLM invocation behind a provider-agnostic interface, allowing model substitution without changes to the prompt construction or response parsing logic; and
+(d) the system logs which model was used for each generation, enabling cost comparison and quality analysis across models.
+
+**Claim 50.** The system of Claim 3, further comprising an administrative subscription plan management module wherein:
+(a) administrators create, modify, and delete subscription plans with configurable parameters including price, student seat limits, word bank access levels, and feature availability;
+(b) guardians browse and upgrade between subscription tiers;
+(c) the system enforces plan limits (e.g., maximum number of students, available word bank categories); and
+(d) plan statistics are tracked and presented to administrators for business intelligence.
+
+### Future Embodiment Claims
+
+The following claims describe additional embodiments of the invention that are contemplated and within the scope of this disclosure:
+
+**Claim 51.** The method of Claim 1, further comprising an AI-generated illustration module wherein:
+(a) after generating the textual narrative, the system constructs image generation prompts for each chapter incorporating the student's cultural context, character descriptions, and story setting;
+(b) the prompts are transmitted to an AI image generation model;
+(c) generated illustrations are embedded within the corresponding chapters; and
+(d) the illustrations reflect the student's cultural and belief system context, ensuring visual representation consistency with the personalized narrative.
+
+**Claim 52.** The method of Claim 7, further comprising a text-to-speech narration module wherein:
+(a) the generated narrative text is converted to spoken audio using an AI voice synthesis engine;
+(b) the narration voice is selectable from a plurality of voices representing different genders, accents, and languages;
+(c) the narration is synchronized with the chapter text display, highlighting words as they are spoken; and
+(d) narration speed is adjustable to accommodate different reading levels and listening preferences.
+
+**Claim 53.** The method of Claim 7, further comprising an adaptive mid-narrative difficulty adjustment module wherein:
+(a) the system monitors student comprehension performance in real time during narrative reading;
+(b) if a student's comprehension accuracy falls below a configurable threshold during a narrative, the system adjusts the complexity of subsequent chapters in that narrative;
+(c) the adjustment modifies sentence length, vocabulary difficulty, and conceptual complexity while maintaining narrative continuity; and
+(d) the adjustment is logged for analysis of optimal difficulty progression curves.
+
+**Claim 54.** The system of Claim 3, further comprising an augmented reality (AR) story experience module wherein:
+(a) the generated narrative is enhanced with AR markers embedded in the digital text;
+(b) when a student views the narrative through an AR-capable device, three-dimensional visual representations of characters, settings, and brand products are rendered in the student's physical environment; and
+(c) brand products displayed in AR are interactive, providing additional educational information when the student interacts with them.
+
+**Claim 55.** The system of Claim 3, further comprising a gamification and achievement module wherein:
+(a) the system awards achievement badges, experience points, and level progressions based on vocabulary mastery milestones, narrative completion, streak maintenance, and assessment performance;
+(b) achievements are displayed on the student's profile and optionally shared with their guardian;
+(c) achievement criteria are configurable by administrators; and
+(d) a leaderboard displays anonymized achievement rankings to motivate engagement.
+
+**Claim 56.** The system of Claim 3, further comprising a parent-child shared reading module wherein:
+(a) a guardian and student simultaneously access the same narrative in a synchronized reading session;
+(b) the guardian can highlight words, add annotations, or pause the narrative for discussion;
+(c) the system records shared reading time as a distinct engagement metric; and
+(d) comprehension questions can be answered collaboratively, with the system tracking both individual and shared performance.
+
+**Claim 57.** The method of Claim 2, further comprising a brand A/B testing module wherein:
+(a) for a given problem category, the system randomly assigns different brand integration approaches (e.g., prominent mention vs. subtle reference, different product features highlighted) across a population of narratives;
+(b) the system measures Brand Comprehension Scores for each approach variant;
+(c) results are presented to brand partners as a comparative analysis; and
+(d) the brand partner can select the highest-performing integration approach for future narratives.
+
+**Claim 58.** The method of Claim 7, further comprising a sign language companion module wherein:
+(a) the generated narrative text is translated into sign language video or animated avatar representation;
+(b) the sign language output is synchronized with the text display; and
+(c) the module supports multiple sign language systems (e.g., ASL, BSL) based on the student's geographic location.
+
+**Claim 59.** The method of Claim 7, further comprising a seasonal and temporal content adaptation module wherein:
+(a) the system incorporates current season, upcoming holidays, and current events into narrative generation prompts;
+(b) the temporal context is filtered through the student's cultural and belief system profile to ensure relevance; and
+(c) brand products are contextualized within seasonal scenarios (e.g., back-to-school, winter holidays).
+
+**Claim 60.** The system of Claim 3, further comprising a family shared narrative module wherein:
+(a) multiple students within the same guardian's account are incorporated into a single narrative as distinct characters;
+(b) each character reflects the corresponding student's profile (interests, virtues, strengths, grade level);
+(c) vocabulary tiers are blended across the students' levels, with each student receiving assessments calibrated to their individual level; and
+(d) the shared narrative promotes family engagement by featuring siblings as collaborative characters.
+
+**Claim 61.** The method of Claim 1, further comprising an offline reading module wherein:
+(a) generated narratives are cached on the student's device for offline access;
+(b) comprehension responses collected offline are synchronized to the server when connectivity is restored;
+(c) vocabulary assessments are queued locally and submitted upon reconnection; and
+(d) offline reading time is tracked and credited to the student's progress.
+
+**Claim 62.** The method of Claim 1, further comprising a guardian notification module wherein:
+(a) the system generates real-time notifications when a student achieves vocabulary mastery milestones, completes narratives, or achieves assessment scores above configurable thresholds;
+(b) notifications are delivered via push notification, email, or in-app messaging based on guardian preference; and
+(c) notification frequency and types are configurable per guardian.
+
+**Claim 63.** The method of Claim 2, further comprising a brand visual placement module wherein:
+(a) AI-generated illustrations within narratives include visual representations of brand products;
+(b) the visual placement is contextually appropriate to the narrative scene; and
+(c) visual brand placement is tracked as a distinct impression type with its own Brand Comprehension measurement.
+
 ---
 
 ## ABSTRACT
 
-A computer-implemented system and method for generating AI-driven personalized educational narratives with integrated Brand Comprehension measurement. The system assembles multi-dimensional student profiles (belief system, cultural context, interests, virtues, strengths, weaknesses, vocabulary level) and generates unique multi-chapter educational stories using a Large Language Model, with vocabulary distributed across a novel 60/30/10 three-tier system (reinforcement/growth/aspiration). Commercial brand products are integrated as organic, problem-solving narrative elements through a competitive bidding marketplace where brands grouped by problem category compete via weighted rotation algorithms. The system introduces "Brand Comprehension" -- a novel metric measuring students' cognitive engagement with brand content through a four-condition question classification algorithm that identifies comprehension questions related to brand narrative integration, computes per-question and aggregate comprehension scores, and delivers those scores to brand partners as closed-loop analytics. The platform implements six-tier role-based access (admin, parent, teacher, student, brand, affiliate) with unified authentication, guardian-controlled default-false consent architecture, affiliate referral engine with user-facing dashboard, guided onboarding, 16-level age-calibrated vocabulary complexity, multi-currency support, and real-time classroom sessions. The invention replaces static, pre-authored educational reading materials with infinite, personalized, culturally-aware, faith-aligned content generated on demand for each student.
+A computer-implemented system and method for generating AI-driven personalized educational narratives with integrated Brand Comprehension measurement, replacing static printed educational materials with infinite, dynamically generated content. The system assembles multi-dimensional student profiles (belief system, cultural context, interests, virtues, strengths, weaknesses, vocabulary level, biological vocabulary targets) and generates unique multi-chapter educational stories using a Large Language Model, with vocabulary distributed across a novel 60/30/10 three-tier system (reinforcement/growth/aspiration) calibrated across 16 developmental levels. Commercial brand products are integrated as organic, problem-solving narrative elements through a competitive bidding marketplace where brands grouped by problem category compete via weighted rotation algorithms. The system introduces "Brand Comprehension" -- a novel metric measuring students' cognitive engagement with brand content through a four-condition question classification algorithm, delivering comprehension scores to brand partners as closed-loop analytics. The platform implements six-tier role-based access (admin, parent, teacher, student, brand, affiliate) with unified authentication, guardian-controlled default-false consent architecture, affiliate referral engine with user-facing dashboards, guided onboarding, real-time classroom sessions, donation-funded reader sponsorship, brand classroom sponsorship, AI-powered contextual word definitions, printable student progress reports, brand story preview generation, configurable AI model selection, subscription plan management, multi-currency support, and age-derived biological vocabulary targeting. Contemplated future embodiments include AI-generated story illustrations, text-to-speech narration, augmented reality story experiences, adaptive mid-narrative difficulty adjustment, parent-child shared reading, brand A/B testing, sign language companions, seasonal content adaptation, family shared narratives, offline reading, gamification, and brand visual placement in illustrations.
 
 ---
 
@@ -963,7 +1151,7 @@ The following actual screenshots from a working embodiment of the invention are 
 *Filing Date: March 10, 2026*
 *Inventor: Allen Tyrone Johnson*
 *Status: READY FOR FILING*
-*Total Claims: 42 (8 Independent + 34 Dependent)*
+*Total Claims: 63 (8 Independent + 42 Dependent + 13 Future Embodiment)*
 
 ---
 

@@ -1,44 +1,29 @@
 # Semantic Vision - Product Requirements Document
 
 ## Original Problem Statement
-Semantic Vision is an AI-powered personalized reading platform for families. It generates stories that teach vocabulary, reflect cultural values, and weave real brands as problem-solving heroes. The platform includes portals for Parents/Guardians, Students, Teachers, Brands, Admins, and Affiliates.
+Semantic Vision is an AI-powered personalized reading platform for families replacing static educational materials with infinite, AI-generated, culturally-aware, faith-aligned, brand-funded personalized narratives.
 
 ## Core Architecture
-- **Frontend:** React 18 (with i18n, react-query, framer-motion, Shadcn UI)
+- **Frontend:** React 18 (i18n, react-query, framer-motion, Shadcn UI)
 - **Backend:** FastAPI (Python) with MongoDB
-- **Integrations:** OpenAI GPT-5.2 (via Emergent LLM Key), Stripe (payments), Resend (email), reportlab (PDFs)
-- **Auth:** JWT-based with role-based access
+- **Integrations:** OpenAI GPT-5.2 (Emergent LLM Key), Stripe, Resend, reportlab
+- **Auth:** JWT-based, 6 roles
 
-## What's Been Implemented
-
-### Completed Features
-- Onboarding Wizards (Brand, Guardian, Student), Unified Auth, FAQ Sections
-- Brand Competition System with bidding/rotation, 34 real US brands seeded
-- Affiliate & Coupon System with user-facing dashboard in Guardian Portal
-- "Patent-Pending AI Technology" badge on landing page
-- Clear affiliate login instructions on signup success page
-
-### Patent Filing v4.0 FINAL (March 10, 2026)
-- **42 claims** (8 independent + 34 dependent)
-- **Brand Comprehension** as named core innovation with dedicated independent claim
-- **Claim 7**: Broader claim covering replacement of static educational content with AI-generated personalized narratives
-- 11 actual UI screenshots as exhibits (FIGS. 1-11)
-- Complete data model schemas, API reference, competitive landscape
-- Files: `/api/patent-filing-2026/pdf`, `/api/patent-filing-2026/md`, `/api/patent-filing-2026/bundle` (ZIP with all files + screenshots)
+## Patent Filing Status
+- **Version:** v4.0 FINAL (March 10, 2026)
+- **Claims:** 63 total (8 independent + 42 dependent + 13 future embodiments)
+- **Key innovations claimed:** Brand Comprehension, Competitive Bidding Engine, 60/30/10 Vocabulary Distribution, Default-False Consent, Multi-Dimensional Profiling, Biological Vocabulary Targets, AI Word Definition, Student Export, Brand Preview, Donation Sponsorship, Classroom Sponsorship, AI Model Selection
+- **Future embodiments claimed:** AI illustrations, TTS narration, AR stories, adaptive difficulty, shared reading, brand A/B testing, sign language, seasonal content, family narratives, offline mode, gamification, visual brand placement
+- **Infringement risk:** NONE found. Prior art search confirms no overlapping patents.
+- **Files:** `/api/patent-filing-2026/bundle` (ZIP with MD + PDF + 11 screenshots)
 
 ## Credentials
 - Admin/Guardian: `allen@songsforcenturies.com` / `LexiAdmin2026!`
 
 ## Prioritized Backlog
-
-### P1 - Technical Debt
+### P1
 - [ ] Refactor `server.py` into modular FastAPI APIRouters
-
-### P2 - Payment Integrations
-- [ ] Cash App, Zelle, Venmo, PayPal
-
-### P3 - Future Features
-- [ ] User Demo Flow
-- [ ] Accessibility Features (sign language AI)
-- [ ] Granular Admin Analytics
-- [ ] Affiliate Earnings Notifications
+### P2
+- [ ] Payment gateway integrations (Cash App, Zelle, Venmo, PayPal)
+### P3
+- [ ] User Demo Flow, Accessibility Features, Admin Analytics, Affiliate Notifications
