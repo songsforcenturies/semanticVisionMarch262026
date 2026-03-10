@@ -68,9 +68,14 @@ Build a comprehensive AI-powered personalized educational narrative platform ("S
 - [x] ~~Refactor `server.py`~~ -- COMPLETED (March 2026). Split into 10 modular route files in backend/routes/. 37/37 regression tests passed.
 
 ### Go-Live Preparation (Next)
-- [ ] Integrate PayPal alongside Stripe
-- [ ] Configure email sending from @semanticvision.ai domain (Resend)
-- [ ] Update CORS/domain config for semanticvision.ai
+- [x] ~~Integrate PayPal alongside Stripe~~ -- COMPLETED (March 2026). PayPal routes in backend/routes/paypal.py, frontend WalletTab updated with payment method toggle. Auto-enables when keys are set.
+- [x] ~~Configure email sending from @semanticvision.ai domain (Resend)~~ -- COMPLETED. SENDER_EMAIL updated to hello@semanticvision.ai across services.py, auth.py, affiliates.py.
+- [x] ~~Update CORS/domain config for semanticvision.ai~~ -- COMPLETED. CORS_ORIGINS includes semanticvision.ai and www.semanticvision.ai.
+
+### User Action Items (Required for Go-Live)
+- [ ] Add PayPal sandbox/production keys to backend/.env (PAYPAL_CLIENT_ID, PAYPAL_SECRET)
+- [ ] Verify Resend domain: Add DNS records (SPF, DKIM, MX) in Porkbun for semanticvision.ai
+- [ ] Switch PAYPAL_BASE from sandbox to production URL when ready
 
 ### P1 (High)
 - [ ] On-Device LLM Integration -- WebLLM or similar for offline story generation
