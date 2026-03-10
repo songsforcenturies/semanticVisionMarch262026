@@ -82,6 +82,11 @@ Build a comprehensive AI-powered personalized educational narrative platform ("S
 - [x] ~~Parent notification on audio memory creation~~ -- COMPLETED. Notification sent to parent on upload.
 - [x] ~~Clearer "Allow for Audio Books" button~~ -- COMPLETED. Text + icon label.
 - [x] ~~User ID / Invitation Cards~~ -- COMPLETED. Downloadable PNG for guardians (referral code) and students (student code).
+- [x] ~~Rename Marketplace to Word Bank + reorder tabs~~ -- COMPLETED (March 2026). New order: Students, Word Bank, Audio Memories, Audio Books, Progress, ID Cards, Invite & Earn, Subscription, Wallet, Offers, Affiliate, FAQ
+- [x] ~~PIN Change~~ -- COMPLETED. Parents change via student card button, students change at /student-login
+- [x] ~~Heritage Multi-Select~~ -- COMPLETED. Multi-select chips + write-in for custom heritage
+- [x] ~~Culture Learning Preferences~~ -- COMPLETED. 16 topics (Black History, Women's History, etc.) affect AI story generation
+- [x] ~~Delegated Admin Fix~~ -- COMPLETED. Delegated admins now see Admin button and can access admin routes
 - [ ] On-Device LLM Integration -- WebLLM or similar for offline story generation
 
 ### P2 (Medium)

@@ -14,6 +14,7 @@ import GuardianPortal from "@/pages/GuardianPortal";
 import StudentAcademy from "@/pages/StudentAcademy";
 import TeacherPortal from "@/pages/TeacherPortal";
 import AdminPortal from "@/pages/AdminPortal";
+import StudentLogin from "@/pages/StudentLogin";
 import DonatePage from "@/pages/DonatePage";
 import BrandPortal from "@/pages/BrandPortal";
 import AffiliateSignup from "@/pages/AffiliateSignup";
@@ -72,7 +73,7 @@ function AppContent() {
           <Route path="/login" element={<GuardianLogin />} />
           <Route path="/register" element={<GuardianRegister />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/student-login" element={<Navigate to="/login?type=student" replace />} />
+          <Route path="/student-login" element={<StudentLogin />} />
           <Route path="/teacher-login" element={<Navigate to="/login?type=teacher" replace />} />
           <Route path="/teacher-register" element={<Navigate to="/register?role=teacher" replace />} />
           <Route path="/donate" element={<DonatePage />} />
