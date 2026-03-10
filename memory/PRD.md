@@ -6,62 +6,47 @@ Semantic Vision is an AI-powered personalized reading platform replacing static 
 ## What's Been Implemented
 
 ### Core Features (Previously Built)
-- Onboarding Wizards, Unified Auth, FAQ Sections
-- Brand Competition System (bidding/rotation, 34 brands)
-- Affiliate & Coupon System with user-facing dashboard
-- Patent-Pending badge, clear affiliate login instructions
+- Onboarding Wizards, Unified Auth, FAQ Sections, Brand Competition, Affiliate & Coupon System
 
 ### Read-Aloud Recording & Audio System
 - ReadAloudRecorder at TOP of each chapter (audio + video modes)
-- Diction Analysis via OpenAI Whisper: transcription + 4D scoring
-- Audio Memory Library, Audio Book Collection, Admin moderation
+- Diction Analysis via OpenAI Whisper
+- Audio Memories, Audio Book Collection, Admin moderation
 
-### Patent Filing v6.0 (81 Claims)
-
-### Mobile Responsiveness & PWA (March 10, 2026)
-- Fully responsive across 375px/768px/1920px
-- AppShell hamburger menu, scrollable tabs, no horizontal overflow
-- PWA manifest.json + Service Worker
-
-### Offline Story Caching + Ambient Music (March 10, 2026)
-- IndexedDB offline storage, SaveOfflineButton, OfflineLibrary
-- MusicPlayerWidget with 8 moods via Web Audio API
-
-### Font/Text Visibility Fixes (March 10, 2026)
-- BrutalCard: inline styles for bg + text color
-- PIN input: bright white text, gold accent, 1.5rem font
-- Student codes, PINs, Audio Memories filter buttons all visible
-- Global CSS rule for light-bg elements in dark theme
+### Parent Control System (March 10, 2026)
+- **Reading Rules panel** per student in Guardian Portal (expandable section)
+- **Recording modes**: Optional, Audio Required, Video Required, Both Required
+- **Chapter threshold**: After N chapters, require recording (0 = every chapter)
+- **Auto-start recording**: Recording auto-opens when chapter loads
+- **Allow Skip**: Parent controls whether student can skip recording
+- **NarrativeReader enforcement**: 
+  - Purple banner: "Recording required by parent"
+  - Yellow warning: "Complete recording before continuing"
+  - Finish Chapter button disabled when recording not done + skip not allowed
+- **Backend**: GET/PUT /api/students/{id}/parental-controls (GET is public for student portal, PUT requires auth)
 
 ### Admin Messaging System (March 10, 2026)
-- Admin creates messages targeted to: Everyone, Parents, Students, Teachers
-- Priority levels: Low, Normal, High, Urgent
-- NotificationBell in AppShell header with unread count badge
-- Click-to-mark-read notification panel dropdown
-- Both guardian and student portals receive notifications
-- Backend: POST/GET/DELETE /api/admin/messages, GET /api/notifications
+- Send messages to Everyone/Parents/Students/Teachers with priority levels
+- NotificationBell in header with unread count badge
+- Click-to-mark-read notification panel
 
 ### Spelling Bee Contests (March 10, 2026)
-- Admin creates contests: title, word list (comma-separated), time limit, dates
-- Admin can pause/activate/delete contests, view leaderboard
-- Students see active contests, start timed challenge, submit answers
-- Scoring: case-insensitive comparison, results with correct/incorrect per word
+- Admin creates contests (word list, time limit, dates)
+- Students participate with timer, hints, and auto-scoring
 - Leaderboard ranked by score then time
-- Backend: Full CRUD + submit + leaderboard endpoints
 
 ### Expanded Virtues & Emotions (March 10, 2026)
-- 32 Character Virtues (patience, kindness, honesty, courage, etc.)
-- 30 Emotional Intelligence options (joy, love, hope, sadness, anger, etc.)
-- Unlimited selection (no cap), search filter, custom virtue input
-- Search across both categories
+- 32 Character Virtues + 30 Emotional Intelligence options
+- Unlimited selection, search filter, custom input
 
-## Key API Endpoints
-- POST/GET/DELETE /api/admin/messages - Admin messaging CRUD
-- GET /api/notifications - User notifications with unread count
-- POST /api/admin/spelling-contests - Create spelling contest
-- GET /api/spelling-contests - List active contests
-- POST /api/spelling-contests/submit - Submit contest answers
-- GET /api/spelling-contests/{id}/leaderboard - Contest leaderboard
+### Softer Color Scheme (March 10, 2026)
+- BrutalCards: warm beige (#f8f6f1) instead of pure white
+- BrutalButtons: gentler colors with rounded corners
+- BrutalBadges: softer pastel variants
+- All borders softened from harsh black to black/20
+
+### Mobile Responsiveness & PWA
+- Fully responsive, PWA manifest + Service Worker, offline caching, ambient music
 
 ## Credentials
 - Admin/Guardian: allen@songsforcenturies.com / LexiAdmin2026!
@@ -69,9 +54,7 @@ Semantic Vision is an AI-powered personalized reading platform replacing static 
 
 ## Prioritized Backlog
 
-### P0 (User Requested - Next)
-- [ ] Parent Control System: mandatory read-aloud/video, chapter thresholds, blocking
-- [ ] Video recording at top of story with auto-start/confirm (parent-controlled)
+### P0 (Next)
 - [ ] Task reminder messages for children to complete readings
 - [ ] Remember Me / save credentials with opt-in
 - [ ] Push notifications for parents when child completes audio
@@ -85,5 +68,4 @@ Semantic Vision is an AI-powered personalized reading platform replacing static 
 - [ ] Payment gateways (Cash App, Zelle, Venmo, PayPal)
 - [ ] Video Recording & Analysis enhancements
 - [ ] Dynamic Music Generation synced with audiobook energy
-- [ ] Accessibility Features (text-to-sign-language AI)
-- [ ] Granular Admin Analytics
+- [ ] Accessibility Features, Granular Admin Analytics
