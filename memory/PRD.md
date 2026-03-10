@@ -53,13 +53,15 @@ Build a comprehensive AI-powered personalized educational narrative platform ("S
 - Cost/income/ROI analytics with family-level breakdown
 - API key management (Stripe, PayPal, Resend, Daily.co)
 - Admin impersonation ("View as User") - view app from any user's perspective
-- Screen share/remote support infrastructure (Daily.co)
+- Screen share/remote support (Daily.co) - LIVE with API key
 - Subscription plan management
 - Word bank CRUD
 - Brand & sponsorship management
 - Coupon system
 - Feature flags
 - Billing/ROI configuration
+- **Direct messaging to specific users by email** (in-app + optional email delivery)
+- **Clickable notification messages** with full detail view
 
 ### Guardian Features
 - Student management with PIN changes
@@ -86,15 +88,17 @@ Build a comprehensive AI-powered personalized educational narrative platform ("S
 - [x] Master User Manual -- COMPLETED (6 roles, 105 FAQs)
 - [x] Refactor server.py -- COMPLETED (10 modular route files, 37/37 regression tests)
 - [x] Go-Live Preparation (PayPal, Resend, CORS) -- COMPLETED
-- [x] Admin Impersonation ("View as User") -- COMPLETED & TESTED (iteration 48)
-- [x] Daily.co Screen Share Infrastructure -- COMPLETED & TESTED (iteration 48)
-- [x] Student "Change My PIN" route fix -- COMPLETED & TESTED (iteration 48)
+- [x] Admin Impersonation ("View as User") -- COMPLETED & TESTED
+- [x] Daily.co Screen Share -- COMPLETED & TESTED (API key configured)
+- [x] Student "Change My PIN" route fix -- COMPLETED & TESTED
+- [x] Direct user messaging by email -- COMPLETED & TESTED
+- [x] Clickable notification messages -- COMPLETED & TESTED
 
 ### User Action Items (Required for Go-Live)
 - [ ] Add PayPal sandbox/production keys via Admin Dashboard > Integrations tab
 - [ ] Verify Resend domain: Add DNS records (SPF, DKIM, MX) for semanticvision.ai
 - [ ] Switch PayPal mode from Sandbox to Live when ready
-- [ ] Add Daily.co API key via Admin > Integrations for screen sharing
+- [x] Add Daily.co API key via Admin > Integrations -- DONE
 
 ### P1 (High)
 - [x] Chunked auto-save recording -- COMPLETED
@@ -132,6 +136,6 @@ Build a comprehensive AI-powered personalized educational narrative platform ("S
 - **Stripe** (Payments) -- requires User API Key
 - **PayPal** (Payments) -- requires User API Key
 - **Resend** (Transactional Emails) -- requires User API Key
-- **Daily.co** (Screen Sharing / Video) -- requires User API Key
+- **Daily.co** (Screen Sharing / Video) -- API key configured
 - **reportlab** (Python library for PDF generation)
 - **html2canvas** (JS library for image generation)
