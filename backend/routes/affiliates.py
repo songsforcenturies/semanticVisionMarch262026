@@ -60,7 +60,7 @@ async def affiliate_signup(data: dict = Body(...)):
             resend.api_key = resend_key
             affiliate_link = f"{os.environ.get('FRONTEND_URL', 'https://patent-filing-deploy.preview.emergentagent.com')}/register?ref={affiliate.affiliate_code}"
             resend.Emails.send({
-                "from": "Semantic Vision <onboarding@resend.dev>",
+                "from": f"Semantic Vision <{os.environ.get('SENDER_EMAIL', 'hello@semanticvision.ai')}>",
                 "to": [email],
                 "subject": "Welcome to the Semantic Vision Affiliate Program!",
                 "html": f"""
@@ -154,7 +154,7 @@ async def admin_update_affiliate(affiliate_id: str, data: dict = Body(...), curr
                 if resend_key:
                     resend.api_key = resend_key
                     resend.Emails.send({
-                        "from": "Semantic Vision <onboarding@resend.dev>",
+                        "from": f"Semantic Vision <{os.environ.get('SENDER_EMAIL', 'hello@semanticvision.ai')}>",
                         "to": [affiliate["email"]],
                         "subject": "Your Semantic Vision Affiliate Account is Approved!",
                         "html": f"<p>Hi {affiliate['full_name']},</p><p>Your affiliate account has been approved. Your code is <b>{affiliate['affiliate_code']}</b>.</p>"

@@ -187,6 +187,14 @@ export const walletAPI = {
   getPaymentStatus: (sessionId) => apiClient.get(`/payments/status/${sessionId}`),
 };
 
+// ==================== PAYPAL API ====================
+
+export const paypalAPI = {
+  getConfig: () => apiClient.get('/paypal/config'),
+  createOrder: (data) => apiClient.post('/paypal/create-order', data),
+  captureOrder: (orderId) => apiClient.post(`/paypal/capture-order/${orderId}`),
+};
+
 // ==================== COUPON API ====================
 
 export const couponAPI = {

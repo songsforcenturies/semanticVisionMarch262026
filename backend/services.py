@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 # Email configuration
 resend.api_key = os.environ.get("RESEND_API_KEY", "")
-SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "Semantic Vision <hello@semanticvision.ai>")
 
 
 async def send_email(to_email: str, subject: str, html: str):

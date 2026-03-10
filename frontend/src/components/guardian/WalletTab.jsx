@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
-import { walletAPI, couponAPI } from '@/lib/api';
+import { walletAPI, couponAPI, paypalAPI } from '@/lib/api';
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput } from '@/components/brutal';
 import { Wallet, Plus, ArrowUpRight, ArrowDownLeft, Gift, Clock, DollarSign, CreditCard } from 'lucide-react';
+import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 import { toast } from 'sonner';
 
 const PACKAGE_LABELS = {
@@ -21,6 +22,7 @@ const WalletTab = () => {
   const queryClient = useQueryClient();
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [couponCode, setCouponCode] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('stripe');
 
   // Check for payment return
   useEffect(() => {
@@ -74,6 +76,11 @@ const WalletTab = () => {
   const { data: packages = [] } = useQuery({
     queryKey: ['wallet-packages'],
     queryFn: async () => (await walletAPI.getPackages()).data,
+  });
+
+  const { data: paypalConfig } = useQuery({
+    queryKey: ['paypal-config'],
+    queryFn: async () => (await paypalAPI.getConfig()).data,
   });
 
   const topupMutation = useMutation({
@@ -140,25 +147,106 @@ const WalletTab = () => {
             </button>
           ))}
         </div>
-        <BrutalButton
-          variant="indigo"
-          fullWidth
-          size="lg"
-          disabled={!selectedPackage || topupMutation.isPending}
-          onClick={() => selectedPackage && topupMutation.mutate(selectedPackage)}
-          data-testid="topup-btn"
-          className="flex items-center justify-center gap-2"
-        >
-          <Plus size={20} />
-          {topupMutation.isPending
-            ? 'Redirecting to checkout...'
-            : selectedPackage
-            ? `Add ${PACKAGE_LABELS[selectedPackage] || ''} to Wallet`
-            : 'Select an amount'}
-        </BrutalButton>
-        <p className="text-xs text-gray-500 font-medium mt-2 text-center">
-          Powered by Stripe. Secure card payments, Google Pay, Apple Pay.
-        </p>
+
+        {/* Payment Method Toggle */}
+        <div className="flex gap-2 mb-4" data-testid="payment-method-toggle">
+          <button
+            onClick={() => setPaymentMethod('stripe')}
+            className={`flex-1 p-3 border-4 border-black font-bold text-sm transition-all ${
+              paymentMethod === 'stripe'
+                ? 'bg-indigo-200 translate-x-[1px] translate-y-[1px] shadow-none'
+                : 'bg-white brutal-shadow-sm'
+            }`}
+            data-testid="payment-method-stripe"
+          >
+            <CreditCard size={16} className="inline mr-2" />
+            Card / Stripe
+          </button>
+          {paypalConfig?.enabled && (
+            <button
+              onClick={() => setPaymentMethod('paypal')}
+              className={`flex-1 p-3 border-4 border-black font-bold text-sm transition-all ${
+                paymentMethod === 'paypal'
+                  ? 'bg-yellow-200 translate-x-[1px] translate-y-[1px] shadow-none'
+                  : 'bg-white brutal-shadow-sm'
+              }`}
+              data-testid="payment-method-paypal"
+            >
+              <svg className="inline mr-2 w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797H9.603c-.534 0-.988.393-1.07.927l-.92 5.82-.262 1.656a.546.546 0 0 1-.54.462l.265-1.86z"/></svg>
+              PayPal
+            </button>
+          )}
+        </div>
+
+        {/* Stripe Button */}
+        {paymentMethod === 'stripe' && (
+          <>
+            <BrutalButton
+              variant="indigo"
+              fullWidth
+              size="lg"
+              disabled={!selectedPackage || topupMutation.isPending}
+              onClick={() => selectedPackage && topupMutation.mutate(selectedPackage)}
+              data-testid="topup-btn"
+              className="flex items-center justify-center gap-2"
+            >
+              <Plus size={20} />
+              {topupMutation.isPending
+                ? 'Redirecting to checkout...'
+                : selectedPackage
+                ? `Pay ${PACKAGE_LABELS[selectedPackage] || ''} with Card`
+                : 'Select an amount'}
+            </BrutalButton>
+            <p className="text-xs text-gray-500 font-medium mt-2 text-center">
+              Powered by Stripe. Secure card payments, Google Pay, Apple Pay.
+            </p>
+          </>
+        )}
+
+        {/* PayPal Button */}
+        {paymentMethod === 'paypal' && paypalConfig?.enabled && selectedPackage && (
+          <PayPalScriptProvider options={{ clientId: paypalConfig.client_id, currency: 'USD' }}>
+            <div data-testid="paypal-button-container" className="mt-2">
+              <PayPalButtons
+                style={{ layout: 'vertical', shape: 'rect', label: 'pay', height: 48 }}
+                createOrder={async () => {
+                  try {
+                    const res = await paypalAPI.createOrder({
+                      package_id: selectedPackage,
+                      origin_url: window.location.origin,
+                    });
+                    return res.data.order_id;
+                  } catch (err) {
+                    toast.error(err.response?.data?.detail || 'Failed to create PayPal order');
+                    throw err;
+                  }
+                }}
+                onApprove={async (data) => {
+                  try {
+                    const res = await paypalAPI.captureOrder(data.orderID);
+                    if (res.data.status === 'completed' || res.data.status === 'already_credited') {
+                      toast.success(`$${res.data.amount} added to your wallet via PayPal!`);
+                      queryClient.invalidateQueries(['wallet-balance']);
+                      queryClient.invalidateQueries(['wallet-transactions']);
+                    } else {
+                      toast.error('Payment not completed. Please try again.');
+                    }
+                  } catch (err) {
+                    toast.error(err.response?.data?.detail || 'Failed to capture payment');
+                  }
+                }}
+                onCancel={() => toast.info('PayPal payment cancelled')}
+                onError={(err) => {
+                  console.error('PayPal error:', err);
+                  toast.error('PayPal encountered an error');
+                }}
+              />
+            </div>
+          </PayPalScriptProvider>
+        )}
+        {paymentMethod === 'paypal' && !selectedPackage && (
+          <p className="text-center text-gray-500 font-bold py-4">Select an amount above to pay with PayPal</p>
+        )}
       </BrutalCard>
 
       {/* Coupon Redemption */}
