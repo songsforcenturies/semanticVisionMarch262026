@@ -671,26 +671,90 @@ async def check_parent_milestones(student_id: str):
 class AdminMessageCreate(BaseModel):
     title: str
     body: str
-    target: str = "all"  # "all", "guardians", "students", "teachers"
+    target: str = "all"  # "all", "guardians", "students", "teachers", "specific_user"
     target_ids: Optional[List[str]] = None  # specific user/student IDs
+    target_email: Optional[str] = None  # email of specific user to message
     priority: str = "normal"  # "low", "normal", "high", "urgent"
+    send_email: bool = False  # also send via email
 
 @router.post("/admin/messages")
 async def create_admin_message(msg: AdminMessageCreate, current_user=Depends(get_current_admin)):
+    target_ids = msg.target_ids or []
+    target_user_name = None
+    target_email_address = None
+
+    # If targeting a specific user by email, look them up
+    if msg.target_email and msg.target_email.strip():
+        email = msg.target_email.strip().lower()
+        user = await db.users.find_one({"email": email}, {"_id": 0, "id": 1, "full_name": 1, "email": 1})
+        if not user:
+            raise HTTPException(status_code=404, detail=f"No user found with email: {email}")
+        target_ids = [user["id"]]
+        target_user_name = user.get("full_name", email)
+        target_email_address = user["email"]
+
     doc = {
         "id": str(uuid.uuid4()),
         "title": msg.title,
         "body": msg.body,
-        "target": msg.target,
-        "target_ids": msg.target_ids or [],
+        "target": "specific_user" if msg.target_email else msg.target,
+        "target_ids": target_ids,
+        "target_email": target_email_address,
+        "target_user_name": target_user_name,
         "priority": msg.priority,
         "sent_by": current_user["id"],
         "sent_by_name": current_user.get("full_name", "Admin"),
         "created_date": datetime.now(timezone.utc).isoformat(),
         "read_by": [],
+        "email_sent": False,
     }
     await db.admin_messages.insert_one(doc)
     doc.pop("_id", None)
+
+    # Send email if requested
+    if msg.send_email and target_email_address:
+        try:
+            html = f"""<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+                <h2 style="color:#1a1a2e;margin-bottom:8px;">{msg.title}</h2>
+                <p style="color:#444;font-size:15px;line-height:1.6;white-space:pre-wrap;">{msg.body}</p>
+                <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
+                <p style="color:#999;font-size:12px;">From Semantic Vision Admin — <a href="https://semanticvision.ai">semanticvision.ai</a></p>
+            </div>"""
+            await send_email(target_email_address, msg.title, html)
+            await db.admin_messages.update_one({"id": doc["id"]}, {"$set": {"email_sent": True}})
+            doc["email_sent"] = True
+        except Exception as e:
+            logger.error(f"Failed to send email to {target_email_address}: {e}")
+            doc["email_error"] = str(e)
+    elif msg.send_email and not target_email_address:
+        # Broadcast email to all users in the target group
+        email_query = {}
+        if msg.target == "guardians":
+            email_query = {"role": "guardian"}
+        elif msg.target == "teachers":
+            email_query = {"role": "teacher"}
+        elif msg.target == "all":
+            email_query = {"role": {"$in": ["guardian", "teacher"]}}
+
+        if email_query:
+            users_to_email = await db.users.find(email_query, {"_id": 0, "email": 1}).to_list(500)
+            sent_count = 0
+            for u in users_to_email:
+                try:
+                    html = f"""<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+                        <h2 style="color:#1a1a2e;margin-bottom:8px;">{msg.title}</h2>
+                        <p style="color:#444;font-size:15px;line-height:1.6;white-space:pre-wrap;">{msg.body}</p>
+                        <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
+                        <p style="color:#999;font-size:12px;">From Semantic Vision Admin — <a href="https://semanticvision.ai">semanticvision.ai</a></p>
+                    </div>"""
+                    await send_email(u["email"], msg.title, html)
+                    sent_count += 1
+                except Exception as e:
+                    logger.error(f"Failed to send email to {u['email']}: {e}")
+            await db.admin_messages.update_one({"id": doc["id"]}, {"$set": {"email_sent": True, "emails_sent_count": sent_count}})
+            doc["email_sent"] = True
+            doc["emails_sent_count"] = sent_count
+
     return doc
 
 @router.get("/admin/messages")
