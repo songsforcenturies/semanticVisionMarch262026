@@ -90,7 +90,7 @@ This is an original provisional patent application. No prior related application
 The following documents are incorporated by reference as exhibits to this provisional patent application:
 
 1. **TECHNICAL_SPECIFICATIONS_1000.md** -- A comprehensive technical specification document containing 1,000 individually numbered technical specifications (TS-001 through TS-1000) organized across 17 sections, providing exhaustive implementation detail for every subsystem described herein.
-2. **Patent Screenshots (Figures 1-11)** -- Actual screenshots from a working embodiment of the invention.
+2. **Patent Screenshots (Figures 1-31)** -- 31 actual screenshots from a working embodiment of the invention, capturing every major feature including: landing page, authentication interfaces, administrator dashboard with all management tabs (Statistics, Messaging, Spelling Bee, AI Costs, Users, Word Banks, Brands, Affiliates), guardian portal with all tabs (Students, Subscription, Marketplace, Wallet, Invite & Earn, Audio Memories, Audio Books, Progress, FAQ), parental controls configuration panel, student academy with task reminders and story library, narrative reader with read-aloud recording and vocabulary highlighting, spelling bee contests, and mobile-responsive layout.
 
 ---
 
@@ -234,11 +234,11 @@ The platform comprises fourteen interconnected pipelines:
 
 ## BRIEF DESCRIPTION OF THE DRAWINGS
 
-**FIG. 1** (fig01_landing_page.jpeg) -- Landing page showing public-facing interface with "Patent-Pending AI Technology" badge, hero messaging, and navigation.
+**FIG. 1** (fig01_landing_page.jpeg) -- Landing page showing public-facing interface with "Patent-Pending AI Technology" badge, hero messaging ("If glasses are for your eyes, words are vision for your mind"), 20+ language support badge, and multi-role navigation links (Parent/School Login, Student Login, Teacher Login, Sponsor a Reader, Brand Portal, Become an Affiliate).
 
-**FIG. 2** (fig02_unified_login.jpeg) -- Unified Login Interface with Parent role selected, showing email/password authentication form with role-specific visual theming.
+**FIG. 2** (fig02_unified_login.jpeg) -- Unified Login Interface with Parent role selected, showing email/password authentication form with role-specific visual theming and four-icon role selector (Parents, Students, Teachers, Brands).
 
-**FIG. 3** (fig03_unified_login_student.jpeg) -- Unified Login Interface with Student role selected, showing Student Code/PIN authentication form with distinct visual theming.
+**FIG. 3** (fig03_unified_login_student.jpeg) -- Unified Login Interface with Student role selected, showing Student Code (STU-XXXXXX format) and six-digit PIN authentication form with distinct visual theming.
 
 **FIG. 4** (fig04_guardian_portal.jpeg) -- Administrator Dashboard showing platform-wide statistics, user counts, and management interface.
 
@@ -248,15 +248,55 @@ The platform comprises fourteen interconnected pipelines:
 
 **FIG. 7** (fig07_admin_wordbanks.jpeg) -- Administrator Word Bank Management showing the three-tier vocabulary input system (baseline/target/stretch words with definitions and example sentences).
 
-**FIG. 8** (fig08_guardian_students.jpeg) -- Guardian/Parent Portal showing subscription status, student cards with unique codes (STU-XXXXXX format), PINs, ages, and grade levels. Tab bar showing all portal sections: Students, Subscription, Marketplace, Wallet, Invite & Earn, Offers, Affiliate, Progress, FAQ.
+**FIG. 8** (fig08_guardian_students.jpeg) -- Guardian/Parent Portal showing subscription status, student cards with unique codes (STU-XXXXXX format), PINs, ages, and grade levels. Tab bar showing all portal sections.
 
-**FIG. 9** (fig09_guardian_affiliate.jpeg) -- Guardian/Parent Portal Affiliate Dashboard showing affiliate code (AFF-XXXXXXXX), referral link, Copy Code/Copy Link buttons, statistics grid (Referrals, Total Earned, Pending, Paid Out), and reward rate display. Active status badge visible.
+**FIG. 9** (fig09_guardian_affiliate.jpeg) -- Guardian/Parent Portal Affiliate Dashboard showing affiliate code (AFF-XXXXXXXX), referral link, Copy Code/Copy Link buttons, statistics grid (Referrals, Total Earned, Pending, Paid Out), and reward rate display.
 
-**FIG. 10** (fig10_guardian_faq.jpeg) -- Guardian/Parent FAQ Tab showing expandable accordion interface with 6 context-specific FAQ items (student management, story personalization, Agentic Reach Score, subscriptions, brand offers, referrals).
+**FIG. 10** (fig10_guardian_faq.jpeg) -- Guardian/Parent FAQ Tab showing expandable accordion interface with context-specific FAQ items.
 
 **FIG. 11** (fig11_affiliate_signup.jpeg) -- Public Affiliate Signup Page showing registration form with name/email fields and benefit cards (Earn Per Referral, Help Families Learn, Track Your Impact).
 
-*Note: All figures are actual screenshots from a working embodiment of the invention. The referenced JPEG files accompany this application as exhibits.*
+**FIG. 12** (fig12_admin_statistics.jpeg) -- Administrator Statistics Dashboard showing platform-wide metrics: total users, active subscriptions, revenue, narrative generation counts, AI cost tracking, and user growth trends.
+
+**FIG. 13** (fig13_admin_messaging.jpeg) -- Administrator Messaging System showing message composition form with Subject, Body, Target Audience selector (All Users, Guardians, Students, Teachers, Brands), Priority Level selector (Normal, Important, Urgent), and Send button. Full tab navigation visible: Statistics, Word Banks, AI Costs, Brands, Users, Coupons, Contests, Plans, Billing/ROI, Features, Affiliates, Audio Books, Messaging, Spelling Bee, LLM Config, App Settings.
+
+**FIG. 14** (fig14_admin_spelling_bee.jpeg) -- Administrator Spelling Bee Contest Management showing contest creation form with Title, Description, Word List, Time Limit, Start/End Date fields, and listing of existing contests with participant counts and status indicators (Upcoming, Active, Ended).
+
+**FIG. 15** (fig15_admin_ai_costs.jpeg) -- Administrator AI Cost Tracking Dashboard showing per-generation cost breakdown by model, total token usage (input/output), generation success rates, and cost optimization analytics.
+
+**FIG. 16** (fig16_admin_users.jpeg) -- Administrator User Management showing Plan Membership Overview (Total Parents: 68, With Plans: 20, No Plan: 48, Total Students: 8), subscription tier breakdown (Free: 16, Starter: 2, Academy: 1, Family: 1), Create New User form, and Delegate Admin Privileges section.
+
+**FIG. 17** (fig17_guardian_students_overview.jpeg) -- Guardian/Parent Portal Students Tab showing Family Plan subscription status (Active, 4/5 students), Student Seats progress bar (80%), "+ Add Student" button, and student cards displaying: student name, Student Code (STU-XXXXXX with copy button), PIN (6-digit with copy button), age, grade level, interests, virtues, Mastered vocabulary count, Word Banks count, Edit/Delete buttons, Assign Word Banks, Reset PIN, Spellcheck/Phonetic/Brand Stories toggle buttons, and collapsible "Reading Rules" parental controls section.
+
+**FIG. 18** (fig18_parental_controls.jpeg) -- Parental Controls "Reading Rules" Panel expanded showing: Recording Requirement selector with four options (Optional, Audio Required, Video Required, Both Required) with "Optional" currently selected and highlighted, Chapter Threshold setting ("Require recording after this many chapters, 0 = every chapter"), Auto-Start Recording toggle ("Recording starts automatically when chapter opens"), and Require Confirmation toggle ("Student must confirm before they can proceed"). Multiple student cards visible with different virtues (Patience, Anger, Trustworthiness, Unity, Justice, Delayed Gratification).
+
+**FIG. 19** (fig19_wallet.jpeg) -- Guardian/Parent Wallet showing Account Balance ($1,000.02), Add Funds section with preset amounts ($5.00, $10.00, $25.00, $50.00, $100.00), "+ Select An Amount" custom amount button, "Powered by Stripe. Secure card payments, Google Pay, Apple Pay" badge, and Redeem Coupon input field with Redeem button.
+
+**FIG. 20** (fig20_marketplace.jpeg) -- Word Bank Marketplace showing searchable word bank catalog with category filter (All Categories), wallet balance ($1,000.02), Create Word Bank button, and word bank cards displaying: bank name, category badges (Academic, Professional, Science), description, word count, rating, user count, price (Free or $4.99), Preview button, and Add to Library/Buy buttons. Example banks: "3000 Core Words" (3065 words, Free), "Aviation Essentials" (10 words, $4.99), "College/Post-College" (284 words, Free).
+
+**FIG. 21** (fig21_subscription.jpeg) -- Subscription Management showing current subscription (Family Plan, Active, 4/5 students), Redeem Coupon or Invitation Code section, and Available Plans comparison: Starter ($3.99/mo), Family ($9.99/mo, Current Plan highlighted), Academy ($19.99/mo).
+
+**FIG. 22** (fig22_audio_memories.jpeg) -- Audio Memories Library showing per-student filter tabs for recording playback, chronological recording list with student name, narrative title, chapter, date, diction scores, and play/download controls.
+
+**FIG. 23** (fig23_audio_books.jpeg) -- Peer Audio Book Collection showing community-contributed recordings organized by story, reader age, and rating with playback controls.
+
+**FIG. 24** (fig24_invite_earn.jpeg) -- Invite & Earn system showing March Madness Referral Blitz contest (Grand Prize: $200 Amazon Gift Card + 1 Year Premium, 2nd Place: $100 Gift Card, 3rd Place: 6 Months Premium, countdown timer showing 21d 16h left), Referral Code (REF-THYT3T), "$5.00 wallet credit" for both referrer and friend.
+
+**FIG. 25** (fig25_student_progress.jpeg) -- Student Progress Dashboard showing all four children (SJ: Age 8, 9 mastered, Score 93.3, Target 4000; PJ: Age 11, 0 mastered, Score 0, Target 7500; TJ: Age 14, 30 mastered, Score 100, Target 15000; DJ: Age 10, 0 mastered) with "View Progress" buttons and Biological Vocabulary Targets.
+
+**FIG. 26** (fig26_student_academy.jpeg) -- Student Academy Dashboard (student SJ logged in) showing Spelling Bee and Offline tabs, notification bell with unread count (2), and the personalized academy interface.
+
+**FIG. 27** (fig27_student_stories.jpeg) -- Student Story Library showing AI-generated personalized story cards with progress indicators, chapter completion status, and continue reading buttons.
+
+**FIG. 28** (fig28_student_spelling_bee.jpeg) -- Student Spelling Bee View showing available contests (TEST_Spelling_Bee_Contest: 5 words, 120s limit, 1 participant; March Spelling Bee: 10 words, 120s limit, 0 participants) with "Start" buttons, YOUR TASKS section showing "Continue SJ's Cosmic Race at 40%" and "Spelling Bee: March Spelling Bee waiting", stats cards (Vocabulary Mastered: 9, Target: 4000 words; Agentic Reach Score: 93, Initiate level; Reading Time: 26m, 61.4 WPM average), and Join Classroom input for 6-digit teacher code.
+
+**FIG. 29** (fig29_narrative_reader.jpeg) -- Narrative Reader (NarrativeReader component) showing an AI-generated personalized story "SJ and the Star Dash" with the chapter header, "Read This Chapter Aloud" recording button at the top, the actual story narrative text featuring the student's name (SJ) as the protagonist, chapter navigation, and reading controls.
+
+**FIG. 30** (fig30_story_text.jpeg) -- Narrative Reader Chapter Content showing the full AI-generated story text with personalized characters (SJ and Mia), virtue modeling (patience, teamwork, managing anger), culturally relevant setting, "Tap any word to see its definition" instruction, VOCABULARY section with tier-coded word badges ("orbit", "constellation", "gravity"), and chapter navigation buttons (Previous, Complete Story).
+
+**FIG. 31** (fig31_mobile_landing.jpeg) -- Mobile-Responsive Landing Page (390x844 viewport) demonstrating the fully responsive mobile layout with "Patent-Pending AI Technology" badge, hero text, "Your child can learn in 20+ languages" badge, Start Free and Parent/School Login buttons, and navigation links. Confirms mobile-first design implementation.
+
+*Note: All 31 figures are actual screenshots from a working embodiment of the invention captured from the live application at https://story-hub-demo.preview.emergentagent.com. The referenced JPEG files accompany this application as exhibits.*
 
 ---
 
@@ -1535,8 +1575,28 @@ I hereby declare that all statements made herein of my own knowledge are true an
 | FIG. 7 | fig07_admin_wordbanks.jpeg | Word Bank Management with three-tier vocabulary input |
 | FIG. 8 | fig08_guardian_students.jpeg | Guardian Portal showing student cards and all portal tabs |
 | FIG. 9 | fig09_guardian_affiliate.jpeg | Affiliate Dashboard with code, link, stats, and earnings |
-| FIG. 10 | fig10_guardian_faq.jpeg | FAQ Tab with 6 expandable items |
+| FIG. 10 | fig10_guardian_faq.jpeg | FAQ Tab with expandable items |
 | FIG. 11 | fig11_affiliate_signup.jpeg | Public Affiliate Signup with registration and benefits |
+| FIG. 12 | fig12_admin_statistics.jpeg | Admin Statistics Dashboard with platform metrics |
+| FIG. 13 | fig13_admin_messaging.jpeg | Admin Messaging with audience targeting and priority levels |
+| FIG. 14 | fig14_admin_spelling_bee.jpeg | Admin Spelling Bee contest creation and management |
+| FIG. 15 | fig15_admin_ai_costs.jpeg | Admin AI Cost Tracking per model and generation |
+| FIG. 16 | fig16_admin_users.jpeg | Admin User Management with Plan Membership Overview |
+| FIG. 17 | fig17_guardian_students_overview.jpeg | Guardian Students with codes, PINs, virtues, Reading Rules |
+| FIG. 18 | fig18_parental_controls.jpeg | Parental Controls: Recording Requirement, Chapter Threshold, Auto-Start |
+| FIG. 19 | fig19_wallet.jpeg | Wallet with $1,000.02 balance, Stripe Add Funds, Coupon Redemption |
+| FIG. 20 | fig20_marketplace.jpeg | Word Bank Marketplace with search, categories, pricing |
+| FIG. 21 | fig21_subscription.jpeg | Subscription Plans (Starter $3.99, Family $9.99, Academy $19.99) |
+| FIG. 22 | fig22_audio_memories.jpeg | Audio Memories Library with per-student recordings |
+| FIG. 23 | fig23_audio_books.jpeg | Peer Audio Book Collection |
+| FIG. 24 | fig24_invite_earn.jpeg | Invite & Earn with March Madness Referral Blitz ($200 Grand Prize) |
+| FIG. 25 | fig25_student_progress.jpeg | Student Progress: SJ/PJ/TJ/DJ with scores and biological targets |
+| FIG. 26 | fig26_student_academy.jpeg | Student Academy Dashboard |
+| FIG. 27 | fig27_student_stories.jpeg | Student Story Library with AI-generated story cards |
+| FIG. 28 | fig28_student_spelling_bee.jpeg | Student Spelling Bee with contests, tasks, stats, classroom join |
+| FIG. 29 | fig29_narrative_reader.jpeg | Narrative Reader with "Read Aloud" button and AI story |
+| FIG. 30 | fig30_story_text.jpeg | Story content with vocabulary badges and chapter navigation |
+| FIG. 31 | fig31_mobile_landing.jpeg | Mobile-responsive landing page (390x844 viewport) |
 
 ---
 
@@ -1649,7 +1709,7 @@ The document titled "SEMANTIC VISION -- COMPREHENSIVE TECHNICAL SPECIFICATIONS" 
 *Inventor: Allen Tyrone Johnson*
 *Status: READY FOR FILING -- DEFINITIVE VERSION*
 *Total Claims: 98 (11 Independent + 60 Dependent + 14 Future Embodiment + 13 Audio/Video/Device/Lifelong/Task)*
-*Incorporated Exhibits: 1,000 Technical Specifications + 11 UI Screenshots*
+*Incorporated Exhibits: 1,000 Technical Specifications + 31 UI Screenshots*
 
 ---
 
