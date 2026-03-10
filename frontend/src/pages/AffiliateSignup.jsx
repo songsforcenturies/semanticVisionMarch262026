@@ -172,14 +172,25 @@ const AffiliateSignup = () => {
                 Check your email for a confirmation with your full affiliate details.
               </p>
 
+              {/* Login Instructions */}
+              <div className="p-4 rounded-xl mb-4 text-left" style={{ background: '#0F172A', border: `1px solid ${C.gold}20` }}>
+                <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: C.gold }}>How to Track Your Earnings</p>
+                <p className="text-sm" style={{ color: C.muted }}>
+                  After approval, log in to the <span style={{ color: C.cream, fontWeight: 600 }}>Parent / Guardian Portal</span> using
+                  the email you registered with. Navigate to the <span style={{ color: C.cream, fontWeight: 600 }}>"Affiliate"</span> tab to
+                  view your referral stats, earnings, and payout history.
+                </p>
+              </div>
+
               <div className="flex gap-3 justify-center">
                 <button onClick={() => navigate('/')} className="px-5 py-2.5 rounded-lg text-sm font-semibold"
                   style={{ color: C.muted, border: `1px solid ${C.border}` }}>
                   Back to Home
                 </button>
                 <button onClick={() => navigate('/login')} className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold text-black"
-                  style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` }}>
-                  Login <ArrowRight size={16} />
+                  style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` }}
+                  data-testid="login-to-portal-btn">
+                  Login to Parent Portal <ArrowRight size={16} />
                 </button>
               </div>
             </div>

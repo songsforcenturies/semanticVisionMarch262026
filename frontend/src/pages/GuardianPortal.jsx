@@ -11,6 +11,7 @@ import WalletTab from '@/components/guardian/WalletTab';
 import ReferralTab from '@/components/guardian/ReferralTab';
 import SubscriptionTab from '@/components/guardian/SubscriptionTab';
 import OffersTab from '@/components/guardian/OffersTab';
+import AffiliateTab from '@/components/guardian/AffiliateTab';
 import OnboardingWizard from '@/components/OnboardingWizard';
 import { guardianOnboardingSteps } from '@/components/onboardingSteps';
 import FAQSection from '@/components/FAQSection';
@@ -37,6 +38,7 @@ const GuardianPortal = () => {
     { id: 'wallet', label: t('guardian.wallet'), icon: Wallet },
     { id: 'referral', label: t('guardian.inviteEarn'), icon: Share2 },
     { id: 'offers', label: 'Offers', icon: Gift },
+    { id: 'affiliate', label: 'Affiliate', icon: Share2 },
     { id: 'progress', label: t('guardian.progress'), icon: TrendingUp },
     { id: 'faq', label: 'FAQ', icon: HelpCircle },
   ];
@@ -90,6 +92,7 @@ const GuardianPortal = () => {
           {activeTab === 'wallet' && <WalletTab />}
           {activeTab === 'referral' && <ReferralTab />}
           {activeTab === 'offers' && <OffersTab />}
+          {activeTab === 'affiliate' && <AffiliateTab />}
           {activeTab === 'progress' && <ProgressTab />}
           {activeTab === 'faq' && <FAQSection items={parentFAQ} title="Parent & Guardian FAQ" />}
         </div>
