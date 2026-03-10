@@ -73,9 +73,9 @@ Build a comprehensive AI-powered personalized educational narrative platform ("S
 - [x] ~~Update CORS/domain config for semanticvision.ai~~ -- COMPLETED. CORS_ORIGINS includes semanticvision.ai and www.semanticvision.ai.
 
 ### User Action Items (Required for Go-Live)
-- [ ] Add PayPal sandbox/production keys to backend/.env (PAYPAL_CLIENT_ID, PAYPAL_SECRET)
+- [ ] Add PayPal sandbox/production keys via Admin Dashboard > Integrations tab
 - [ ] Verify Resend domain: Add DNS records (SPF, DKIM, MX) in Porkbun for semanticvision.ai
-- [ ] Switch PAYPAL_BASE from sandbox to production URL when ready
+- [ ] Switch PayPal mode from Sandbox to Live when ready (via Integrations tab)
 
 ### P1 (High)
 - [ ] On-Device LLM Integration -- WebLLM or similar for offline story generation
