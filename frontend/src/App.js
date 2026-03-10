@@ -40,7 +40,10 @@ const ProtectedRoute = ({ children, requireAuth = true, allowedRoles = null }) =
   // Role-based access control
   if (allowedRoles) {
     const savedUser = user || JSON.parse(localStorage.getItem('user') || '{}');
-    if (!allowedRoles.includes(savedUser?.role)) {
+    const userRole = savedUser?.role;
+    const isDelegatedAdmin = savedUser?.is_delegated_admin;
+    // Allow delegated admins to access admin routes
+    if (!allowedRoles.includes(userRole) && !(allowedRoles.includes('admin') && isDelegatedAdmin)) {
       return <Navigate to="/portal" replace />;
     }
   }

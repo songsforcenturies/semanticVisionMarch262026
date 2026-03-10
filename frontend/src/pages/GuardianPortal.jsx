@@ -51,7 +51,7 @@ const GuardianPortal = () => {
 
   const rightContent = (
     <div className="flex items-center gap-2 flex-wrap">
-      {user?.role === 'admin' && (
+      {(user?.role === 'admin' || user?.is_delegated_admin) && (
         <button onClick={() => navigate('/admin')}
           className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all hover:scale-105"
           style={{ color: '#D4A853', border: '1px solid rgba(212,168,83,0.3)', background: 'rgba(212,168,83,0.08)' }}
