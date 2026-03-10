@@ -12,47 +12,56 @@ Semantic Vision is an AI-powered personalized reading platform replacing static 
 - Patent-Pending badge, clear affiliate login instructions
 
 ### Read-Aloud Recording & Audio System
-- ReadAloudRecorder component (audio + video modes) - positioned AT TOP of each chapter
-- Diction Analysis via OpenAI Whisper: transcription, text comparison, 4-dimensional scoring
-- Audio Memory Library tab in Guardian Portal with student filter buttons
-- Audio Book Collection: public page at /audio-books
-- Admin Audio Books management: approve/reject submissions
+- ReadAloudRecorder at TOP of each chapter (audio + video modes)
+- Diction Analysis via OpenAI Whisper: transcription + 4D scoring
+- Audio Memory Library, Audio Book Collection, Admin moderation
 
 ### Patent Filing v6.0 (81 Claims)
-- Download: /api/patent-filing/v6/zip
 
 ### Mobile Responsiveness & PWA (March 10, 2026)
-- Mobile-responsive design across all pages (tested at 375px, 768px, 1920px)
-- AppShell with hamburger menu on mobile
-- Guardian Portal with horizontally scrollable tabs
-- NarrativeReader fully responsive with compact header
-- All modals fit mobile without horizontal overflow
-- PWA manifest.json + Service Worker registered
+- Fully responsive across 375px/768px/1920px
+- AppShell hamburger menu, scrollable tabs, no horizontal overflow
+- PWA manifest.json + Service Worker
 
-### Offline Story Caching (March 10, 2026)
-- IndexedDB-based offline storage (offlineCache.js)
-- SaveOfflineButton integrated in NarrativeReader header
-- OfflineLibrary section accessible from StudentAcademy
-
-### Ambient Background Music (March 10, 2026)
-- MusicPlayerWidget in NarrativeReader header
-- Web Audio API with 8 mood-based ambient sounds
-- Auto-mood detection from story text
+### Offline Story Caching + Ambient Music (March 10, 2026)
+- IndexedDB offline storage, SaveOfflineButton, OfflineLibrary
+- MusicPlayerWidget with 8 moods via Web Audio API
 
 ### Font/Text Visibility Fixes (March 10, 2026)
-- BrutalCard: inline styles for backgroundColor + color (prevents dark theme inheritance)
-- PIN input: type=text, inputMode=numeric, white text with gold border, 1.5rem font
-- Student code boxes: explicit dark-indigo text (#1e1b4b) on indigo-100 bg
-- PIN display boxes: explicit dark-brown text (#78350f) on yellow-100 bg
-- Audio Memories filter buttons: text-gray-900 on gray-100 bg
-- Global CSS rule: .sv-dark .bg-white/.bg-gray-50/.bg-gray-100 { color: #111827 }
+- BrutalCard: inline styles for bg + text color
+- PIN input: bright white text, gold accent, 1.5rem font
+- Student codes, PINs, Audio Memories filter buttons all visible
+- Global CSS rule for light-bg elements in dark theme
+
+### Admin Messaging System (March 10, 2026)
+- Admin creates messages targeted to: Everyone, Parents, Students, Teachers
+- Priority levels: Low, Normal, High, Urgent
+- NotificationBell in AppShell header with unread count badge
+- Click-to-mark-read notification panel dropdown
+- Both guardian and student portals receive notifications
+- Backend: POST/GET/DELETE /api/admin/messages, GET /api/notifications
+
+### Spelling Bee Contests (March 10, 2026)
+- Admin creates contests: title, word list (comma-separated), time limit, dates
+- Admin can pause/activate/delete contests, view leaderboard
+- Students see active contests, start timed challenge, submit answers
+- Scoring: case-insensitive comparison, results with correct/incorrect per word
+- Leaderboard ranked by score then time
+- Backend: Full CRUD + submit + leaderboard endpoints
+
+### Expanded Virtues & Emotions (March 10, 2026)
+- 32 Character Virtues (patience, kindness, honesty, courage, etc.)
+- 30 Emotional Intelligence options (joy, love, hope, sadness, anger, etc.)
+- Unlimited selection (no cap), search filter, custom virtue input
+- Search across both categories
 
 ## Key API Endpoints
-- POST /api/recordings/upload
-- POST /api/recordings/{id}/analyze
-- GET /api/recordings/guardian/all
-- GET /api/audio-books
-- GET/PUT /api/admin/audio-books/settings
+- POST/GET/DELETE /api/admin/messages - Admin messaging CRUD
+- GET /api/notifications - User notifications with unread count
+- POST /api/admin/spelling-contests - Create spelling contest
+- GET /api/spelling-contests - List active contests
+- POST /api/spelling-contests/submit - Submit contest answers
+- GET /api/spelling-contests/{id}/leaderboard - Contest leaderboard
 
 ## Credentials
 - Admin/Guardian: allen@songsforcenturies.com / LexiAdmin2026!
@@ -61,7 +70,7 @@ Semantic Vision is an AI-powered personalized reading platform replacing static 
 ## Prioritized Backlog
 
 ### P0 (User Requested - Next)
-- [ ] Parent Control System: mandatory read-aloud/video per child, chapter thresholds
+- [ ] Parent Control System: mandatory read-aloud/video, chapter thresholds, blocking
 - [ ] Video recording at top of story with auto-start/confirm (parent-controlled)
 - [ ] Task reminder messages for children to complete readings
 - [ ] Remember Me / save credentials with opt-in
@@ -69,7 +78,6 @@ Semantic Vision is an AI-powered personalized reading platform replacing static 
 
 ### P1
 - [ ] Server-side audio diction analysis with comparison over time
-- [ ] Audio Memories background upload
 - [ ] On-Device LLM for offline story generation
 - [ ] Refactor server.py into modular FastAPI routers (6000+ lines)
 
@@ -78,5 +86,4 @@ Semantic Vision is an AI-powered personalized reading platform replacing static 
 - [ ] Video Recording & Analysis enhancements
 - [ ] Dynamic Music Generation synced with audiobook energy
 - [ ] Accessibility Features (text-to-sign-language AI)
-- [ ] User Demo Flow
 - [ ] Granular Admin Analytics
