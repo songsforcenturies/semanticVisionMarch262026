@@ -26,6 +26,24 @@ Tel: 605-305-3099
 
 ---
 
+## THIRD-PARTY TECHNOLOGY DISCLAIMER
+
+The following third-party technologies are used as infrastructure components in the implementation of this invention. No intellectual property claim is made over these third-party technologies, which remain the property of their respective owners:
+
+| Technology | Owner | Usage |
+|---|---|---|
+| OpenAI GPT-5.2 | OpenAI, Inc. | AI story generation and assessment evaluation |
+| Stripe | Stripe, Inc. | Payment processing |
+| MongoDB | MongoDB, Inc. | Database storage |
+| React | Meta Platforms, Inc. | Frontend framework |
+| FastAPI | Sebastian Ramirez | Backend API framework |
+| Resend | Resend, Inc. | Email delivery |
+| Tailwind CSS | Tailwind Labs | CSS styling |
+
+**Claims herein protect the novel METHOD, SYSTEM, and ARCHITECTURE** created by the inventor — specifically, the unique combination and orchestration of these technologies into an integrated educational platform with the novel features described in this application, including but not limited to: the 60/30/10 vocabulary distribution model, the real-time brand eligibility engine, the brand-in-narrative integration method, the closed-loop brand engagement analytics pipeline, the Agentic Reach Score formula, the multi-dimensional student profile system, the consent architecture, the affiliate referral engine, the guided onboarding framework, the unified multi-role authentication interface, and all original UI designs, data models, API architectures, and business logic.
+
+---
+
 ## TITLE OF THE INVENTION
 
 **System and Method for Real-Time, Contextual Integration of Brand Product Placements as Narrative Solutions Within AI-Generated, Personalized Educational Content Adapted to User Belief Systems, Cultural Contexts, Developmental Profiles, and Vocabulary Acquisition Goals, With Closed-Loop Brand Engagement Analytics, Multi-Role Platform Architecture, Affiliate Referral Engine, and Guided Onboarding Framework**

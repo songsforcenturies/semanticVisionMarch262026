@@ -5336,6 +5336,25 @@ async def get_patent_filing_2026_md():
     return FileResponse(md_path, media_type="text/markdown", filename="Semantic_Vision_Provisional_Patent_March_2026.md")
 
 
+@api_router.get("/user-manual/pdf")
+async def get_user_manual_pdf():
+    """Serve the Semantic Vision User Manual as PDF"""
+    from fastapi.responses import FileResponse
+    pdf_path = Path(__file__).parent.parent / "SEMANTIC_VISION_USER_MANUAL.pdf"
+    if not pdf_path.exists():
+        raise HTTPException(status_code=404, detail="User manual PDF not found")
+    return FileResponse(pdf_path, media_type="application/pdf", filename="Semantic_Vision_User_Manual.pdf")
+
+@api_router.get("/user-manual/md")
+async def get_user_manual_md():
+    """Serve the User Manual as Markdown"""
+    from fastapi.responses import FileResponse
+    md_path = Path(__file__).parent.parent / "SEMANTIC_VISION_USER_MANUAL.md"
+    if not md_path.exists():
+        raise HTTPException(status_code=404, detail="User manual markdown not found")
+    return FileResponse(md_path, media_type="text/markdown", filename="Semantic_Vision_User_Manual.md")
+
+
 # ================================
 # AFFILIATE SYSTEM ENDPOINTS
 # ================================
