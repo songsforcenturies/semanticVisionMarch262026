@@ -2073,7 +2073,7 @@ async def create_support_session(current_user: dict = Depends(get_current_user))
         raise HTTPException(status_code=500, detail="Daily.co not configured. Add your API key in Admin > Integrations.")
 
     import httpx
-    room_name = f"sv-support-{generate_uuid()[:8]}"
+    room_name = f"sv-support-{str(uuid.uuid4())[:8]}"
     async with httpx.AsyncClient() as client:
         resp = await client.post(
             "https://api.daily.co/v1/rooms",
@@ -2095,7 +2095,7 @@ async def create_support_session(current_user: dict = Depends(get_current_user))
         room = resp.json()
 
     session = {
-        "id": generate_uuid(),
+        "id": str(uuid.uuid4()),
         "room_name": room_name,
         "room_url": room.get("url", f"https://semanticvision.daily.co/{room_name}"),
         "created_by": current_user["id"],
@@ -2103,8 +2103,7 @@ async def create_support_session(current_user: dict = Depends(get_current_user))
         "status": "active",
         "created_date": datetime.now(timezone.utc).isoformat(),
     }
-    await db.support_sessions.insert_one({**session, "_id": None})
-    await db.support_sessions.update_one({"id": session["id"]}, {"$unset": {"_id": ""}})
+    await db.support_sessions.insert_one(dict(session))
 
     return session
 
