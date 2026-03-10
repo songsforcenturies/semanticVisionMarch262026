@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { readLogAPI } from '@/lib/api';
-import { ArrowLeft, ArrowRight, Clock, BookOpen, CheckCircle, AlertTriangle, Eye, Mic } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { readLogAPI, parentalControlsAPI } from '@/lib/api';
+import { ArrowLeft, ArrowRight, Clock, BookOpen, CheckCircle, AlertTriangle, Eye, Mic, Lock, Video, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import WrittenAnswerModal from './WrittenAnswerModal';
 import VocabularyAssessment from './VocabularyAssessment';
@@ -27,6 +27,32 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
   const [selectedWord, setSelectedWord] = useState(null);
   const [wordContext, setWordContext] = useState('');
   const [showRecorder, setShowRecorder] = useState(false);
+  const [recordingDone, setRecordingDone] = useState(false);
+
+  // Fetch parental controls
+  const { data: parentalControls } = useQuery({
+    queryKey: ['parental-controls', student?.id],
+    queryFn: async () => (await parentalControlsAPI.get(student?.id)).data,
+    enabled: !!student?.id,
+  });
+
+  const controls = parentalControls || { recording_mode: 'optional', chapter_threshold: 0, can_skip_recording: true, auto_start_recording: false, require_confirmation: true };
+  const isRecordingRequired = controls.recording_mode !== 'optional';
+  const meetsThreshold = controls.chapter_threshold === 0 || currentChapter >= controls.chapter_threshold;
+  const mustRecord = isRecordingRequired && meetsThreshold;
+  const canProceed = !mustRecord || recordingDone || controls.can_skip_recording;
+
+  // Auto-open recorder if required
+  useEffect(() => {
+    if (mustRecord && (controls.auto_start_recording || !controls.can_skip_recording)) {
+      setShowRecorder(true);
+    }
+  }, [mustRecord, currentChapter]);
+
+  // Reset recording state when chapter changes
+  useEffect(() => {
+    setRecordingDone(false);
+  }, [currentChapter]);
 
   const chapter = narrative.chapters[currentChapter - 1];
   const isLastChapter = currentChapter === 5;
@@ -156,24 +182,51 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
 
           {/* Read Aloud Section - AT THE TOP */}
           <div className="mb-6">
+            {/* Parental control notice */}
+            {mustRecord && !recordingDone && (
+              <div className="flex items-center gap-2 p-3 rounded-xl mb-3"
+                style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)' }}
+                data-testid="recording-required-notice">
+                <Shield size={16} style={{ color: '#818CF8' }} />
+                <p className="text-xs font-bold" style={{ color: '#818CF8' }}>
+                  {controls.recording_mode === 'both_required' ? 'Audio & video recording required by parent' :
+                   controls.recording_mode === 'video_required' ? 'Video recording required by parent' :
+                   'Audio recording required by parent'}
+                  {!controls.can_skip_recording && ' — must complete before continuing'}
+                </p>
+              </div>
+            )}
+
             {!showRecorder ? (
               <button onClick={() => setShowRecorder(true)}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold transition-all hover:scale-[1.01]"
-                style={{ background: 'rgba(239,68,68,0.1)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.2)' }}
+                style={{
+                  background: mustRecord && !recordingDone ? 'rgba(99,102,241,0.15)' : 'rgba(239,68,68,0.1)',
+                  color: mustRecord && !recordingDone ? '#818CF8' : '#EF4444',
+                  border: mustRecord && !recordingDone ? '1px solid rgba(99,102,241,0.3)' : '1px solid rgba(239,68,68,0.2)',
+                }}
                 data-testid="read-aloud-btn">
-                <Mic size={16} /> Read This Chapter Aloud
+                {mustRecord && !recordingDone ? <Lock size={16} /> : <Mic size={16} />}
+                {mustRecord && !recordingDone ? 'Record Before Reading (Required)' : 'Read This Chapter Aloud'}
               </button>
             ) : (
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-bold uppercase" style={{ color: C.gold }}>Read Aloud Recording</p>
-                  <button onClick={() => setShowRecorder(false)} className="text-xs font-bold" style={{ color: C.muted }}>Close</button>
+                  <p className="text-xs font-bold uppercase" style={{ color: C.gold }}>
+                    {mustRecord ? 'Required Recording' : 'Read Aloud Recording'}
+                  </p>
+                  {controls.can_skip_recording && (
+                    <button onClick={() => setShowRecorder(false)} className="text-xs font-bold" style={{ color: C.muted }}>Close</button>
+                  )}
                 </div>
                 <ReadAloudRecorder
                   studentId={student.id}
                   narrativeId={narrative.id}
                   chapterNumber={currentChapter}
-                  onRecordingComplete={(result) => toast.success(`Diction score: ${result.diction_scores?.overall}%`)}
+                  onRecordingComplete={(result) => {
+                    setRecordingDone(true);
+                    toast.success(`Diction score: ${result.diction_scores?.overall}%`);
+                  }}
                 />
               </div>
             )}
@@ -225,9 +278,22 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
 
           {/* Controls */}
           <div className="space-y-3">
+            {/* Block warning if recording required */}
+            {mustRecord && !recordingDone && !controls.can_skip_recording && (
+              <div className="flex items-center gap-2 p-3 rounded-xl"
+                style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)' }}
+                data-testid="recording-block-warning">
+                <Lock size={16} style={{ color: '#FBBF24' }} />
+                <p className="text-xs font-bold" style={{ color: '#FBBF24' }}>
+                  Complete the recording above before you can finish this chapter.
+                </p>
+              </div>
+            )}
+
             {!isChapterCompleted && (
               <button onClick={handleFinishChapter}
-                className="w-full py-3 sm:py-3.5 rounded-xl text-sm sm:text-base font-bold text-black transition-all hover:scale-[1.01]"
+                disabled={mustRecord && !recordingDone && !controls.can_skip_recording}
+                className="w-full py-3 sm:py-3.5 rounded-xl text-sm sm:text-base font-bold text-black transition-all hover:scale-[1.01] disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` }} data-testid="finish-chapter-btn">
                 <CheckCircle size={16} className="inline mr-2" /> Finish Chapter & Answer Question
               </button>

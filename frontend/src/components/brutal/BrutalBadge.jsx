@@ -8,34 +8,26 @@ const BrutalBadge = React.forwardRef(({
   children,
   ...props 
 }, ref) => {
-  const baseStyles = 'inline-block font-bold uppercase border-2 border-black';
+  const baseStyles = 'inline-flex items-center font-bold uppercase rounded-md transition-all';
   
   const variants = {
-    default: 'bg-white text-black',
-    indigo: 'bg-indigo-500 text-white',
-    emerald: 'bg-emerald-500 text-white',
-    rose: 'bg-rose-400 text-white',
-    amber: 'bg-amber-400 text-black',
-    baseline: 'bg-blue-400 text-white',
-    target: 'bg-purple-500 text-white',
-    stretch: 'bg-orange-500 text-white'
+    default: 'bg-[#f0ece4] text-[#5c564e] border border-black/10',
+    indigo: 'bg-indigo-100/80 text-indigo-700 border border-indigo-200/60',
+    emerald: 'bg-emerald-100/80 text-emerald-700 border border-emerald-200/60',
+    rose: 'bg-rose-100/80 text-rose-700 border border-rose-200/60',
+    amber: 'bg-amber-100/80 text-amber-700 border border-amber-200/60',
   };
   
   const sizes = {
     sm: 'px-2 py-0.5 text-xs',
     md: 'px-3 py-1 text-sm',
-    lg: 'px-4 py-2 text-base'
+    lg: 'px-4 py-1.5 text-base'
   };
   
   return (
     <span
       ref={ref}
-      className={cn(
-        baseStyles,
-        variants[variant],
-        sizes[size],
-        className
-      )}
+      className={cn(baseStyles, variants[variant], sizes[size], className)}
       {...props}
     >
       {children}

@@ -2,12 +2,12 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 const variantStyles = {
-  default: { backgroundColor: '#ffffff', color: '#111827' },
-  indigo: { backgroundColor: '#e0e7ff', color: '#111827' },
-  emerald: { backgroundColor: '#d1fae5', color: '#111827' },
-  rose: { backgroundColor: '#ffe4e6', color: '#111827' },
-  amber: { backgroundColor: '#fef3c7', color: '#111827' },
-  dark: { backgroundColor: '#111827', color: '#ffffff' },
+  default: { backgroundColor: '#f8f6f1', color: '#2d2a26' },
+  indigo: { backgroundColor: '#e8e4f0', color: '#2d2a3e' },
+  emerald: { backgroundColor: '#e4f0e8', color: '#1a3324' },
+  rose: { backgroundColor: '#f0e4e6', color: '#3e1a22' },
+  amber: { backgroundColor: '#f0ece4', color: '#3e3018' },
+  dark: { backgroundColor: '#1e1e2e', color: '#e8e4f0' },
 };
 
 const BrutalCard = React.forwardRef(({ 
@@ -19,13 +19,13 @@ const BrutalCard = React.forwardRef(({
   children,
   ...props 
 }, ref) => {
-  const baseStyles = 'border-4 border-black p-6 transition-all';
+  const baseStyles = 'border-4 border-black/20 rounded-lg p-6 transition-all';
   
   const shadows = {
-    sm: 'brutal-shadow-sm',
-    md: 'brutal-shadow-md',
-    lg: 'brutal-shadow-lg',
-    xl: 'brutal-shadow-xl'
+    sm: 'shadow-sm',
+    md: 'shadow-md',
+    lg: 'shadow-lg',
+    xl: 'shadow-xl'
   };
   
   return (
@@ -34,7 +34,7 @@ const BrutalCard = React.forwardRef(({
       className={cn(
         baseStyles,
         shadows[shadow],
-        hover && 'hover:translate-x-1 hover:translate-y-1 hover:shadow-xl cursor-pointer',
+        hover && 'hover:translate-y-[-2px] hover:shadow-xl cursor-pointer',
         className
       )}
       style={{ ...variantStyles[variant], ...userStyle }}

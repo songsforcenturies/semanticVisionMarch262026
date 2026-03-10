@@ -7,6 +7,7 @@ import { Plus, Edit, Trash2, Copy, Check, BookOpen, RefreshCw, Type, SpellCheck,
 import { toast } from 'sonner';
 import StudentFormDialog from './StudentFormDialog';
 import DeleteConfirmDialog from './DeleteConfirmDialog';
+import ParentalControlsPanel from './ParentalControlsPanel';
 
 const StudentsTab = () => {
   const { user } = useAuth();
@@ -407,6 +408,9 @@ const StudentsTab = () => {
                     {student.ad_preferences?.allow_brand_stories ? 'Brand Stories ON' : 'Brand Stories OFF'}
                   </BrutalButton>
                 </div>
+
+                {/* Parental Controls */}
+                <ParentalControlsPanel studentId={student.id} studentName={student.full_name} />
               </div>
             </BrutalCard>
           ))}

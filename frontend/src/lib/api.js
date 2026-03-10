@@ -315,6 +315,11 @@ export const messagesAPI = {
   markStudentRead: (id, studentId) => apiClient.post(`/student-notifications/${id}/read`, { student_id: studentId }),
 };
 
+export const parentalControlsAPI = {
+  get: (studentId) => apiClient.get(`/students/${studentId}/parental-controls`),
+  update: (studentId, data) => apiClient.put(`/students/${studentId}/parental-controls`, data),
+};
+
 export const spellingContestsAPI = {
   adminCreate: (data) => apiClient.post('/admin/spelling-contests', data),
   adminList: () => apiClient.get('/admin/spelling-contests'),

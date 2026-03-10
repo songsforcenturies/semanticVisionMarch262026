@@ -6250,6 +6250,45 @@ async def get_diction_progress(student_id: str, current_user=Depends(get_current
 
 
 
+# ==================== PARENTAL CONTROLS ====================
+
+class ParentalControlsUpdate(BaseModel):
+    recording_mode: str = "optional"  # "optional", "audio_required", "video_required", "both_required"
+    auto_start_recording: bool = False
+    require_confirmation: bool = True
+    chapter_threshold: int = 0  # 0 = every chapter, N = after N chapters
+    can_skip_recording: bool = True
+
+DEFAULT_PARENTAL_CONTROLS = {
+    "recording_mode": "optional",
+    "auto_start_recording": False,
+    "require_confirmation": True,
+    "chapter_threshold": 0,
+    "can_skip_recording": True,
+}
+
+@api_router.get("/students/{student_id}/parental-controls")
+async def get_parental_controls(student_id: str):
+    """Get parental controls for a student - no auth required for read-only access"""
+    student = await db.students.find_one({"id": student_id}, {"_id": 0})
+    if not student:
+        raise HTTPException(404, "Student not found")
+    controls = student.get("parental_controls", DEFAULT_PARENTAL_CONTROLS)
+    return controls
+
+@api_router.put("/students/{student_id}/parental-controls")
+async def update_parental_controls(student_id: str, data: ParentalControlsUpdate, current_user=Depends(get_current_user)):
+    student = await db.students.find_one({"id": student_id})
+    if not student:
+        raise HTTPException(404, "Student not found")
+    
+    controls = data.dict()
+    await db.students.update_one({"id": student_id}, {"$set": {"parental_controls": controls}})
+    return controls
+
+
+
+
 # ==================== ADMIN MESSAGING ====================
 
 class AdminMessageCreate(BaseModel):

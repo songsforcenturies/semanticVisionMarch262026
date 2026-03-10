@@ -9,23 +9,23 @@ const BrutalButton = React.forwardRef(({
   children, 
   ...props 
 }, ref) => {
-  const baseStyles = 'font-bold uppercase transition-all brutal-active disabled:opacity-50 disabled:cursor-not-allowed';
+  const baseStyles = 'font-bold uppercase transition-all rounded-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.97]';
   
   const variants = {
-    default: 'bg-white text-black border-4 border-black brutal-shadow-md hover:brutal-shadow-lg',
-    indigo: 'bg-indigo-500 text-white border-4 border-black brutal-shadow-md hover:brutal-shadow-indigo',
-    emerald: 'bg-emerald-500 text-white border-4 border-black brutal-shadow-md hover:brutal-shadow-emerald',
-    rose: 'bg-rose-400 text-white border-4 border-black brutal-shadow-md hover:brutal-shadow-rose',
-    amber: 'bg-amber-400 text-black border-4 border-black brutal-shadow-md hover:brutal-shadow-amber',
-    dark: 'bg-black text-white border-4 border-black brutal-shadow-md hover:brutal-shadow-lg',
-    ghost: 'bg-transparent border-4 border-black text-black hover:bg-gray-100'
+    default: 'bg-[#f8f6f1] text-[#2d2a26] border-2 border-black/15 shadow-sm hover:shadow-md',
+    indigo: 'bg-indigo-500/90 text-white border-2 border-indigo-600/30 shadow-sm hover:shadow-md hover:bg-indigo-500',
+    emerald: 'bg-emerald-500/90 text-white border-2 border-emerald-600/30 shadow-sm hover:shadow-md hover:bg-emerald-500',
+    rose: 'bg-rose-400/90 text-white border-2 border-rose-500/30 shadow-sm hover:shadow-md hover:bg-rose-400',
+    amber: 'bg-amber-400/90 text-[#3e3018] border-2 border-amber-500/30 shadow-sm hover:shadow-md hover:bg-amber-400',
+    dark: 'bg-[#1e1e2e] text-white border-2 border-white/10 shadow-sm hover:shadow-md',
+    ghost: 'bg-transparent border-2 border-black/15 text-[#2d2a26] hover:bg-black/5'
   };
   
   const sizes = {
-    sm: 'px-3 py-1 text-sm',
-    md: 'px-6 py-3 text-base',
-    lg: 'px-8 py-4 text-lg',
-    xl: 'px-10 py-5 text-xl'
+    sm: 'px-3 py-1.5 text-xs',
+    md: 'px-5 py-2.5 text-sm',
+    lg: 'px-7 py-3.5 text-base',
+    xl: 'px-9 py-4.5 text-lg'
   };
   
   return (
