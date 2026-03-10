@@ -173,6 +173,14 @@ The platform comprises eight interconnected pipelines:
 
 **H. Guided Onboarding Framework:** Role-specific, skippable onboarding wizards with persistent state management and on-demand reset.
 
+**I. Read-Aloud Recording and Analysis Pipeline:** A system that (1) captures student audio while reading narratives aloud; (2) performs speech-to-text alignment comparing spoken words to the known narrative text; (3) computes multi-dimensional diction scores (pronunciation accuracy, fluency, completeness, prosody); (4) tracks diction improvement longitudinally across multiple sessions; (5) preserves all recordings as an Audio Memory Library for guardians; (6) enables contributed recordings to be shared in a Peer Audio Book Section where children listen to other children reading; and (7) feeds diction analysis back into narrative generation to create targeted pronunciation practice opportunities.
+
+**J. AI-Generated Video and Brand Video Integration Pipeline:** A system that (1) generates AI-produced video content for narrative scenes; (2) embeds brand products visually within generated video as contextually appropriate narrative elements; (3) integrates video clips within the text-based narrative reader; and (4) tracks video brand impressions and Brand Comprehension from video content separately from text content.
+
+**K. On-Device and Multi-Platform Architecture:** A native application deployable on tablets (iPad), smartphones, laptops, desktops, and educational devices with (1) an on-device LLM for offline story generation without network connectivity; (2) local data storage with configurable audio/video compression formats; (3) cloud synchronization when connected; and (4) export capabilities including download, email, and external storage.
+
+**L. Lifelong Learning Continuum:** A system maintaining a continuous educational record from Pre-K (age 3, ~500 word target) through College (age 22+, ~50,000 word target), with (1) automatic complexity recalibration as the student ages; (2) a historical archive of all narratives, assessments, diction recordings, and mastery data; (3) a "touchstone in time" feature enabling students and guardians to revisit earlier developmental stages; and (4) multi-year longitudinal analytics.
+
 ---
 
 ## BRIEF DESCRIPTION OF THE DRAWINGS
@@ -592,6 +600,70 @@ The present invention includes a novel age-mapped vocabulary target system:
 
 **25.2 Self-Service Upgrade.** Guardians browse available plans and upgrade their subscription, with the system enforcing plan limits (maximum students, word bank categories, etc.).
 
+### 26. Read-Aloud Recording and Diction Analysis System
+
+**26.1 Recording Activation.** When a student begins reading a narrative chapter, the system presents an option to activate read-aloud recording. Upon activation, the device microphone captures the student's voice while the narrative text is displayed.
+
+**26.2 Speech-to-Text Alignment.** The recorded audio is processed through a speech recognition engine. The recognized text is aligned word-by-word against the known narrative text, identifying: correctly pronounced words, mispronounced words (with the incorrect phonemes identified), omitted words (words the student skipped), inserted words (words the student added), and hesitations or pauses.
+
+**26.3 Multi-Dimensional Diction Scoring.** The system computes four diction scores per reading session:
+- **Pronunciation Accuracy (0-100):** Percentage of words pronounced correctly at the phoneme level, comparing the student's pronunciation against standard phonetic reference.
+- **Fluency (0-100):** Smoothness of reading measured by pace consistency, absence of unnatural pauses, and absence of word repetitions.
+- **Completeness (0-100):** Percentage of narrative words that the student spoke during the session.
+- **Prosody (0-100):** Quality of intonation, rhythm, stress patterns, and expressiveness during reading.
+
+**26.4 Composite Reading Proficiency Score.** The four diction scores are combined with vocabulary mastery (from assessments) and comprehension (from chapter questions) into a single composite reading proficiency metric.
+
+**26.5 Audio Memory Library.** All recorded read-aloud sessions are preserved chronologically in a guardian-accessible library. Each recording is tagged with: student name, student age at time of recording, narrative title, date, and diction scores. Parents can play back recordings from months or years earlier, hearing their child's voice and reading ability at different developmental stages. This creates a deeply personal audio record of the child's educational journey.
+
+**26.6 Peer Audio Book Section.** Guardians who opt in can contribute their child's recordings to a community-shared audio library. Other students can browse and listen to peer narrations organized by story, reader age, and rating. This creates a unique audio book ecosystem narrated entirely by children, providing relatable reading models (children listen better to other children) and a sense of community.
+
+**26.7 Diction Improvement Tracking.** The system maintains time-series diction scores, computing improvement rates per dimension. Persistent pronunciation challenges (specific phonemes, word patterns) are identified and fed back into narrative generation -- the AI is instructed to include more words containing the phoneme patterns the student is practicing, creating a closed-loop pronunciation improvement system.
+
+**26.8 Video Recording.** Optionally, the system can activate video recording alongside audio, capturing the student's face and expressions during reading. Video recordings are stored alongside audio in the Memory Library, providing visual records of reading sessions across developmental stages.
+
+**26.9 Configurable Recording Settings.** Guardians configure: audio format (AAC, MP3, OPUS), video format (H.264, H.265), quality/resolution with storage size estimates, and whether to record audio only or audio+video.
+
+### 27. On-Device Architecture and Offline Story Generation
+
+**27.1 Native Multi-Platform Application.** The system is deployable as a native application on: iPad/iPhone (iOS), Android tablets and phones, Mac computers (macOS), Windows PCs, and Chromebooks (ChromeOS).
+
+**27.2 On-Device LLM.** A compressed, quantized Large Language Model is deployed locally on the device. This on-device model generates personalized educational narratives using the same prompt construction pipeline as the cloud-based model, but executes entirely on-device without transmitting any data to external servers. This enables:
+- **Complete Privacy:** No student data leaves the device during generation.
+- **Offline Functionality:** Full story generation capability without internet access.
+- **Low-Latency Generation:** No network round-trip delays.
+- **Accessibility:** Functionality in areas with limited or no internet connectivity.
+
+**27.3 Dual-Mode Operation.** The application supports seamless switching between: (a) online mode using cloud-based LLM for maximum narrative quality, and (b) offline mode using on-device LLM for privacy and accessibility. The student experience is identical in both modes.
+
+**27.4 Local Data Storage.** All student profiles, word banks, generated narratives, read-aloud recordings, assessment history, and diction scores are stored locally on the device with configurable storage allocation.
+
+**27.5 Cloud Synchronization.** When network connectivity is available, the system synchronizes all locally generated data with the cloud account, ensuring multi-device access and backup.
+
+**27.6 Export Capabilities.** Data can be exported via: direct download to device storage, email sharing (recordings, progress reports, narratives), cloud upload to the associated account, and export to external storage services.
+
+### 28. AI-Generated Video Content in Stories
+
+**28.1 Scene Identification.** After textual narrative generation, the system identifies chapters or scenes that would benefit from video storytelling -- typically action sequences, setting introductions, or scenes featuring brand product usage.
+
+**28.2 Video Prompt Construction.** Video generation prompts incorporate: scene descriptions from the narrative, character appearances derived from the student's cultural context, story settings, and any brand products appearing as problem-solving elements in the scene.
+
+**28.3 Video Generation.** Prompts are transmitted to an AI video generation engine, producing short video clips (10-30 seconds) corresponding to narrative scenes.
+
+**28.4 Brand Integration in Video.** Brand products that serve as problem-solving narrative elements are visually represented in generated video -- shown being used by characters to solve problems, contextually integrated into the scene rather than displayed as standalone advertisements. This is fundamentally different from post-production product placement in pre-existing entertainment content (as practiced by companies like BEN Labs), because: (a) the video is AI-generated specifically for this educational narrative, not edited into existing footage; (b) the brand appears as an organic story element solving a character's problem; (c) the content is personalized to the individual student; and (d) comprehension of the brand integration is measurable through the assessment pipeline.
+
+**28.5 Multimedia Reader.** The combined text-and-video narrative is presented in an integrated reader interface with synchronized chapter navigation, inline video playback, and seamless transitions between text and video segments.
+
+### 29. Lifelong Learning Continuum (Pre-K through College)
+
+**29.1 Developmental Span.** The system maintains a single, continuous educational record for each student spanning their entire developmental journey from Pre-K (age 3, ~500 word biological target) through College (age 22+, ~50,000 word polymath target).
+
+**29.2 Automatic Recalibration.** As the student ages and progresses through grade levels, all system parameters automatically recalibrate: narrative complexity increases, vocabulary tiers advance, belief system nuance deepens, cultural context becomes more sophisticated, brand eligibility expands, and comprehension questions become more analytical.
+
+**29.3 Historical Archive as Touchstone in Time.** Every narrative, assessment, diction recording, vocabulary milestone, and Brand Comprehension data point is preserved in a historical archive. A college student can revisit the story they read at age 5, hear their own voice reading it, see the words they mastered that week, and measure their journey from 500-word Pre-K vocabulary to 50,000-word college-level mastery. This archive serves as an educational time capsule and a deeply personal record.
+
+**29.4 Longitudinal Analytics.** Multi-year trend dashboards display: vocabulary growth curves plotted against biological targets, reading fluency improvement over years, comprehension score progression, diction improvement across developmental stages, and total narratives consumed.
+
 ---
 
 ## CLAIMS
@@ -930,11 +1002,169 @@ The following claims describe additional embodiments of the invention that are c
 (b) the visual placement is contextually appropriate to the narrative scene; and
 (c) visual brand placement is tracked as a distinct impression type with its own Brand Comprehension measurement.
 
+### Read-Aloud Recording, Audio Analysis, and Audio Memory System Claims
+
+**Claim 64.** A computer-implemented method for recording, analyzing, and preserving student read-aloud sessions within an AI-generated personalized educational narrative platform, comprising:
+
+(a) presenting, on a computing device, an AI-generated educational narrative to a student;
+
+(b) activating an audio recording module that captures the student's voice as the student reads the narrative text aloud;
+
+(c) transmitting the recorded audio to a speech recognition and analysis engine;
+
+(d) performing text-audio alignment by comparing the recognized speech output against the known narrative text, identifying: correctly pronounced words, mispronounced words, omitted words, inserted words, and hesitation patterns;
+
+(e) computing a diction score comprising at least:
+   (i) a pronunciation accuracy score measuring the percentage of words correctly pronounced at the phoneme level;
+   (ii) a fluency score measuring smoothness, pacing, and absence of unnatural pauses;
+   (iii) a completeness score measuring the percentage of narrative words that were spoken; and
+   (iv) a prosody score measuring intonation, rhythm, and expressiveness;
+
+(f) storing the recorded audio, the computed scores, and the text-audio alignment data as a read-aloud session record associated with the student, the specific narrative, and a timestamp;
+
+(g) maintaining a chronological history of all read-aloud sessions for each student, enabling longitudinal analysis of diction improvement over time;
+
+(h) presenting diction improvement trends to the student's guardian, showing progression of pronunciation accuracy, fluency, completeness, and prosody scores across multiple reading sessions; and
+
+(i) generating a composite reading proficiency assessment by combining the diction scores with vocabulary mastery data and comprehension question performance.
+
+**Claim 65.** The method of Claim 64, further comprising an Audio Memory Library wherein:
+
+(a) all recorded read-aloud audio sessions are preserved as a persistent, chronologically organized collection associated with the student's profile;
+
+(b) guardians can browse, play, and review their child's reading recordings organized by date, narrative title, and age at time of recording;
+
+(c) the system presents the Audio Memory Library as a developmental timeline showing the child's reading voice, pronunciation ability, and story engagement evolving from early childhood through adolescence; and
+
+(d) guardians can export, download, or share individual recordings or curated collections of recordings.
+
+**Claim 66.** The method of Claim 64, further comprising a Peer Audio Book Section wherein:
+
+(a) guardians who opt in can contribute their child's read-aloud recordings to a shared audio library;
+
+(b) recordings contributed to the shared library are associated with the narrative they correspond to, the reader's age at time of recording, and a display name (configurable for privacy);
+
+(c) other students on the platform can browse the shared audio library and listen to peer-recorded narrations of stories;
+
+(d) the system enables children to listen to other children of similar ages reading stories, providing relatable narration models that differ from professional adult narration; and
+
+(e) the shared audio library creates a community-driven audio book ecosystem where the content is narrated by the platform's own student community.
+
+**Claim 67.** The method of Claim 64, further comprising a diction improvement analytics module wherein:
+
+(a) the system maintains a time-series record of all diction scores (pronunciation accuracy, fluency, completeness, prosody) for each student;
+
+(b) the system computes improvement rates by comparing scores across multiple sessions, identifying specific phonemes, word patterns, or fluency characteristics that have improved or need attention;
+
+(c) the system identifies persistent pronunciation challenges for specific words, phoneme combinations, or word families, generating targeted practice recommendations;
+
+(d) the system presents a visual diction progress dashboard to guardians showing score trends, improvement rates, and areas needing attention; and
+
+(e) the system incorporates diction analysis results into subsequent narrative generation, instructing the AI to include more words containing phoneme patterns the student is practicing, creating a closed-loop pronunciation improvement system.
+
+**Claim 68.** The method of Claim 64, further comprising a video recording module wherein:
+
+(a) in addition to audio recording, the system activates a video recording module capturing the student's visual reading behavior;
+
+(b) the video recording captures the student's face, expressions, and engagement level during the reading session;
+
+(c) the combined audio-video recording is stored as a multimedia read-aloud session record;
+
+(d) the video recordings are preserved in the Audio Memory Library alongside audio-only recordings, providing guardians with visual memories of their child's reading sessions across developmental stages; and
+
+(e) recording settings are configurable by the guardian, including: video quality/resolution, audio compression format, whether to record audio only or audio plus video, and storage preferences (device-local, cloud upload, or both).
+
+### On-Device and Multi-Platform Claims
+
+**Claim 69.** A computer-implemented system for generating personalized educational narratives on a local computing device without requiring network connectivity, comprising:
+
+(a) a native application installable on a computing device selected from the group consisting of: tablets, smartphones, laptop computers, desktop computers, and dedicated educational devices;
+
+(b) an on-device Large Language Model deployed locally on the computing device, configured to generate multi-chapter educational narratives incorporating student profile personalization dimensions, tiered vocabulary distribution, and brand integration directives;
+
+(c) a local data store on the computing device maintaining the student profile, word banks, previously generated narratives, read-aloud recordings, and assessment history;
+
+(d) an offline content generation module that invokes the on-device LLM to generate personalized narratives without transmitting data to any external server, ensuring complete data privacy and functionality in environments without internet access;
+
+(e) a synchronization module that, when network connectivity is available, synchronizes locally generated content, assessment data, diction scores, and read-aloud recordings with a cloud-based server account; and
+
+(f) a storage management module providing configurable options for: local device storage allocation, automatic cloud backup scheduling, manual export to external storage, email sharing of recordings and progress reports, and audio/video compression format selection (including configurable quality/size tradeoffs).
+
+**Claim 70.** The system of Claim 69, further comprising a multi-platform deployment architecture wherein:
+
+(a) the native application is available for multiple operating systems including iOS (iPad, iPhone), Android (tablets, phones), macOS, Windows, and ChromeOS;
+
+(b) all user data, preferences, generated narratives, and recordings synchronize across devices via the cloud account when connected;
+
+(c) the on-device LLM model is optimized for each platform's computational capabilities, with model size and precision adapted to available device memory and processing power; and
+
+(d) the system supports seamless transition between online mode (using cloud-based LLM for maximum quality) and offline mode (using on-device LLM for privacy and accessibility).
+
+### AI-Generated Video Content and Brand Video Integration Claims
+
+**Claim 71.** A computer-implemented method for generating and integrating AI-produced video content within personalized educational narratives, comprising:
+
+(a) after generating the textual content of an educational narrative, identifying scenes or chapters within the narrative that would benefit from visual storytelling;
+
+(b) constructing video generation prompts incorporating: the narrative scene description, character appearances derived from the student's cultural context, the story setting, and any brand products that appear in the scene as problem-solving elements;
+
+(c) transmitting the video generation prompts to an AI video generation engine;
+
+(d) receiving generated video clips corresponding to narrative scenes;
+
+(e) embedding the generated video clips within the corresponding chapters of the narrative, creating a multimedia educational experience that combines text reading with video content;
+
+(f) presenting the combined text-and-video narrative to the student in an integrated reader interface with synchronized chapter navigation; and
+
+(g) tracking video viewing as a distinct engagement metric alongside text reading metrics.
+
+**Claim 72.** The method of Claim 71, further comprising brand integration within generated video content, wherein:
+
+(a) brand products that appear as problem-solving narrative elements in the text are visually represented in the AI-generated video scenes;
+
+(b) the visual brand representation is contextually appropriate to the narrative scene, showing the product being used to solve the character's problem rather than displayed as a standalone advertisement;
+
+(c) video-based brand impressions are tracked as a distinct impression type, separate from text-based impressions;
+
+(d) Brand Comprehension questions may reference content visible in the video scenes, enabling measurement of visual brand engagement; and
+
+(e) the method of integrating brands into AI-generated educational video content is distinguished from integration into pre-existing entertainment content in that: (i) the video content is generated specifically for the educational narrative, not edited into existing footage; (ii) the brand appears as an organic narrative element solving a character's problem; (iii) the content is personalized to the individual student; and (iv) comprehension of the brand integration is measurable through the assessment pipeline.
+
+### Lifelong Learning and Historical Archive Claims
+
+**Claim 73.** The method of Claim 7, further comprising a lifelong learning continuum system wherein:
+
+(a) the system maintains a continuous educational record spanning from pre-kindergarten (age 3) through college (age 22+) for each student;
+
+(b) as the student ages and progresses through grade levels, the system automatically recalibrates narrative complexity, vocabulary tier targets, belief system nuance, cultural context depth, and brand eligibility parameters;
+
+(c) previously generated narratives and associated data (vocabulary mastered, assessment scores, diction recordings, Brand Comprehension data) are preserved as a historical archive representing the student's complete educational journey;
+
+(d) the historical archive serves as a personal "touchstone in time" allowing the student and their guardians to revisit stories from earlier developmental stages, hear recordings of the student reading at younger ages, and see the quantitative progression of vocabulary mastery, reading fluency, and comprehension over years; and
+
+(e) the system provides a longitudinal analytics dashboard presenting multi-year trends in vocabulary growth relative to biological targets, reading fluency improvement, assessment performance, and narrative engagement patterns.
+
+**Claim 74.** The method of Claim 73, wherein the lifelong learning continuum establishes the system as a comprehensive vocabulary acquisition platform covering the full developmental spectrum from foundational sight words (Pre-K, ~500 word target) through professional and discipline-specific vocabulary (College/Adult, ~50,000 word target), with every generated narrative, assessment, and diction recording contributing to a single, unified student record.
+
+### Media Storage and Export Claims
+
+**Claim 75.** The system of Claim 69, further comprising a media management module wherein:
+
+(a) all audio recordings, video recordings, generated narrative PDFs, and progress reports are stored initially on the local device;
+
+(b) the guardian configures storage preferences including: audio compression format (e.g., AAC, MP3, OPUS), video compression format (e.g., H.264, H.265, VP9), quality/resolution settings with corresponding storage size estimates, and maximum local storage allocation;
+
+(c) the system provides multiple export mechanisms: direct device download, email sharing with configurable attachments, cloud account upload with progress indicators, and export to external storage services;
+
+(d) the cloud account provides persistent, device-independent access to all stored media; and
+
+(e) the system provides storage analytics showing total media stored, storage by category (audio, video, narratives, assessments), and recommendations for optimizing storage usage.
+
 ---
 
 ## ABSTRACT
 
-A computer-implemented system and method for generating AI-driven personalized educational narratives with integrated Brand Comprehension measurement, replacing static printed educational materials with infinite, dynamically generated content. The system assembles multi-dimensional student profiles (belief system, cultural context, interests, virtues, strengths, weaknesses, vocabulary level, biological vocabulary targets) and generates unique multi-chapter educational stories using a Large Language Model, with vocabulary distributed across a novel 60/30/10 three-tier system (reinforcement/growth/aspiration) calibrated across 16 developmental levels. Commercial brand products are integrated as organic, problem-solving narrative elements through a competitive bidding marketplace where brands grouped by problem category compete via weighted rotation algorithms. The system introduces "Brand Comprehension" -- a novel metric measuring students' cognitive engagement with brand content through a four-condition question classification algorithm, delivering comprehension scores to brand partners as closed-loop analytics. The platform implements six-tier role-based access (admin, parent, teacher, student, brand, affiliate) with unified authentication, guardian-controlled default-false consent architecture, affiliate referral engine with user-facing dashboards, guided onboarding, real-time classroom sessions, donation-funded reader sponsorship, brand classroom sponsorship, AI-powered contextual word definitions, printable student progress reports, brand story preview generation, configurable AI model selection, subscription plan management, multi-currency support, and age-derived biological vocabulary targeting. Contemplated future embodiments include AI-generated story illustrations, text-to-speech narration, augmented reality story experiences, adaptive mid-narrative difficulty adjustment, parent-child shared reading, brand A/B testing, sign language companions, seasonal content adaptation, family shared narratives, offline reading, gamification, and brand visual placement in illustrations.
+A computer-implemented system and method for generating AI-driven personalized educational narratives with integrated Brand Comprehension measurement, replacing static printed educational materials with infinite, dynamically generated content spanning from pre-kindergarten through college. The system assembles multi-dimensional student profiles (belief system, cultural context, interests, virtues, strengths, weaknesses, vocabulary level, biological vocabulary targets) and generates unique multi-chapter educational stories using a Large Language Model, with vocabulary distributed across a novel 60/30/10 three-tier system (reinforcement/growth/aspiration) calibrated across 16 developmental levels. Commercial brand products are integrated as organic, problem-solving narrative elements through a competitive bidding marketplace where brands grouped by problem category compete via weighted rotation algorithms. The system introduces "Brand Comprehension" -- a novel metric measuring students' cognitive engagement with brand content through a four-condition question classification algorithm, delivering comprehension scores to brand partners as closed-loop analytics. A read-aloud recording and analysis system captures students reading narratives aloud, performs text-audio alignment comparing spoken words to narrative text, computes multi-dimensional diction scores (pronunciation accuracy, fluency, completeness, prosody), tracks diction improvement over time, and preserves recordings in an Audio Memory Library. A Peer Audio Book Section allows children to listen to other children's narrations. The system supports on-device deployment with a local LLM for offline story generation on tablets, phones, and computers, with configurable media compression and cloud synchronization. AI-generated video content with brand integration is embedded within narratives. A lifelong learning continuum maintains a historical archive from pre-K through college, serving as a personal educational touchstone in time. The platform implements six-tier role-based access, guardian-controlled default-false consent, affiliate referral engine, guided onboarding, real-time classroom sessions, donation-funded reader sponsorship, and multi-currency support.
 
 ---
 
@@ -1151,7 +1381,7 @@ The following actual screenshots from a working embodiment of the invention are 
 *Filing Date: March 10, 2026*
 *Inventor: Allen Tyrone Johnson*
 *Status: READY FOR FILING*
-*Total Claims: 63 (8 Independent + 42 Dependent + 13 Future Embodiment)*
+*Total Claims: 75 (8 Independent + 42 Dependent + 13 Future Embodiment + 12 Audio/Video/Device/Lifelong)*
 
 ---
 
