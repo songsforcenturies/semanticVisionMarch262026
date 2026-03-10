@@ -198,6 +198,13 @@ export const paypalAPI = {
   captureOrder: (orderId) => apiClient.post(`/paypal/capture-order/${orderId}`),
 };
 
+// ==================== USER CARD API ====================
+
+export const userCardAPI = {
+  getCardData: () => apiClient.get('/user-card'),
+};
+
+
 // ==================== COUPON API ====================
 
 export const couponAPI = {

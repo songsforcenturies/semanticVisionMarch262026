@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import AppShell from '@/components/AppShell';
-import { Users, ShoppingBag, TrendingUp, Wallet, Share2, Crown, Shield, Gift, HelpCircle, RotateCcw, Mic, Headphones } from 'lucide-react';
+import { Users, ShoppingBag, TrendingUp, Wallet, Share2, Crown, Shield, Gift, HelpCircle, RotateCcw, Mic, Headphones, CreditCard } from 'lucide-react';
 import StudentsTab from '@/components/guardian/StudentsTab';
 import MarketplaceTab from '@/components/guardian/MarketplaceTab';
 import ProgressTab from '@/components/guardian/ProgressTab';
@@ -14,6 +14,7 @@ import OffersTab from '@/components/guardian/OffersTab';
 import AffiliateTab from '@/components/guardian/AffiliateTab';
 import AudioMemoryTab from '@/components/guardian/AudioMemoryTab';
 import AudioBookCollection from '@/components/AudioBookCollection';
+import UserIDCards from '@/components/guardian/UserIDCards';
 import OnboardingWizard from '@/components/OnboardingWizard';
 import { guardianOnboardingSteps } from '@/components/onboardingSteps';
 import FAQSection from '@/components/FAQSection';
@@ -43,6 +44,7 @@ const GuardianPortal = () => {
     { id: 'affiliate', label: 'Affiliate', icon: Share2 },
     { id: 'audio-memories', label: 'Audio Memories', icon: Mic },
     { id: 'audio-books', label: 'Audio Books', icon: Headphones },
+    { id: 'id-cards', label: 'ID Cards', icon: CreditCard },
     { id: 'progress', label: t('guardian.progress'), icon: TrendingUp },
     { id: 'faq', label: 'FAQ', icon: HelpCircle },
   ];
@@ -102,6 +104,7 @@ const GuardianPortal = () => {
           {activeTab === 'affiliate' && <AffiliateTab />}
           {activeTab === 'audio-memories' && <AudioMemoryTab />}
           {activeTab === 'audio-books' && <AudioBookCollection embedded />}
+          {activeTab === 'id-cards' && <UserIDCards />}
           {activeTab === 'progress' && <ProgressTab />}
           {activeTab === 'faq' && <FAQSection items={parentFAQ} title="Parent & Guardian FAQ" />}
         </div>

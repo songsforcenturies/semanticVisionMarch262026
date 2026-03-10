@@ -16,13 +16,39 @@ const ReadAloudRecorder = ({ studentId, narrativeId, chapterNumber, onRecordingC
   const [mediaBlobUrl, setMediaBlobUrl] = useState(null);
   const [result, setResult] = useState(null);
   const [elapsed, setElapsed] = useState(0);
+  const [chunksSaved, setChunksSaved] = useState(0);
   const mediaRecorderRef = useRef(null);
   const streamRef = useRef(null);
   const chunksRef = useRef([]);
   const timerRef = useRef(null);
+  const autoSaveRef = useRef(null);
+
+  // Auto-save chunks every 15 seconds to prevent data loss
+  const saveChunkLocally = useCallback(() => {
+    if (chunksRef.current.length === 0) return;
+    try {
+      const blob = new Blob([...chunksRef.current], { type: mode === 'video' ? 'video/webm' : 'audio/webm' });
+      const key = `sv_recording_${studentId}_${narrativeId}_${chapterNumber}`;
+      // Store as array buffer in sessionStorage for recovery
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          sessionStorage.setItem(key, reader.result);
+          setChunksSaved(prev => prev + 1);
+        } catch (e) {
+          // sessionStorage might be full, that's ok
+          console.warn('Could not auto-save chunk:', e);
+        }
+      };
+      reader.readAsDataURL(blob);
+    } catch (e) {
+      console.warn('Chunk save failed:', e);
+    }
+  }, [mode, studentId, narrativeId, chapterNumber]);
 
   useEffect(() => () => {
     if (timerRef.current) clearInterval(timerRef.current);
+    if (autoSaveRef.current) clearInterval(autoSaveRef.current);
     if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
     if (mediaBlobUrl) URL.revokeObjectURL(mediaBlobUrl);
   }, []);
@@ -61,19 +87,25 @@ const ReadAloudRecorder = ({ studentId, narrativeId, chapterNumber, onRecordingC
 
       recorder.start(1000);
       setRecording(true);
+      setChunksSaved(0);
       timerRef.current = setInterval(() => setElapsed(p => p + 1), 1000);
+      // Auto-save every 15 seconds
+      autoSaveRef.current = setInterval(() => saveChunkLocally(), 15000);
     } catch (err) {
       toast.error('Could not access microphone/camera. Please grant permission.');
     }
-  }, [mode, mediaBlobUrl]);
+  }, [mode, mediaBlobUrl, saveChunkLocally]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && recording) {
       mediaRecorderRef.current.stop();
       setRecording(false);
       if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+      if (autoSaveRef.current) { clearInterval(autoSaveRef.current); autoSaveRef.current = null; }
+      // Final save
+      saveChunkLocally();
     }
-  }, [recording]);
+  }, [recording, saveChunkLocally]);
 
   const uploadAndAnalyze = useCallback(async () => {
     if (!mediaBlob) return;
@@ -171,6 +203,11 @@ const ReadAloudRecorder = ({ studentId, narrativeId, chapterNumber, onRecordingC
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
               <span className="text-sm font-mono font-bold" style={{ color: C.cream }}>{fmt(elapsed)}</span>
+              {chunksSaved > 0 && (
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(52,211,153,0.15)', color: '#34D399' }}>
+                  Auto-saved
+                </span>
+              )}
             </div>
           </>
         )}

@@ -398,3 +398,44 @@ async def get_me(current_user: dict = Depends(get_current_user)):
     return UserResponse(**user)
 
 
+
+
+# ==================== USER ID CARDS ====================
+
+@router.get("/user-card")
+async def get_user_card(current_user: dict = Depends(get_current_user)):
+    """Get data for generating a user ID/invitation card"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    students = await db.students.find(
+        {"guardian_id": current_user["id"]}, {"_id": 0}
+    ).to_list(50)
+
+    base_url = os.environ.get("APP_URL", "https://semanticvision.ai")
+
+    # Guardian card
+    guardian_card = {
+        "type": "guardian",
+        "name": user.get("full_name", ""),
+        "email": user.get("email", ""),
+        "referral_code": user.get("referral_code", ""),
+        "referral_url": f"{base_url}/register?ref={user.get('referral_code', '')}",
+        "member_since": user.get("created_date", ""),
+        "student_count": len(students),
+    }
+
+    # Student cards
+    student_cards = []
+    for s in students:
+        student_cards.append({
+            "type": "student",
+            "name": s.get("full_name", ""),
+            "student_code": s.get("student_code", ""),
+            "age": s.get("age", 0),
+            "reading_level": s.get("reading_level", "beginner"),
+            "login_url": f"{base_url}/student-login",
+        })
+
+    return {"guardian_card": guardian_card, "student_cards": student_cards}

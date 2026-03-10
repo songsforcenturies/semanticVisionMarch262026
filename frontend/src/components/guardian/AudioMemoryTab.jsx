@@ -125,12 +125,17 @@ const AudioMemoryTab = () => {
                   {rec.analysis_status === 'pending' && <BrutalBadge variant="amber" size="sm">Pending</BrutalBadge>}
                   {!rec.shared_to_audiobooks && rec.analysis_status === 'completed' && (
                     <button onClick={() => contributeMut.mutate({ recording_id: rec.id, display_name: rec.student_name })}
-                      className="p-2 text-gray-400 hover:text-indigo-600 transition-all" title="Share to Audio Book Collection"
-                      data-testid={`share-${rec.id}`}>
-                      <Share2 size={16} />
+                      className="flex items-center gap-1 px-2 py-1 text-xs font-bold rounded-lg transition-all bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
+                      title="Allow this recording to be available as an Audio Book"
+                      data-testid={`allow-audiobook-${rec.id}`}>
+                      <Share2 size={12} /> Allow for Audio Books
                     </button>
                   )}
-                  {rec.shared_to_audiobooks && <CheckCircle size={16} className="text-emerald-500" title="Shared" />}
+                  {rec.shared_to_audiobooks && (
+                    <span className="flex items-center gap-1 text-xs font-bold text-emerald-500" data-testid={`shared-badge-${rec.id}`}>
+                      <CheckCircle size={14} /> Shared
+                    </span>
+                  )}
                   <button onClick={() => setShowProgress(showProgress === rec.student_id ? null : rec.student_id)}
                     className="p-2 text-gray-400 hover:text-indigo-600 transition-all" title="View Progress"
                     data-testid={`progress-${rec.student_id}`}>

@@ -84,6 +84,20 @@ async def upload_recording(
     await db.reading_recordings.insert_one({**recording, "_id": None})
     await db.reading_recordings.update_one({"id": recording_id}, {"$unset": {"_id": ""}})
     
+    # Notify parent that a new audio memory was created
+    notification = {
+        "id": generate_uuid(),
+        "user_id": current_user["id"],
+        "type": "audio_memory",
+        "title": "New Audio Memory",
+        "message": f"{student.get('full_name', 'Your child')} just created a new audio memory reading \"{narrative.get('title', 'a story')}\" (Ch. {chapter_number})",
+        "read": False,
+        "data": {"recording_id": recording_id, "student_id": student_id, "narrative_id": narrative_id},
+        "created_date": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.messages.insert_one({**notification, "_id": None})
+    await db.messages.update_one({"id": notification["id"]}, {"$unset": {"_id": ""}})
+    
     return {"id": recording_id, "status": "uploaded", "file_size": file_size}
 
 
