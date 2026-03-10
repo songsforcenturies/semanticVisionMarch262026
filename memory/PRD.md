@@ -65,7 +65,12 @@ Build a comprehensive AI-powered personalized educational narrative platform ("S
 ### P0 (Critical)
 - [x] ~~Finalize Provisional Patent~~ -- COMPLETED (v6, 98 claims, 31 screenshots)
 - [x] ~~Master User Manual~~ -- COMPLETED (6 roles, 105 FAQs, benefits tied to claims)
-- [ ] Refactor `server.py` -- Break monolithic file into FastAPI APIRouter modules
+- [x] ~~Refactor `server.py`~~ -- COMPLETED (March 2026). Split into 10 modular route files in backend/routes/. 37/37 regression tests passed.
+
+### Go-Live Preparation (Next)
+- [ ] Integrate PayPal alongside Stripe
+- [ ] Configure email sending from @semanticvision.ai domain (Resend)
+- [ ] Update CORS/domain config for semanticvision.ai
 
 ### P1 (High)
 - [ ] On-Device LLM Integration -- WebLLM or similar for offline story generation
