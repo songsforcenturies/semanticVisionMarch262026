@@ -320,6 +320,11 @@ export const parentalControlsAPI = {
   update: (studentId, data) => apiClient.put(`/students/${studentId}/parental-controls`, data),
 };
 
+export const remindersAPI = {
+  getStudentReminders: (studentId) => apiClient.get(`/student-reminders/${studentId}`),
+  checkMilestones: (studentId) => apiClient.post(`/parent-milestone-check/${studentId}`),
+};
+
 export const spellingContestsAPI = {
   adminCreate: (data) => apiClient.post('/admin/spelling-contests', data),
   adminList: () => apiClient.get('/admin/spelling-contests'),

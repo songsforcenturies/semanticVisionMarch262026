@@ -5497,7 +5497,7 @@ async def affiliate_signup(data: dict = Body(...)):
         resend_key = os.environ.get("RESEND_API_KEY")
         if resend_key:
             resend.api_key = resend_key
-            affiliate_link = f"{os.environ.get('FRONTEND_URL', 'https://audio-book-vault.preview.emergentagent.com')}/register?ref={affiliate.affiliate_code}"
+            affiliate_link = f"{os.environ.get('FRONTEND_URL', 'https://story-hub-demo.preview.emergentagent.com')}/register?ref={affiliate.affiliate_code}"
             resend.Emails.send({
                 "from": "Semantic Vision <onboarding@resend.dev>",
                 "to": [email],
@@ -6285,6 +6285,164 @@ async def update_parental_controls(student_id: str, data: ParentalControlsUpdate
     controls = data.dict()
     await db.students.update_one({"id": student_id}, {"$set": {"parental_controls": controls}})
     return controls
+
+
+
+
+# ==================== TASK REMINDERS ====================
+
+@api_router.get("/student-reminders/{student_id}")
+async def get_student_reminders(student_id: str):
+    """Generate contextual reminders for a student based on reading activity."""
+    student = await db.students.find_one({"id": student_id}, {"_id": 0})
+    if not student:
+        raise HTTPException(404, "Student not found")
+    
+    reminders = []
+    
+    # Check for incomplete narratives
+    narratives = await db.narratives.find(
+        {"student_id": student_id, "status": {"$ne": "completed"}}, {"_id": 0}
+    ).to_list(20)
+    
+    for n in narratives:
+        chapters_done = len(n.get("chapters_completed", []))
+        if chapters_done > 0 and chapters_done < 5:
+            reminders.append({
+                "id": f"incomplete-{n['id']}",
+                "type": "incomplete_story",
+                "priority": "high",
+                "title": f"Continue \"{n.get('title', 'Your Story')}\"",
+                "message": f"You've read {chapters_done}/5 chapters. Keep going — you're almost there!",
+                "narrative_id": n["id"],
+                "progress": chapters_done / 5,
+            })
+    
+    # Check last reading activity
+    last_log = await db.read_logs.find(
+        {"student_id": student_id}, {"_id": 0}
+    ).sort("session_end", -1).to_list(1)
+    
+    if last_log:
+        last_date = last_log[0].get("session_end", "")
+        try:
+            last_dt = datetime.fromisoformat(last_date.replace("Z", "+00:00"))
+            days_since = (datetime.now(timezone.utc) - last_dt).days
+            if days_since >= 3:
+                reminders.append({
+                    "id": "inactivity",
+                    "type": "inactivity",
+                    "priority": "medium",
+                    "title": "Time to Read!",
+                    "message": f"It's been {days_since} days since your last reading session. Your vocabulary misses you!",
+                    "days_inactive": days_since,
+                })
+        except Exception:
+            pass
+    elif not last_log and narratives:
+        reminders.append({
+            "id": "never-read",
+            "type": "inactivity",
+            "priority": "high",
+            "title": "Start Reading!",
+            "message": "You have stories waiting for you. Open one and start your reading journey!",
+            "days_inactive": 999,
+        })
+    
+    # Check for unrecorded chapters (parental controls)
+    controls = student.get("parental_controls", {})
+    if controls.get("recording_mode", "optional") != "optional":
+        recordings = await db.audio_recordings.find(
+            {"student_id": student_id}, {"_id": 0}
+        ).to_list(100)
+        recorded_chapters = set()
+        for r in recordings:
+            recorded_chapters.add(f"{r.get('narrative_id')}-{r.get('chapter_number')}")
+        
+        for n in narratives:
+            for ch_num in n.get("chapters_completed", []):
+                key = f"{n['id']}-{ch_num}"
+                if key not in recorded_chapters:
+                    reminders.append({
+                        "id": f"unrecorded-{key}",
+                        "type": "recording_due",
+                        "priority": "high",
+                        "title": "Recording Needed",
+                        "message": f"Chapter {ch_num} of \"{n.get('title', 'your story')}\" needs a read-aloud recording.",
+                        "narrative_id": n["id"],
+                        "chapter_number": ch_num,
+                    })
+    
+    # Check spelling contests available
+    now = datetime.now(timezone.utc).isoformat()
+    active_contests = await db.spelling_contests.find(
+        {"is_active": True, "end_date": {"$gte": now}}, {"_id": 0}
+    ).to_list(5)
+    
+    student_submissions = await db.spelling_submissions.find(
+        {"student_id": student_id}, {"_id": 0, "contest_id": 1}
+    ).to_list(100)
+    submitted_ids = {s["contest_id"] for s in student_submissions}
+    
+    for c in active_contests:
+        if c["id"] not in submitted_ids:
+            reminders.append({
+                "id": f"contest-{c['id']}",
+                "type": "spelling_contest",
+                "priority": "low",
+                "title": f"Spelling Bee: {c.get('title', 'New Contest')}",
+                "message": f"A spelling contest with {len(c.get('word_list', []))} words is waiting for you!",
+                "contest_id": c["id"],
+            })
+    
+    # Sort by priority
+    priority_order = {"high": 0, "medium": 1, "low": 2}
+    reminders.sort(key=lambda r: priority_order.get(r["priority"], 3))
+    
+    return {"reminders": reminders, "count": len(reminders)}
+
+
+@api_router.post("/parent-milestone-check/{student_id}")
+async def check_parent_milestones(student_id: str):
+    """Check and generate milestone notifications for parents."""
+    student = await db.students.find_one({"id": student_id}, {"_id": 0})
+    if not student:
+        raise HTTPException(404)
+    
+    milestones = []
+    mastered = len(student.get("mastered_tokens", []))
+    total_reading = student.get("total_reading_seconds", 0)
+    
+    # Word milestones
+    for threshold in [10, 25, 50, 100, 250, 500, 1000]:
+        if mastered >= threshold:
+            milestones.append({
+                "type": "vocabulary",
+                "threshold": threshold,
+                "message": f"{student.get('full_name', 'Your child')} has mastered {mastered} words!",
+            })
+    
+    # Reading time milestones (in minutes)
+    minutes = total_reading // 60
+    for threshold in [30, 60, 120, 300, 600]:
+        if minutes >= threshold:
+            milestones.append({
+                "type": "reading_time",
+                "threshold": threshold,
+                "message": f"{student.get('full_name', 'Your child')} has read for {minutes} minutes total!",
+            })
+    
+    # Completed stories
+    completed = await db.narratives.count_documents({"student_id": student_id, "status": "completed"})
+    for threshold in [1, 3, 5, 10, 25]:
+        if completed >= threshold:
+            milestones.append({
+                "type": "stories_completed",
+                "threshold": threshold,
+                "message": f"{student.get('full_name', 'Your child')} has completed {completed} stories!",
+            })
+    
+    return {"milestones": milestones, "student_name": student.get("full_name")}
 
 
 

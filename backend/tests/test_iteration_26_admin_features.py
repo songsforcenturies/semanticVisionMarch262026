@@ -15,7 +15,7 @@ import os
 import time
 
 # Use the public URL
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://audio-book-vault.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://story-hub-demo.preview.emergentagent.com')
 BASE_URL = BASE_URL.rstrip('/')
 API_URL = f"{BASE_URL}/api"
 

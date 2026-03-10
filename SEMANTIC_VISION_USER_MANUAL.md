@@ -7,7 +7,7 @@
 **Version:** 1.0
 **Date:** March 9, 2026
 **Author:** Allen Tyrone Johnson
-**Platform URL:** https://audio-book-vault.preview.emergentagent.com
+**Platform URL:** https://story-hub-demo.preview.emergentagent.com
 
 ---
 

@@ -14,6 +14,7 @@ import FAQSection from '@/components/FAQSection';
 import { studentFAQ } from '@/components/faqContent';
 import OfflineLibrary from '@/components/OfflineLibrary';
 import SpellingBee from '@/components/student/SpellingBee';
+import TaskReminders from '@/components/student/TaskReminders';
 
 const C = {
   bg: '#0A0F1E', card: '#1A2236', surface: '#111827',
@@ -155,6 +156,16 @@ const StudentAcademy = () => {
             <SpellingBee studentId={student?.id} studentName={studentData?.full_name} />
           </div>
         )}
+
+        {/* Task Reminders - always visible */}
+        <TaskReminders
+          studentId={student?.id}
+          onOpenStory={(narrativeId) => {
+            const n = narratives.find(n => n.id === narrativeId);
+            if (n) setSelectedNarrative(n);
+          }}
+          onOpenSpelling={() => { setShowSpelling(true); setShowOffline(false); setShowFAQ(false); }}
+        />
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
