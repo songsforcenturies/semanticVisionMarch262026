@@ -4224,7 +4224,9 @@ async def update_ad_preferences(student_id: str, data: AdPreferencesUpdate, curr
 
 @api_router.get("/brands/active-for-student/{student_id}")
 async def get_active_brands_for_student(student_id: str, current_user: dict = Depends(get_current_user)):
-    """Get brands eligible for a student's stories (checks preferences + feature flags)"""
+    """Get brands eligible for a student's stories with bidding/rotation support"""
+    import random
+
     # Check feature flag
     flags = await db.system_config.find_one({"key": "feature_flags"}, {"_id": 0})
     brand_enabled = True
@@ -4241,34 +4243,121 @@ async def get_active_brands_for_student(student_id: str, current_user: dict = De
     if not ad_prefs.get("allow_brand_stories", False):
         return {"brands": [], "reason": "Guardian has not opted in to brand stories"}
 
-    preferred = ad_prefs.get("preferred_categories", [])
     blocked = ad_prefs.get("blocked_categories", [])
     student_age = student.get("age", 10)
 
-    query = {"is_active": True}
-    brands = await db.brands.find(query, {"_id": 0}).to_list(50)
+    brands = await db.brands.find({"is_active": True}, {"_id": 0}).to_list(100)
 
+    # Filter eligible brands
     eligible = []
     for b in brands:
-        # Check age targeting
         if b.get("target_ages") and student_age not in b["target_ages"]:
             continue
-        # Check budget remaining
         if b.get("budget_total", 0) > 0 and b.get("budget_spent", 0) >= b.get("budget_total", 0):
             continue
-        # Check blocked categories
         brand_cats = b.get("target_categories", [])
         if any(c in blocked for c in brand_cats):
             continue
-        # Prefer brands matching preferred categories
-        eligible.append({
-            "id": b["id"], "name": b["name"],
-            "products": b.get("products", []),
-            "categories": brand_cats,
-        })
+        eligible.append(b)
 
-    return {"brands": eligible}
+    # Group by problem_category for rotation
+    by_category = {}
+    uncategorized = []
+    for b in eligible:
+        cat = b.get("problem_category", "").strip()
+        if cat:
+            by_category.setdefault(cat, []).append(b)
+        else:
+            uncategorized.append(b)
 
+    # Weighted rotation selection per category (bid_amount determines weight)
+    selected = []
+    for cat, cat_brands in by_category.items():
+        if len(cat_brands) == 1:
+            selected.append(cat_brands[0])
+        else:
+            # Weighted selection: higher bid = higher probability
+            weights = [b.get("bid_amount", 0.05) for b in cat_brands]
+            total_w = sum(weights) or 1
+            probs = [w / total_w for w in weights]
+            # Select up to 2 brands per category (allows competing brands in same story)
+            n_select = min(2, len(cat_brands))
+            try:
+                picks = random.choices(cat_brands, weights=probs, k=n_select)
+                # Deduplicate
+                seen_ids = set()
+                for p in picks:
+                    if p["id"] not in seen_ids:
+                        selected.append(p)
+                        seen_ids.add(p["id"])
+            except:
+                selected.append(cat_brands[0])
+
+    # Add uncategorized brands
+    selected.extend(uncategorized)
+
+    # Limit total brands per story to configurable max (default 4)
+    max_brands = 4
+    if len(selected) > max_brands:
+        # Prioritize by bid amount
+        selected.sort(key=lambda b: b.get("bid_amount", 0.05), reverse=True)
+        selected = selected[:max_brands]
+
+    # Update rotation counts
+    for b in selected:
+        await db.brands.update_one({"id": b["id"]}, {"$inc": {"rotation_count": 1}})
+
+    result = [{
+        "id": b["id"], "name": b["name"],
+        "products": b.get("products", []),
+        "categories": b.get("target_categories", []),
+        "problem_statement": b.get("problem_statement", ""),
+        "problem_category": b.get("problem_category", ""),
+        "bid_amount": b.get("bid_amount", 0.05),
+    } for b in selected]
+
+    return {"brands": result, "total_eligible": len(eligible), "categories_matched": len(by_category)}
+
+
+
+@api_router.get("/brands/opt-out-analytics")
+async def get_brand_opt_out_analytics(current_user: dict = Depends(get_current_user)):
+    """Get anonymized analytics on brand content opt-out rates"""
+    total_students = await db.students.count_documents({})
+    opted_in = await db.students.count_documents({"ad_preferences.allow_brand_stories": True})
+    opted_out = total_students - opted_in
+
+    # Offer preference stats
+    total_guardians = await db.users.count_documents({"role": {"$in": ["guardian", "admin"]}})
+    offers_disabled = await db.user_offer_preferences.count_documents({"offers_enabled": False})
+
+    return {
+        "total_students": total_students,
+        "brand_stories_opted_in": opted_in,
+        "brand_stories_opted_out": opted_out,
+        "opt_in_rate": round(opted_in / max(total_students, 1) * 100, 1),
+        "total_guardians": total_guardians,
+        "offers_disabled_count": offers_disabled,
+        "offers_enabled_rate": round((total_guardians - offers_disabled) / max(total_guardians, 1) * 100, 1),
+    }
+
+@api_router.get("/brands/competition/{problem_category}")
+async def get_brand_competition(problem_category: str, current_user: dict = Depends(get_current_user)):
+    """Get all brands competing in a problem category with bid info"""
+    brands = await db.brands.find(
+        {"problem_category": problem_category, "is_active": True}, {"_id": 0}
+    ).to_list(50)
+    brands.sort(key=lambda b: b.get("bid_amount", 0), reverse=True)
+    return {
+        "category": problem_category,
+        "total_competitors": len(brands),
+        "brands": [{
+            "id": b["id"], "name": b["name"], "bid_amount": b.get("bid_amount", 0.05),
+            "total_impressions": b.get("total_impressions", 0),
+            "rotation_count": b.get("rotation_count", 0),
+            "budget_remaining": max(b.get("budget_total", 0) - b.get("budget_spent", 0), 0),
+        } for b in brands],
+    }
 
 # ==================== BRAND PARTNER PORTAL ====================
 

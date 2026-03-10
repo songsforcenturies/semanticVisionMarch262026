@@ -597,6 +597,8 @@ class Brand(MongoBaseModel):
     website: str = ""
     description: str = ""
     problem_statement: str = ""  # The problem this brand solves
+    problem_category: str = ""  # Category of problem solved (e.g., "education_tech", "healthy_food")
+    bid_amount: float = 0.05  # Bid per impression (higher bid = more rotation priority)
     products: List[BrandProduct] = Field(default_factory=list)
     target_ages: List[int] = Field(default_factory=list)
     target_categories: List[str] = Field(default_factory=list)
@@ -608,6 +610,7 @@ class Brand(MongoBaseModel):
     is_active: bool = True
     total_impressions: int = 0
     total_stories: int = 0
+    rotation_count: int = 0  # How many times this brand has been rotated in
     onboarding_completed: bool = False
     story_preview: str = ""  # Cached AI-generated story snippet
     story_preview_generated_at: Optional[datetime] = None
