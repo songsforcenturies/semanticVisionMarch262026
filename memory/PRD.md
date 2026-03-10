@@ -63,6 +63,15 @@ Build "Semantic Vision," an educational platform — "Learning How to Read incre
 - "Tutorial" button in portal headers (Guardian, Brand, Student)
 - Clears localStorage onboarding key and re-shows wizard via key-based remount
 
+### Brand Competition & Bidding System (March 10, 2026)
+- Brand bidding: higher bid_amount = higher rotation priority ($0.04-$0.15 range)
+- Weighted rotation: brands grouped by problem_category, weighted random selection
+- Multiple brands per story: up to 2 brands per problem category, 4 total per story
+- Opt-out analytics: /api/brands/opt-out-analytics shows student/guardian opt-in rates
+- Competition endpoint: /api/brands/competition/{category} shows competing brands
+- 34 real US brands seeded across 13 categories (education_tech, sports_active, healthy_food, etc.)
+- 12 real brand offers to parents (LeapFrog, Nike, LEGO, Audible, Gabb, etc.)
+
 ## Bug Fixes
 - P0: Vocabulary Mastered/Agentic Reach Score ZERO -> normalized mastered_tokens
 - Fixed strengths/weaknesses font visibility (dark theme input styling)
