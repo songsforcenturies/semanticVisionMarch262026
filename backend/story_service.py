@@ -105,6 +105,7 @@ class StoryGenerationService:
         culture_learning: List[str] = [],
         language: str = "English",
         brand_placements: List[Dict[str, Any]] = [],
+        media_placements: List[Dict[str, Any]] = [],
         strengths: str = "",
         weaknesses: str = "",
     ) -> Dict[str, Any]:
@@ -203,6 +204,23 @@ Make brand mentions feel organic and educational, not like advertisements.
 {chr(10).join(brand_items)}
 Include 1-2 natural brand mentions across the story where they solve a problem or help the character learn."""
 
+        # Digital media section
+        media_section = ""
+        if media_placements:
+            media_items = []
+            for mp in media_placements:
+                mtype = mp.get("media_type", "audio")
+                desc = f"- \"{mp['title']}\" by {mp.get('artist', 'Unknown')} ({mtype})"
+                media_items.append(desc)
+            media_section = f"""
+DIGITAL MEDIA INTEGRATION: Naturally embed references to these songs/videos into the story at moments where music or media would enhance the experience.
+When the character encounters a moment of inspiration, celebration, learning, or reflection, mention one of these songs/videos as something the character hears, discovers, or is reminded of.
+Format each media reference in the story text as: [MEDIA:media_id:title] — this will be rendered as a playable media element.
+Available media:
+{chr(10).join(media_items)}
+Media IDs: {', '.join(f"{mp['id']}" for mp in media_placements)}
+Include 1-2 media references across the story, making them feel organic to the narrative."""
+
         # Build strengths & weaknesses prompt section
         strengths_section = ""
         if strengths or weaknesses:
@@ -270,6 +288,7 @@ Vocabulary Distribution:
 {language_section}
 {brand_section}
 {brand_question_section}
+{media_section}
 {strengths_section}
 
 Requirements:

@@ -34,7 +34,7 @@ const WrittenAnswerModal = ({ question, chapterNumber, chapterContent, student, 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black overflow-y-auto" style={{ backdropFilter: 'blur(20px)' }}>
       <BrutalCard shadow="xl" className="w-full max-w-2xl bg-white my-auto">
         {!result ? (
           <>

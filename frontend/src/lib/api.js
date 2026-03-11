@@ -195,6 +195,14 @@ export const adminAPI = {
   // Support Sessions (Daily.co)
   createSupportSession: () => apiClient.post('/admin/support-session'),
   getSupportSessions: () => apiClient.get('/admin/support-sessions'),
+  // Digital Media
+  getMediaSettings: () => apiClient.get('/admin/media-settings'),
+  updateMediaSettings: (data) => apiClient.put('/admin/media-settings', data),
+  listBrandMedia: () => apiClient.get('/admin/brand-media'),
+  createBrandMedia: (data) => apiClient.post('/admin/brand-media', data),
+  uploadBrandMedia: (formData) => apiClient.post('/admin/brand-media/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  updateBrandMedia: (id, data) => apiClient.put(`/admin/brand-media/${id}`, data),
+  deleteBrandMedia: (id) => apiClient.delete(`/admin/brand-media/${id}`),
 };
 
 // ==================== WALLET API ====================
@@ -354,6 +362,16 @@ export const messagesAPI = {
 export const parentalControlsAPI = {
   get: (studentId) => apiClient.get(`/students/${studentId}/parental-controls`),
   update: (studentId, data) => apiClient.put(`/students/${studentId}/parental-controls`, data),
+};
+
+export const mediaAPI = {
+  getStudentLibrary: (studentId) => apiClient.get(`/students/${studentId}/media-library`),
+  recordListen: (studentId, mediaId) => apiClient.post(`/students/${studentId}/media-listen?media_id=${mediaId}`),
+  toggleLike: (studentId, data) => apiClient.post(`/students/${studentId}/media-like`, data),
+  purchaseDownload: (studentId, data) => apiClient.post(`/students/${studentId}/media-download`, data),
+  getMediaForStory: (studentId) => apiClient.get(`/brand-media/for-story/${studentId}`),
+  getChildrenMedia: () => apiClient.get('/guardian/children-media'),
+  updateMediaPreference: (studentId, enabled) => apiClient.post(`/students/${studentId}/media-preference?enabled=${enabled}`),
 };
 
 export const remindersAPI = {

@@ -53,6 +53,7 @@ from routes.documents import router as documents_router
 from routes.affiliates import router as affiliates_router
 from routes.recordings import router as recordings_router
 from routes.paypal import router as paypal_router
+from routes.media import router as media_router
 
 # ==================== INCLUDE ALL ROUTERS ====================
 app.include_router(auth_router, prefix="/api")
@@ -66,6 +67,7 @@ app.include_router(documents_router, prefix="/api")
 app.include_router(affiliates_router, prefix="/api")
 app.include_router(recordings_router, prefix="/api")
 app.include_router(paypal_router, prefix="/api")
+app.include_router(media_router, prefix="/api")
 
 # ==================== LIFECYCLE EVENTS ====================
 from database import db, client

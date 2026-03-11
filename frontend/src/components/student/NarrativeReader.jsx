@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { readLogAPI, parentalControlsAPI } from '@/lib/api';
-import { ArrowLeft, ArrowRight, Clock, BookOpen, CheckCircle, AlertTriangle, Eye, Mic, Lock, Video, Shield } from 'lucide-react';
+import { readLogAPI, parentalControlsAPI, mediaAPI } from '@/lib/api';
+import { ArrowLeft, ArrowRight, Clock, BookOpen, CheckCircle, AlertTriangle, Eye, Mic, Lock, Video, Shield, Music, Play, Pause } from 'lucide-react';
 import { toast } from 'sonner';
 import WrittenAnswerModal from './WrittenAnswerModal';
 import VocabularyAssessment from './VocabularyAssessment';
@@ -14,6 +14,58 @@ const C = {
   bg: '#0A0F1E', surface: '#111827', card: '#1A2236',
   gold: '#D4A853', goldLight: '#F5D799', teal: '#38BDF8',
   cream: '#F8F5EE', muted: '#94A3B8', reading: '#E8E0D0',
+};
+
+const API_BASE = process.env.REACT_APP_BACKEND_URL || '';
+
+const extractYTId = (url) => {
+  if (!url) return null;
+  const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+};
+
+const InlineMediaPlayer = ({ mediaId, title, mediaPlacements = [], studentId }) => {
+  const [playing, setPlaying] = useState(false);
+  const [audioEl, setAudioEl] = useState(null);
+  const [showVideo, setShowVideo] = useState(false);
+
+  const media = mediaPlacements.find(m => m.id === mediaId);
+  if (!media) return <span className="italic text-sm" style={{ color: C.gold }}>[{title}]</span>;
+
+  const isVideo = media.media_type === 'video' || media.youtube_url;
+  const ytId = extractYTId(media.youtube_url);
+
+  const handlePlay = () => {
+    if (isVideo) { setShowVideo(!showVideo); return; }
+    if (playing) { audioEl?.pause(); setPlaying(false); return; }
+    if (audioEl) audioEl.pause();
+    const a = new Audio(`${API_BASE}${media.file_url}`);
+    a.play();
+    a.onended = () => setPlaying(false);
+    setAudioEl(a);
+    setPlaying(true);
+    if (studentId) mediaAPI.recordListen(studentId, mediaId).catch(() => {});
+  };
+
+  return (
+    <span className="inline-block my-2">
+      <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer transition-all hover:scale-105"
+        style={{ background: 'rgba(212,168,83,0.15)', border: '1px solid rgba(212,168,83,0.3)' }}
+        onClick={handlePlay}
+        data-testid={`inline-media-${mediaId}`}>
+        {isVideo ? <Video size={14} style={{ color: C.gold }} /> : playing ? <Pause size={14} style={{ color: C.gold }} /> : <Play size={14} style={{ color: C.gold }} />}
+        <span className="text-sm font-semibold" style={{ color: C.gold }}>{media.title}</span>
+        {media.artist && <span className="text-xs" style={{ color: C.muted }}>by {media.artist}</span>}
+      </span>
+      {showVideo && ytId && (
+        <span className="block mt-2 w-full aspect-video">
+          <iframe src={`https://www.youtube.com/embed/${ytId}?autoplay=1`}
+            className="w-full h-full rounded-lg" style={{ border: `2px solid ${C.gold}` }}
+            allow="autoplay; encrypted-media" allowFullScreen title={media.title} />
+        </span>
+      )}
+    </span>
+  );
 };
 
 const NarrativeReader = ({ narrative, student, onClose }) => {
@@ -235,27 +287,36 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
           {/* Story Text */}
           <div className="mb-6 sm:mb-8">
             <div className="text-base sm:text-lg leading-[1.8] sm:leading-[1.9] font-medium" style={{ color: C.reading }}>
-              {chapter.content.split(/(\s+)/).map((segment, idx) => {
-                const cleanWord = segment.replace(/[^a-zA-Z'-]/g, '');
-                if (!cleanWord || cleanWord.length < 2) return <span key={idx}>{segment}</span>;
-                return (
-                  <span key={idx}
-                    className="cursor-pointer transition-colors rounded px-[1px]"
-                    style={{ borderBottom: '1px solid transparent' }}
-                    onMouseEnter={(e) => { e.target.style.borderBottomColor = C.gold; e.target.style.color = C.gold; }}
-                    onMouseLeave={(e) => { e.target.style.borderBottomColor = 'transparent'; e.target.style.color = C.reading; }}
-                    onClick={() => {
-                      setSelectedWord(cleanWord);
-                      const words = chapter.content.split(/\s+/);
-                      const wIdx = words.findIndex((w) => w.includes(cleanWord));
-                      const start = Math.max(0, wIdx - 5);
-                      const end = Math.min(words.length, wIdx + 6);
-                      setWordContext(words.slice(start, end).join(' '));
-                    }}
-                    data-testid={`word-${idx}`}>
-                    {segment}
-                  </span>
-                );
+              {chapter.content.split(/(\[MEDIA:[^\]]+\])/).map((part, pIdx) => {
+                // Check for media tag [MEDIA:id:title]
+                const mediaMatch = part.match(/^\[MEDIA:([^:]+):([^\]]+)\]$/);
+                if (mediaMatch) {
+                  return <InlineMediaPlayer key={`media-${pIdx}`} mediaId={mediaMatch[1]} title={mediaMatch[2]}
+                    mediaPlacements={narrative.media_placements || []} studentId={student?.id} />;
+                }
+                // Regular text — render words with click-to-define
+                return <React.Fragment key={`part-${pIdx}`}>{part.split(/(\s+)/).map((segment, idx) => {
+                  const cleanWord = segment.replace(/[^a-zA-Z'-]/g, '');
+                  if (!cleanWord || cleanWord.length < 2) return <span key={idx}>{segment}</span>;
+                  return (
+                    <span key={idx}
+                      className="cursor-pointer transition-colors rounded px-[1px]"
+                      style={{ borderBottom: '1px solid transparent' }}
+                      onMouseEnter={(e) => { e.target.style.borderBottomColor = C.gold; e.target.style.color = C.gold; }}
+                      onMouseLeave={(e) => { e.target.style.borderBottomColor = 'transparent'; e.target.style.color = C.reading; }}
+                      onClick={() => {
+                        setSelectedWord(cleanWord);
+                        const words = chapter.content.split(/\s+/);
+                        const wIdx = words.findIndex((w) => w.includes(cleanWord));
+                        const start = Math.max(0, wIdx - 5);
+                        const end = Math.min(words.length, wIdx + 6);
+                        setWordContext(words.slice(start, end).join(' '));
+                      }}
+                      data-testid={`word-${idx}`}>
+                      {segment}
+                    </span>
+                  );
+                })}</React.Fragment>;
               })}
             </div>
             <p className="text-xs mt-3 italic" style={{ color: C.muted }}>Tap any word to see its definition</p>

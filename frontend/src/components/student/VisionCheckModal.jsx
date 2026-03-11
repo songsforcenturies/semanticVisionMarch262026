@@ -20,7 +20,7 @@ const VisionCheckModal = ({ visionCheck, chapterNumber, onComplete }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black" style={{ backdropFilter: 'blur(20px)' }}>
       <BrutalCard shadow="xl" className="w-full max-w-2xl bg-white">
         {!showResult ? (
           <>

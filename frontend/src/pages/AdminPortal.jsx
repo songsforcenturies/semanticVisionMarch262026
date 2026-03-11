@@ -8,6 +8,7 @@ import AdminAudioBooksTab from '@/components/admin/AdminAudioBooksTab';
 import AdminMessagingTab from '@/components/admin/AdminMessagingTab';
 import AdminSpellingContestsTab from '@/components/admin/AdminSpellingContestsTab';
 import IntegrationsTab from '@/components/admin/IntegrationsTab';
+import DigitalMediaTab from '@/components/admin/DigitalMediaTab';
 import apiClient from '@/lib/api';
 import { BrutalCard, BrutalButton, BrutalBadge, BrutalInput } from '@/components/brutal';
 import {
@@ -451,6 +452,7 @@ const AdminPortal = () => {
     { id: 'config', label: 'LLM Config', icon: Settings },
     { id: 'integrations', label: 'Integrations', icon: Key },
     { id: 'support', label: 'Screen Share', icon: Video },
+    { id: 'digital-media', label: 'Digital Media', icon: Zap },
     { id: 'settings', label: 'App Settings', icon: Shield },
   ];
 
@@ -1856,6 +1858,9 @@ const AdminPortal = () => {
             </BrutalCard>
           </div>
         )}
+
+        {/* =================== DIGITAL MEDIA TAB =================== */}
+        {activeTab === 'digital-media' && <DigitalMediaTab />}
 
         {/* =================== APP SETTINGS TAB =================== */}
         {activeTab === 'settings' && (
