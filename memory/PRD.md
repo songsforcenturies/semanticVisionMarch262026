@@ -1,108 +1,102 @@
 # Semantic Vision - Product Requirements Document (PRD)
 
 ## Original Problem Statement
-Build a comprehensive AI-powered personalized educational narrative platform ("Semantic Vision") with:
-- AI-generated stories personalized across 10+ dimensions
-- Brand integration with comprehension measurement
-- Multi-role platform (Admin, Guardian, Teacher, Student, Brand, Affiliate)
-- Digital media (music/video) integration in stories
-- PWA architecture with offline caching
+AI-powered personalized educational narrative platform with brand integration, digital media, support system, and comprehensive admin tools.
 
 ## Tech Stack
 - **Frontend:** React 18, Tailwind CSS, Shadcn/UI, react-i18next
 - **Backend:** Python FastAPI, Motor (async MongoDB)
 - **Database:** MongoDB
 - **AI:** OpenAI GPT-5.2 (via Emergent LLM Key), OpenAI Whisper
-- **Payments:** Stripe, PayPal
-- **Email:** Resend
-- **PDF:** ReportLab
-- **Screen Share:** Daily.co (API key configured)
-- **Media:** Server-side audio uploads, YouTube video streaming
+- **Payments:** Stripe, PayPal | **Email:** Resend | **Screen Share:** Daily.co
+- **Media:** Server audio uploads, YouTube video streaming
 
 ## What's Been Implemented (as of March 2026)
 
 ### Core Platform
-- Full authentication system (JWT, role-based, code/PIN for students)
-- AI story generation with 10+ personalization dimensions
-- Brand integration engine with competitive bidding
-- Brand Comprehension measurement and analytics
+- Full auth system (JWT, role-based, code/PIN for students)
+- AI story generation with 10+ personalization dimensions + media embedding
+- Brand integration engine with competitive bidding + media analytics
+- Brand Comprehension measurement
 - 60/30/10 vocabulary distribution with mastery tracking
 - Read-aloud recording with Whisper transcription and diction scoring
 - Audio Memory Library and Peer Audio Book Section
 - Parental control system with recording enforcement
-- Admin messaging (direct to user by email + broadcast)
+- Admin messaging (direct to user by email + broadcast) with visible contrast
 - Clickable notification messages with full detail view
-- Spelling bee contest engine with leaderboard
-- Task reminder system
-- PWA architecture (service worker, manifest, offline caching)
-- Affiliate referral system
-- Wallet/payment system (Stripe + PayPal)
-- Multi-currency support (50+)
-- Student progress export (HTML/JSON)
+- Spelling bee contests, Task reminders, PWA architecture
+- Affiliate referral, Wallet/payments (Stripe + PayPal), Multi-currency
 
-### Admin Features
-- 19-tab admin dashboard
-- User management with delegated admin access
-- Admin impersonation ("View as User") - WORKING
-- Screen share/remote support (Daily.co) - LIVE
-- Cost/income/ROI analytics with family-level breakdown
-- API key management (Stripe, PayPal, Resend, Daily.co)
-- Direct messaging to specific users by email
-- **Digital Media Management** - Upload audio/video, add YouTube links, set per-item pricing, master ON/OFF toggle, link media to brands
-- Subscription plan management, Word bank CRUD, Coupon system, Feature flags
+### Admin Features (20 tabs)
+- User management, Delegated admin, Impersonation ("View as User")
+- Screen share (Daily.co), Cost/income/ROI analytics
+- API key management, Subscription plans, Word bank, Brand management
+- Digital Media Management (upload audio/video, YouTube links, pricing, master toggle)
+- **Support Tickets** — View user-submitted tickets (text, screenshots, audio, video), reply to users (auto-notifies), set status (open/in_progress/replied/resolved/closed)
+- Brand media analytics per brand partner
 
-### Digital Media System (NEW)
-- **Admin Controls**: Upload audio files, paste YouTube video URLs, set price per stream/download, master system toggle, link media to brands
-- **Story Integration**: AI stories embed approved brand media as inline players ([MEDIA:id:title] tags)
-- **Student Library**: "My Music" section with all heard songs/videos, like button, download option (wallet-deducted)
-- **Parent Controls**: Per-student media ON/OFF toggle, view children's media history and likes
-- **Pricing**: Admin sets global stream/download prices, per-item override available
+### Digital Media System
+- Admin: Upload audio, paste YouTube URLs, set stream/download pricing, system toggle, brand linking
+- Story integration: AI embeds brand media as inline players
+- Student: "My Music" library, like/download (wallet-deducted)
+- Parent: Per-student media ON/OFF, children's media history
+
+### User Support System (NEW)
+- **Support Widget**: Floating button on all authenticated pages
+- Users can send: text messages, screenshots (auto-capture), audio recordings, video/file attachments
+- Admin can reply (notification sent to user), manage ticket status
+- Users can view reply history
+
+### Story Progress System (NEW)
+- **Auto-save**: Progress saved on every chapter change
+- **Save & Exit**: Students can save and resume later
+- **Completion fix**: Stories only marked "completed" after ALL chapters read + assessment done
+- Students cannot close story and skip assessments
+
+### Security
+- Assessment cheating prevention: Fully opaque overlay on assessments
 
 ### Guardian Features
-- Student management with PIN changes
-- Downloadable user/student ID cards
-- Multi-select heritage/culture with custom write-in
-- Culture learning preferences (16 topics)
-- **Music & Media tab** - See children's media, toggle per student
+- Student management, PIN changes, ID cards
+- Heritage/culture multi-select, Culture learning preferences
+- **Music & Media tab** — children's media history + per-student toggle
 - Tab order: Students, Word Bank, Audio Memories, Audio Books, Music & Media, Progress, ID Cards, Invite & Earn, Subscription, Wallet, Offers, Affiliate, FAQ
-
-### Security Fix
-- **Assessment cheating prevention**: Fully opaque overlay (bg-black) on WrittenAnswerModal and VisionCheckModal so students cannot read story text during assessments
 
 ## Prioritized Backlog
 
-### P0 (Critical) - ALL COMPLETED
-- [x] All P0 items from previous sessions - COMPLETED
-- [x] Digital Media system (admin, student, parent, story integration) - COMPLETED (iteration 49)
-- [x] Assessment cheating fix - COMPLETED
+### P0 - ALL COMPLETED
+- [x] All previous P0 items
+- [x] Digital Media system (admin, student, parent, story integration) — iteration 49
+- [x] Assessment cheating fix — iteration 49
+- [x] Admin messaging contrast fix — iteration 50
+- [x] Story completion bug fix — iteration 50
+- [x] Support ticket system — iteration 50
+- [x] Story progress auto-save — iteration 50
+- [x] Brand media analytics — iteration 50
 
 ### P1 (High)
-- [ ] Dual Role (Parent/Student) Toggle - Users 15+ can switch between parent and student views
-- [ ] Story randomization - Vary interest/culture/theme selection to avoid repetitive stories
-- [ ] On-Device LLM Integration
+- [ ] Real-time world events in stories — Admin configures headlines, AI weaves into stories, parents can toggle off
+- [ ] Dual Role (Parent/Student) Toggle — Users 15+ switch views
+- [ ] Story randomization — Vary interests to avoid repetitive stories
 
 ### P2 (Medium)
-- [ ] "Wheel of the World" Game - Interactive spinning globe on student dashboard
-- [ ] Dynamic Music Generation - Replace MusicPlayer placeholder
-- [ ] Video Recording & Analysis
-- [ ] User Demo Flow
+- [ ] "Wheel of the World" Game — Interactive globe on student dashboard
+- [ ] Dynamic Music Generation
+- [ ] On-Device LLM Integration
 
 ### P3 (Low/Future)
-- [ ] Accessibility Features - Text-to-sign-language AI
+- [ ] Video Recording & Analysis
+- [ ] User Demo Flow
+- [ ] Accessibility Features (text-to-sign-language AI)
 - [ ] AR Story Experience, Gamification, Family Shared Narratives
-- [ ] AI-Generated Illustrations per chapter
 
 ## Key Credentials
 - **Admin/Guardian:** allen@songsforcenturies.com / LexiAdmin2026!
 
-## 3rd Party Integrations
-- OpenAI GPT (Emergent LLM Key), OpenAI Whisper (Emergent LLM Key)
-- Stripe, PayPal, Resend (User API Keys)
-- Daily.co (API key configured)
-- reportlab, html2canvas
-
 ## Key Backend Files
-- `/app/backend/routes/media.py` - Digital media CRUD, streaming, student library, guardian endpoints
-- `/app/backend/routes/admin.py` - Impersonation, support, integrations
-- `/app/backend/routes/narratives.py` - Story generation with media embedding
-- `/app/backend/story_service.py` - AI prompt with media integration
+- `/app/backend/routes/media.py` — Digital media CRUD, streaming, student library
+- `/app/backend/routes/support.py` — Support tickets, attachments, admin replies
+- `/app/backend/routes/admin.py` — Impersonation, integrations, messaging
+- `/app/backend/routes/narratives.py` — Story generation, progress save/resume
+- `/app/backend/routes/brands.py` — Brand management, media analytics
+- `/app/backend/story_service.py` — AI prompt with media integration

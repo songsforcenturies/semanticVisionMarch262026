@@ -103,7 +103,7 @@ const SupportWidget = () => {
     <>
       {/* Floating button */}
       <button onClick={() => setOpen(!open)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-xl transition-all hover:scale-110"
+        className="fixed bottom-20 right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-xl transition-all hover:scale-110"
         style={{ background: '#D4A853', color: '#1A2236', border: '3px solid #1A2236' }}
         data-testid="support-widget-btn">
         {open ? <X size={24} /> : <MessageCircle size={24} />}
@@ -111,7 +111,7 @@ const SupportWidget = () => {
 
       {/* Panel */}
       {open && (
-        <div className="fixed bottom-24 right-6 z-50 w-[360px] max-h-[75vh] overflow-y-auto rounded-xl shadow-2xl"
+        <div className="fixed bottom-36 right-6 z-50 w-[360px] max-h-[65vh] overflow-y-auto rounded-xl shadow-2xl"
           style={{ background: '#1A2236', border: '2px solid rgba(212,168,83,0.3)' }}
           data-testid="support-panel">
           <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>

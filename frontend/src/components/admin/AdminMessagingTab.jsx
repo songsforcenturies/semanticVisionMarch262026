@@ -72,8 +72,8 @@ const AdminMessagingTab = () => {
             <div>
               <label className="block font-bold text-sm uppercase mb-2">Send To</label>
               <select value={form.target} onChange={(e) => setForm({ ...form, target: e.target.value, target_email: '' })}
-                className="w-full px-4 py-3 border-4 border-black font-bold focus:outline-none focus:ring-4 focus:ring-blue-500 bg-white"
-                style={{ color: '#111827' }} data-testid="msg-target">
+                className="w-full px-4 py-3 border-4 border-black font-bold focus:outline-none focus:ring-4 focus:ring-blue-500"
+                style={{ color: '#111827', backgroundColor: 'white' }} data-testid="msg-target">
                 <option value="specific_user">Specific User (by Email)</option>
                 <option value="all">Everyone</option>
                 <option value="guardians">Parents Only</option>
@@ -84,8 +84,8 @@ const AdminMessagingTab = () => {
             <div>
               <label className="block font-bold text-sm uppercase mb-2">Priority</label>
               <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}
-                className="w-full px-4 py-3 border-4 border-black font-bold focus:outline-none focus:ring-4 focus:ring-blue-500 bg-white"
-                style={{ color: '#111827' }} data-testid="msg-priority">
+                className="w-full px-4 py-3 border-4 border-black font-bold focus:outline-none focus:ring-4 focus:ring-blue-500"
+                style={{ color: '#111827', backgroundColor: 'white' }} data-testid="msg-priority">
                 <option value="low">Low</option>
                 <option value="normal">Normal</option>
                 <option value="high">High</option>
@@ -101,21 +101,23 @@ const AdminMessagingTab = () => {
                 onChange={(e) => setForm({ ...form, target_email: e.target.value })}
                 placeholder="Paste user's email address here"
                 className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-blue-500"
-                style={{ color: '#111827' }}
+                style={{ color: '#111827', backgroundColor: 'white' }}
                 data-testid="msg-target-email" />
             </div>
           )}
 
           <BrutalInput label="Subject *" required value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
-            placeholder="e.g. New feature available!" data-testid="msg-title" />
+            placeholder="e.g. New feature available!" data-testid="msg-title"
+            style={{ color: '#111827', backgroundColor: 'white' }} />
           <div>
             <label className="block font-bold text-sm uppercase mb-2">Message *</label>
             <textarea value={form.body}
               onChange={(e) => setForm({ ...form, body: e.target.value })}
               placeholder="Write your message here..."
               rows={4}
-              className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-blue-500 resize-none bg-white text-gray-900"
+              className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-blue-500 resize-none"
+              style={{ color: '#111827', backgroundColor: 'white' }}
               data-testid="msg-body" />
           </div>
 
