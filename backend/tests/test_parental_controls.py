@@ -6,7 +6,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://daily-screen-share.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://learning-portal-v1.preview.emergentagent.com')
 
 # Test credentials
 TEST_ADMIN_EMAIL = "allen@songsforcenturies.com"
