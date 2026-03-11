@@ -21,10 +21,10 @@ AI-powered personalized educational narrative platform with brand integration, d
 - Audio Memory Library, Peer Audio Books, Spelling Bee, Task Reminders
 - PWA, Wallet/Payments (Stripe + PayPal), Multi-currency, Affiliate system
 
-### Admin Features (20 tabs)
+### Admin Features (21 tabs)
 - Statistics, Word Banks, Brands, Users, Coupons, Contests, Plans, Features
 - AI Costs, Billing/ROI, Affiliates, Audio Books, Messaging, Spelling Bee
-- LLM Config, Integrations, Screen Share, **Digital Media**, **Support Tickets**, App Settings
+- LLM Config, Integrations, Screen Share, **Digital Media**, **Support Tickets**, **Backup & Restore**, App Settings
 - User management, Delegated admin, Impersonation, Direct messaging by email
 
 ### Recording Enforcement System (NEW)
@@ -60,6 +60,7 @@ AI-powered personalized educational narrative platform with brand integration, d
 - Admin messaging: Dark text on white background (CSS specificity fix)
 - **Self-bootstrapping startup**: Auto-creates admin user, subscription, and seed word banks on empty database
 - **DB indexes**: Production indexes created on startup for users, students, word_banks, narratives, session_logs
+- **Backup & Restore system**: Full database export/import via Admin Portal for deployment safety
 
 ### Guardian Features
 - Student management, PIN changes, ID cards, heritage/culture multi-select
@@ -101,6 +102,7 @@ AI-powered personalized educational narrative platform with brand integration, d
 - **Admin/Guardian:** allen@songsforcenturies.com / LexiAdmin2026!
 
 ## Key Backend Files
+- `/app/backend/routes/backup.py` — Full database backup & restore
 - `/app/backend/routes/sessions.py` — Session tracking + time log aggregation
 - `/app/backend/routes/media.py` — Digital media + storage stats
 - `/app/backend/routes/support.py` — Support tickets + attachments
