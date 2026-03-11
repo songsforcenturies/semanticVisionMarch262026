@@ -58,6 +58,8 @@ AI-powered personalized educational narrative platform with brand integration, d
 ### Security
 - Assessment cheating prevention: Fully opaque overlay
 - Admin messaging: Dark text on white background (CSS specificity fix)
+- **Self-bootstrapping startup**: Auto-creates admin user, subscription, and seed word banks on empty database
+- **DB indexes**: Production indexes created on startup for users, students, word_banks, narratives, session_logs
 
 ### Guardian Features
 - Student management, PIN changes, ID cards, heritage/culture multi-select
