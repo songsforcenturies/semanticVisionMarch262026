@@ -9,6 +9,7 @@ import AdminMessagingTab from '@/components/admin/AdminMessagingTab';
 import AdminSpellingContestsTab from '@/components/admin/AdminSpellingContestsTab';
 import IntegrationsTab from '@/components/admin/IntegrationsTab';
 import DigitalMediaTab from '@/components/admin/DigitalMediaTab';
+import AdminSupportTab from '@/components/admin/AdminSupportTab';
 import apiClient from '@/lib/api';
 import { BrutalCard, BrutalButton, BrutalBadge, BrutalInput } from '@/components/brutal';
 import {
@@ -453,6 +454,7 @@ const AdminPortal = () => {
     { id: 'integrations', label: 'Integrations', icon: Key },
     { id: 'support', label: 'Screen Share', icon: Video },
     { id: 'digital-media', label: 'Digital Media', icon: Zap },
+    { id: 'support-tickets', label: 'Support Tickets', icon: MessageSquare },
     { id: 'settings', label: 'App Settings', icon: Shield },
   ];
 
@@ -1861,6 +1863,9 @@ const AdminPortal = () => {
 
         {/* =================== DIGITAL MEDIA TAB =================== */}
         {activeTab === 'digital-media' && <DigitalMediaTab />}
+
+        {/* =================== SUPPORT TICKETS TAB =================== */}
+        {activeTab === 'support-tickets' && <AdminSupportTab />}
 
         {/* =================== APP SETTINGS TAB =================== */}
         {activeTab === 'settings' && (

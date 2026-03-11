@@ -389,4 +389,18 @@ export const spellingContestsAPI = {
   leaderboard: (id) => apiClient.get(`/spelling-contests/${id}/leaderboard`),
 };
 
+export const supportAPI = {
+  createTicket: (data) => apiClient.post('/support/tickets', data),
+  addAttachment: (ticketId, formData) => apiClient.post(`/support/tickets/${ticketId}/attachment`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  listTickets: () => apiClient.get('/support/tickets'),
+  getTicket: (id) => apiClient.get(`/support/tickets/${id}`),
+  adminReply: (ticketId, data) => apiClient.post(`/support/tickets/${ticketId}/reply`, data),
+  updateStatus: (ticketId, data) => apiClient.put(`/support/tickets/${ticketId}/status`, data),
+};
+
+export const narrativeProgressAPI = {
+  save: (data) => apiClient.post('/narratives/save-progress', data),
+  get: (narrativeId) => apiClient.get(`/narratives/${narrativeId}/progress`),
+};
+
 export default apiClient;

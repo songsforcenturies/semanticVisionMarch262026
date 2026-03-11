@@ -1385,3 +1385,39 @@ async def link_brand_to_partner(user_id: str, brand_id: str, current_user: dict 
     return {"message": f"Brand '{brand['name']}' linked to user"}
 
 
+
+
+@router.get("/brands/{brand_id}/media-analytics")
+async def get_brand_media_analytics(brand_id: str, current_user: dict = Depends(get_current_user)):
+    """Get media analytics for a brand partner — streams, likes, downloads per item"""
+    brand = await db.brands.find_one({"id": brand_id}, {"_id": 0})
+    if not brand:
+        raise HTTPException(status_code=404, detail="Brand not found")
+
+    # Get all media for this brand
+    media_items = await db.brand_media.find({"brand_id": brand_id}, {"_id": 0}).to_list(200)
+
+    total_streams = sum(m.get("total_streams", 0) for m in media_items)
+    total_likes = sum(m.get("total_likes", 0) for m in media_items)
+    total_downloads = sum(m.get("total_downloads", 0) for m in media_items)
+
+    media_analytics = [{
+        "id": m["id"],
+        "title": m["title"],
+        "artist": m.get("artist", ""),
+        "media_type": m["media_type"],
+        "total_streams": m.get("total_streams", 0),
+        "total_likes": m.get("total_likes", 0),
+        "total_downloads": m.get("total_downloads", 0),
+        "status": m.get("status", ""),
+        "created_date": m.get("created_date", ""),
+    } for m in media_items]
+
+    return {
+        "brand_name": brand.get("name", ""),
+        "total_media": len(media_items),
+        "total_streams": total_streams,
+        "total_likes": total_likes,
+        "total_downloads": total_downloads,
+        "media": media_analytics,
+    }

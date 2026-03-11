@@ -115,8 +115,7 @@ const AdminMessagingTab = () => {
               onChange={(e) => setForm({ ...form, body: e.target.value })}
               placeholder="Write your message here..."
               rows={4}
-              className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-blue-500 resize-none"
-              style={{ color: '#111827' }}
+              className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-blue-500 resize-none bg-white text-gray-900"
               data-testid="msg-body" />
           </div>
 

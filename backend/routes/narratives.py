@@ -289,7 +289,18 @@ async def create_read_log(log_data: ReadLogCreate):
 
         total_chapters = len(narrative.get("chapters", []))
         new_current = max(chapters_completed) if chapters_completed else 1
-        new_status = "completed" if len(chapters_completed) >= total_chapters and total_chapters > 0 else "in_progress" if len(chapters_completed) > 0 else narrative.get("status", "ready")
+        
+        # Only mark as "completed" when ALL chapters are read AND assessment is done
+        # Stories remain "in_progress" even if all chapters are read, until assessment
+        all_chapters_read = len(chapters_completed) >= total_chapters and total_chapters > 0
+        assessment = await db.assessments.find_one({"narrative_id": log_data.narrative_id, "status": "completed"})
+        
+        if all_chapters_read and assessment:
+            new_status = "completed"
+        elif len(chapters_completed) > 0:
+            new_status = "in_progress"
+        else:
+            new_status = narrative.get("status", "ready")
 
         await db.narratives.update_one(
             {"id": log_data.narrative_id},
@@ -366,6 +377,46 @@ async def get_read_logs(student_id: Optional[str] = None):
     
     logs = await db.read_logs.find(query, {"_id": 0}).to_list(1000)
     return logs
+
+
+
+class SaveProgressRequest(BaseModel):
+    narrative_id: str
+    student_id: str
+    current_chapter: int
+    scroll_position: float = 0
+
+
+@router.post("/narratives/save-progress")
+async def save_narrative_progress(data: SaveProgressRequest, current_user: dict = Depends(get_current_user)):
+    """Save reading progress so student can resume later"""
+    narrative = await db.narratives.find_one({"id": data.narrative_id})
+    if not narrative:
+        raise HTTPException(status_code=404, detail="Narrative not found")
+    
+    await db.narratives.update_one(
+        {"id": data.narrative_id},
+        {"$set": {
+            "current_chapter": data.current_chapter,
+            "last_read_date": datetime.now(timezone.utc).isoformat(),
+            "scroll_position": data.scroll_position,
+        }}
+    )
+    return {"message": "Progress saved", "current_chapter": data.current_chapter}
+
+
+@router.get("/narratives/{narrative_id}/progress")
+async def get_narrative_progress(narrative_id: str, current_user: dict = Depends(get_current_user)):
+    """Get saved reading progress for a narrative"""
+    narrative = await db.narratives.find_one({"id": narrative_id}, {"_id": 0, "current_chapter": 1, "chapters_completed": 1, "scroll_position": 1, "status": 1})
+    if not narrative:
+        raise HTTPException(status_code=404, detail="Narrative not found")
+    return {
+        "current_chapter": narrative.get("current_chapter", 1),
+        "chapters_completed": narrative.get("chapters_completed", []),
+        "scroll_position": narrative.get("scroll_position", 0),
+        "status": narrative.get("status", "ready"),
+    }
 
 
 class WrittenAnswerEval(BaseModel):

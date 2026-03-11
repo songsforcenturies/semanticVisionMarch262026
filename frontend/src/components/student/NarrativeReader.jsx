@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { readLogAPI, parentalControlsAPI, mediaAPI } from '@/lib/api';
+import { readLogAPI, parentalControlsAPI, mediaAPI, narrativeProgressAPI } from '@/lib/api';
 import { ArrowLeft, ArrowRight, Clock, BookOpen, CheckCircle, AlertTriangle, Eye, Mic, Lock, Video, Shield, Music, Play, Pause } from 'lucide-react';
 import { toast } from 'sonner';
 import WrittenAnswerModal from './WrittenAnswerModal';
@@ -106,6 +106,31 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
     setRecordingDone(false);
   }, [currentChapter]);
 
+  // Auto-save progress when chapter changes
+  useEffect(() => {
+    if (narrative?.id && student?.id) {
+      narrativeProgressAPI.save({
+        narrative_id: narrative.id,
+        student_id: student.id,
+        current_chapter: currentChapter,
+      }).catch(() => {});
+    }
+  }, [currentChapter, narrative?.id, student?.id]);
+
+  const handleSaveAndExit = () => {
+    if (narrative?.id && student?.id) {
+      narrativeProgressAPI.save({
+        narrative_id: narrative.id,
+        student_id: student.id,
+        current_chapter: currentChapter,
+      }).then(() => {
+        onClose();
+      }).catch(() => onClose());
+    } else {
+      onClose();
+    }
+  };
+
   const chapter = narrative.chapters[currentChapter - 1];
   const isLastChapter = currentChapter === 5;
   const isChapterCompleted = completedChapters.includes(currentChapter);
@@ -173,9 +198,9 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
           {/* Top row: back button + title + timer */}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-              <button onClick={onClose} className="flex items-center gap-1 px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all hover:scale-105 flex-shrink-0"
+              <button onClick={handleSaveAndExit} className="flex items-center gap-1 px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all hover:scale-105 flex-shrink-0"
                 style={{ color: C.muted, border: '1px solid rgba(255,255,255,0.1)' }} data-testid="reader-back-btn">
-                <ArrowLeft size={14} /> <span className="hidden sm:inline">Back</span>
+                <ArrowLeft size={14} /> <span className="hidden sm:inline">Save & Exit</span>
               </button>
               <div className="min-w-0" style={{ borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '8px' }}>
                 <h1 className="text-xs sm:text-sm font-bold truncate" style={{ color: C.cream }} data-testid="story-title">{narrative.title}</h1>

@@ -19,6 +19,7 @@ import DonatePage from "@/pages/DonatePage";
 import BrandPortal from "@/pages/BrandPortal";
 import AffiliateSignup from "@/pages/AffiliateSignup";
 import AudioBooksPage from "@/pages/AudioBooksPage";
+import SupportWidget from "@/components/SupportWidget";
 
 // Protected route component
 const ProtectedRoute = ({ children, requireAuth = true, allowedRoles = null }) => {
@@ -64,6 +65,7 @@ const StudentRoute = ({ children }) => {
 };
 
 function AppContent() {
+  const { isAuthenticated } = useAuth();
   return (
     <BrowserRouter>
       <div className="App min-h-screen bg-gray-50">
@@ -134,6 +136,7 @@ function AppContent() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <Toaster position="top-right" richColors />
+        {isAuthenticated && <SupportWidget />}
       </div>
     </BrowserRouter>
   );
