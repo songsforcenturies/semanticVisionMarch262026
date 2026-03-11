@@ -93,6 +93,17 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
   const meetsThreshold = controls.chapter_threshold === 0 || currentChapter >= controls.chapter_threshold;
   const mustRecord = isRecordingRequired && meetsThreshold;
   const canProceed = !mustRecord || recordingDone || controls.can_skip_recording;
+  const [showComplianceModal, setShowComplianceModal] = useState(false);
+  const [recordingStarted, setRecordingStarted] = useState(false);
+
+  // Show compliance modal when recording is required and story text should be hidden
+  useEffect(() => {
+    if (mustRecord && !controls.can_skip_recording && !recordingDone && !recordingStarted) {
+      setShowComplianceModal(true);
+    } else {
+      setShowComplianceModal(false);
+    }
+  }, [mustRecord, controls.can_skip_recording, recordingDone, recordingStarted, currentChapter]);
 
   // Auto-open recorder if required
   useEffect(() => {
@@ -104,6 +115,7 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
   // Reset recording state when chapter changes
   useEffect(() => {
     setRecordingDone(false);
+    setRecordingStarted(false);
   }, [currentChapter]);
 
   // Auto-save progress when chapter changes
@@ -257,6 +269,46 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
             </div>
           </div>
 
+          {/* Recording Compliance Modal */}
+          {showComplianceModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black" style={{ backdropFilter: 'blur(20px)' }}
+              data-testid="recording-compliance-modal">
+              <div className="w-full max-w-md p-6 rounded-2xl text-center" style={{ background: C.card, border: `2px solid ${C.gold}` }}>
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'rgba(99,102,241,0.15)' }}>
+                  {controls.recording_mode === 'video_required' || controls.recording_mode === 'both_required'
+                    ? <Video size={32} style={{ color: '#818CF8' }} />
+                    : <Mic size={32} style={{ color: '#818CF8' }} />}
+                </div>
+                <h3 className="text-xl font-black mb-2" style={{ color: C.cream }}>Recording Required</h3>
+                <p className="text-sm mb-4" style={{ color: C.muted }}>
+                  {controls.recording_mode === 'video_required'
+                    ? 'Your parent requires you to record video while reading this chapter. Please turn on your camera and start recording before you can read.'
+                    : controls.recording_mode === 'both_required'
+                    ? 'Your parent requires both audio and video recording. Please turn on your camera and microphone, then start recording.'
+                    : 'Your parent requires you to record your voice while reading this chapter. Please start recording before you can read.'}
+                </p>
+                <div className="space-y-3">
+                  <p className="text-xs font-bold uppercase" style={{ color: '#818CF8' }}>Instructions:</p>
+                  <div className="text-left space-y-2 text-xs" style={{ color: C.muted }}>
+                    <p>1. Click "Start Recording" below</p>
+                    <p>2. Read the chapter out loud clearly</p>
+                    <p>3. Click "Stop" when finished reading</p>
+                    <p>4. Click "Analyze Diction" to submit</p>
+                    <p>5. Story text will appear once recording begins</p>
+                  </div>
+                  <button onClick={() => { setShowComplianceModal(false); setRecordingStarted(true); setShowRecorder(true); }}
+                    className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+                    style={{ background: '#818CF8', color: 'white' }}
+                    data-testid="comply-recording-btn">
+                    {controls.recording_mode === 'video_required' || controls.recording_mode === 'both_required'
+                      ? <><Video size={16} /> I'm Ready — Start Recording</>
+                      : <><Mic size={16} /> I'm Ready — Start Recording</>}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Read Aloud Section - AT THE TOP */}
           <div className="mb-6">
             {/* Parental control notice */}
@@ -300,6 +352,7 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
                   studentId={student.id}
                   narrativeId={narrative.id}
                   chapterNumber={currentChapter}
+                  requiredMode={mustRecord ? controls.recording_mode : null}
                   onRecordingComplete={(result) => {
                     setRecordingDone(true);
                     toast.success(`Diction score: ${result.diction_scores?.overall}%`);
@@ -310,7 +363,11 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
           </div>
 
           {/* Story Text */}
-          <div className="mb-6 sm:mb-8">
+          <div className="mb-6 sm:mb-8" style={{
+            filter: mustRecord && !controls.can_skip_recording && !recordingStarted ? 'blur(8px)' : 'none',
+            userSelect: mustRecord && !controls.can_skip_recording && !recordingStarted ? 'none' : 'auto',
+            pointerEvents: mustRecord && !controls.can_skip_recording && !recordingStarted ? 'none' : 'auto',
+          }}>
             <div className="text-base sm:text-lg leading-[1.8] sm:leading-[1.9] font-medium" style={{ color: C.reading }}>
               {chapter.content.split(/(\[MEDIA:[^\]]+\])/).map((part, pIdx) => {
                 // Check for media tag [MEDIA:id:title]

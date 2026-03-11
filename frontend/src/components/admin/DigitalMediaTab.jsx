@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminAPI } from '@/lib/api';
 import { BrutalCard, BrutalButton, BrutalInput, BrutalBadge } from '@/components/brutal';
-import { Music, Video, Upload, Trash2, Play, Settings, Power, DollarSign, Youtube } from 'lucide-react';
+import { Music, Video, Upload, Trash2, Play, Settings, Power, DollarSign, Youtube, HardDrive } from 'lucide-react';
 import { toast } from 'sonner';
 
 const DigitalMediaTab = () => {
@@ -26,6 +26,14 @@ const DigitalMediaTab = () => {
   const { data: brands = [] } = useQuery({
     queryKey: ['admin-brands'],
     queryFn: async () => (await adminAPI.getBrands()).data,
+  });
+
+  const { data: storageStats = {} } = useQuery({
+    queryKey: ['storage-stats'],
+    queryFn: async () => {
+      const res = await adminAPI.getStorageStats();
+      return res.data;
+    },
   });
 
   const settingsMut = useMutation({
@@ -116,6 +124,52 @@ const DigitalMediaTab = () => {
               onChange={(e) => settingsMut.mutate({ default_price_per_download: parseFloat(e.target.value) || 0 })}
               className="w-full px-4 py-2 border-4 border-black font-bold" style={{ color: '#111' }}
               data-testid="price-per-download" />
+          </div>
+        </div>
+        <div className="grid md:grid-cols-3 gap-4 mt-4">
+          <div>
+            <label className="block font-bold text-sm uppercase mb-1">Max Storage per User (MB)</label>
+            <input type="number" min="0" value={settings.max_storage_per_user_mb ?? 500}
+              onChange={(e) => settingsMut.mutate({ max_storage_per_user_mb: parseInt(e.target.value) || 500 })}
+              className="w-full px-4 py-2 border-4 border-black font-bold" style={{ color: '#111' }} />
+          </div>
+          <div>
+            <label className="block font-bold text-sm uppercase mb-1">Max Recording Duration (sec)</label>
+            <input type="number" min="0" value={settings.max_recording_duration_sec ?? 600}
+              onChange={(e) => settingsMut.mutate({ max_recording_duration_sec: parseInt(e.target.value) || 600 })}
+              className="w-full px-4 py-2 border-4 border-black font-bold" style={{ color: '#111' }} />
+          </div>
+          <div>
+            <label className="block font-bold text-sm uppercase mb-1">Auto-Delete After (days)</label>
+            <input type="number" min="0" value={settings.auto_delete_recordings_days ?? 0}
+              onChange={(e) => settingsMut.mutate({ auto_delete_recordings_days: parseInt(e.target.value) || 0 })}
+              className="w-full px-4 py-2 border-4 border-black font-bold" style={{ color: '#111' }} />
+            <p className="text-xs text-gray-400 mt-1">0 = never delete</p>
+          </div>
+        </div>
+      </BrutalCard>
+
+      {/* Storage Stats */}
+      <BrutalCard shadow="lg">
+        <h3 className="text-lg font-black uppercase flex items-center gap-2 mb-3">
+          <HardDrive size={20} className="text-blue-500" /> Storage Usage
+        </h3>
+        <div className="grid md:grid-cols-4 gap-4">
+          <div className="text-center p-3 border-4 border-black">
+            <p className="text-2xl font-black">{storageStats.total_storage_mb || 0} MB</p>
+            <p className="text-xs font-bold text-gray-500">TOTAL</p>
+          </div>
+          <div className="text-center p-3 border-4 border-black">
+            <p className="text-2xl font-black">{storageStats.recordings_storage_mb || 0} MB</p>
+            <p className="text-xs font-bold text-gray-500">RECORDINGS ({storageStats.recordings_count || 0})</p>
+          </div>
+          <div className="text-center p-3 border-4 border-black">
+            <p className="text-2xl font-black">{storageStats.media_storage_mb || 0} MB</p>
+            <p className="text-xs font-bold text-gray-500">MEDIA ({storageStats.media_count || 0})</p>
+          </div>
+          <div className="text-center p-3 border-4 border-black">
+            <p className="text-2xl font-black">{storageStats.support_storage_mb || 0} MB</p>
+            <p className="text-xs font-bold text-gray-500">SUPPORT FILES</p>
           </div>
         </div>
       </BrutalCard>

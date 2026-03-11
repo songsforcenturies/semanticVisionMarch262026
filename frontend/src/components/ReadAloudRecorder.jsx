@@ -8,8 +8,8 @@ const C = {
   gold: '#D4A853', teal: '#38BDF8',
 };
 
-const ReadAloudRecorder = ({ studentId, narrativeId, chapterNumber, onRecordingComplete }) => {
-  const [mode, setMode] = useState('audio');
+const ReadAloudRecorder = ({ studentId, narrativeId, chapterNumber, onRecordingComplete, requiredMode = null }) => {
+  const [mode, setMode] = useState(requiredMode === 'video_required' || requiredMode === 'both_required' ? 'video' : 'audio');
   const [recording, setRecording] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [mediaBlob, setMediaBlob] = useState(null);
@@ -159,28 +159,42 @@ const ReadAloudRecorder = ({ studentId, narrativeId, chapterNumber, onRecordingC
     <div className="rounded-xl p-3 sm:p-4" data-testid="read-aloud-recorder"
       style={{ background: C.card, border: '1px solid rgba(255,255,255,0.1)' }}>
       {/* Mode selector */}
-      <div className="flex items-center gap-2 mb-3">
-        <button onClick={() => !recording && setMode('audio')}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-          style={{
-            background: mode === 'audio' ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.04)',
-            color: mode === 'audio' ? '#818CF8' : C.muted,
-            border: mode === 'audio' ? '1px solid rgba(99,102,241,0.3)' : '1px solid rgba(255,255,255,0.08)',
-          }}
-          data-testid="mode-audio-btn">
-          <Mic size={14} /> Audio
-        </button>
-        <button onClick={() => !recording && setMode('video')}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-          style={{
-            background: mode === 'video' ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.04)',
-            color: mode === 'video' ? '#818CF8' : C.muted,
-            border: mode === 'video' ? '1px solid rgba(99,102,241,0.3)' : '1px solid rgba(255,255,255,0.08)',
-          }}
-          data-testid="mode-video-btn">
-          <Video size={14} /> Video
-        </button>
-      </div>
+      {requiredMode !== 'video_required' && requiredMode !== 'audio_required' && (
+        <div className="flex items-center gap-2 mb-3">
+          <button onClick={() => !recording && setMode('audio')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+            style={{
+              background: mode === 'audio' ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.04)',
+              color: mode === 'audio' ? '#818CF8' : C.muted,
+              border: mode === 'audio' ? '1px solid rgba(99,102,241,0.3)' : '1px solid rgba(255,255,255,0.08)',
+            }}
+            data-testid="mode-audio-btn">
+            <Mic size={14} /> Audio
+          </button>
+          <button onClick={() => !recording && setMode('video')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+            style={{
+              background: mode === 'video' ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.04)',
+              color: mode === 'video' ? '#818CF8' : C.muted,
+              border: mode === 'video' ? '1px solid rgba(99,102,241,0.3)' : '1px solid rgba(255,255,255,0.08)',
+            }}
+            data-testid="mode-video-btn">
+            <Video size={14} /> Video
+          </button>
+        </div>
+      )}
+      {requiredMode === 'video_required' && (
+        <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg" style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)' }}>
+          <Video size={16} style={{ color: '#818CF8' }} />
+          <span className="text-xs font-bold" style={{ color: '#818CF8' }}>Video recording required by parent</span>
+        </div>
+      )}
+      {requiredMode === 'audio_required' && (
+        <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg" style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)' }}>
+          <Mic size={16} style={{ color: '#818CF8' }} />
+          <span className="text-xs font-bold" style={{ color: '#818CF8' }}>Audio recording required by parent</span>
+        </div>
+      )}
 
       {/* Recording controls */}
       <div className="flex items-center gap-3 flex-wrap">

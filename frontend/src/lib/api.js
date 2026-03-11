@@ -203,6 +203,7 @@ export const adminAPI = {
   uploadBrandMedia: (formData) => apiClient.post('/admin/brand-media/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   updateBrandMedia: (id, data) => apiClient.put(`/admin/brand-media/${id}`, data),
   deleteBrandMedia: (id) => apiClient.delete(`/admin/brand-media/${id}`),
+  getStorageStats: () => apiClient.get('/admin/storage-stats'),
 };
 
 // ==================== WALLET API ====================

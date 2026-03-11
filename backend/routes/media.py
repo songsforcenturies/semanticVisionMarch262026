@@ -30,6 +30,9 @@ async def get_media_settings(current_user: dict = Depends(get_current_user)):
         "digital_media_enabled": False,
         "default_price_per_stream": 0.00,
         "default_price_per_download": 0.99,
+        "max_storage_per_user_mb": 500,
+        "max_recording_duration_sec": 600,
+        "auto_delete_recordings_days": 0,
     }
     if config and config.get("value"):
         defaults.update(config["value"])
@@ -40,6 +43,9 @@ class MediaSettingsUpdate(BaseModel):
     digital_media_enabled: Optional[bool] = None
     default_price_per_stream: Optional[float] = None
     default_price_per_download: Optional[float] = None
+    max_storage_per_user_mb: Optional[int] = None
+    max_recording_duration_sec: Optional[int] = None
+    auto_delete_recordings_days: Optional[int] = None
 
 
 @router.put("/admin/media-settings")
@@ -60,6 +66,48 @@ async def update_media_settings(data: MediaSettingsUpdate, current_user: dict = 
 # ==================== ADMIN: BRAND MEDIA CRUD ====================
 
 @router.post("/admin/brand-media/upload")
+
+
+@router.get("/admin/storage-stats")
+async def get_storage_stats(current_user: dict = Depends(get_current_user)):
+    """Get storage usage statistics"""
+    if current_user.get("role") != "admin":
+        user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+        if not user or not user.get("is_delegated_admin"):
+            raise HTTPException(status_code=403, detail="Admin access required")
+
+    # Calculate total storage from recordings and media uploads
+    import os
+    recordings_dir = Path(__file__).parent / "uploads" / "recordings"
+    media_dir = MEDIA_UPLOAD_DIR
+    support_dir = Path(__file__).parent / "uploads" / "support"
+
+    def dir_size(path):
+        total = 0
+        if path.exists():
+            for f in path.rglob("*"):
+                if f.is_file():
+                    total += f.stat().st_size
+        return total
+
+    recordings_bytes = dir_size(recordings_dir)
+    media_bytes = dir_size(media_dir)
+    support_bytes = dir_size(support_dir)
+    total_bytes = recordings_bytes + media_bytes + support_bytes
+
+    # Count files
+    recordings_count = await db.recordings.count_documents({})
+    media_count = await db.brand_media.count_documents({})
+
+    return {
+        "total_storage_mb": round(total_bytes / (1024 * 1024), 2),
+        "recordings_storage_mb": round(recordings_bytes / (1024 * 1024), 2),
+        "media_storage_mb": round(media_bytes / (1024 * 1024), 2),
+        "support_storage_mb": round(support_bytes / (1024 * 1024), 2),
+        "recordings_count": recordings_count,
+        "media_count": media_count,
+    }
+
 async def upload_brand_media(
     file: UploadFile = File(...),
     title: str = Form(...),
