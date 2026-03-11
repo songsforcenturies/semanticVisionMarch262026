@@ -1,7 +1,7 @@
 # Semantic Vision - Product Requirements Document (PRD)
 
 ## Original Problem Statement
-AI-powered personalized educational narrative platform with brand integration, digital media, support system, and comprehensive admin tools.
+AI-powered personalized educational narrative platform with brand integration, digital media, recording enforcement, support system, and comprehensive admin tools.
 
 ## Tech Stack
 - **Frontend:** React 18, Tailwind CSS, Shadcn/UI, react-i18next
@@ -9,73 +9,71 @@ AI-powered personalized educational narrative platform with brand integration, d
 - **Database:** MongoDB
 - **AI:** OpenAI GPT-5.2 (via Emergent LLM Key), OpenAI Whisper
 - **Payments:** Stripe, PayPal | **Email:** Resend | **Screen Share:** Daily.co
-- **Media:** Server audio uploads, YouTube video streaming
+- **Media:** Server audio/video uploads, YouTube streaming
 
 ## What's Been Implemented (as of March 2026)
 
 ### Core Platform
 - Full auth system (JWT, role-based, code/PIN for students)
 - AI story generation with 10+ personalization dimensions + media embedding
-- Brand integration engine with competitive bidding + media analytics
-- Brand Comprehension measurement
-- 60/30/10 vocabulary distribution with mastery tracking
-- Read-aloud recording with Whisper transcription and diction scoring
-- Audio Memory Library and Peer Audio Book Section
-- Parental control system with recording enforcement
-- Admin messaging (direct to user by email + broadcast) with visible contrast
-- Clickable notification messages with full detail view
-- Spelling bee contests, Task reminders, PWA architecture
-- Affiliate referral, Wallet/payments (Stripe + PayPal), Multi-currency
+- Brand integration with competitive bidding + media analytics
+- 60/30/10 vocabulary distribution, Whisper transcription, diction scoring
+- Audio Memory Library, Peer Audio Books, Spelling Bee, Task Reminders
+- PWA, Wallet/Payments (Stripe + PayPal), Multi-currency, Affiliate system
 
 ### Admin Features (20 tabs)
-- User management, Delegated admin, Impersonation ("View as User")
-- Screen share (Daily.co), Cost/income/ROI analytics
-- API key management, Subscription plans, Word bank, Brand management
-- Digital Media Management (upload audio/video, YouTube links, pricing, master toggle)
-- **Support Tickets** — View user-submitted tickets (text, screenshots, audio, video), reply to users (auto-notifies), set status (open/in_progress/replied/resolved/closed)
-- Brand media analytics per brand partner
+- Statistics, Word Banks, Brands, Users, Coupons, Contests, Plans, Features
+- AI Costs, Billing/ROI, Affiliates, Audio Books, Messaging, Spelling Bee
+- LLM Config, Integrations, Screen Share, **Digital Media**, **Support Tickets**, App Settings
+- User management, Delegated admin, Impersonation, Direct messaging by email
+
+### Recording Enforcement System (NEW)
+- **Compliance modal**: Blocks story text (blurred) until recording starts
+- **Mode enforcement**: ReadAloudRecorder locks to parent-required mode (audio/video/both)
+- **Clear instructions**: Modal explains requirements before story access
+- **Chapter-by-chapter**: Recording resets each chapter, auto-saves progress
 
 ### Digital Media System
-- Admin: Upload audio, paste YouTube URLs, set stream/download pricing, system toggle, brand linking
+- Admin: Upload audio, YouTube URLs, pricing, master toggle, brand linking
 - Story integration: AI embeds brand media as inline players
 - Student: "My Music" library, like/download (wallet-deducted)
 - Parent: Per-student media ON/OFF, children's media history
 
-### User Support System (NEW)
-- **Support Widget**: Floating button on all authenticated pages
-- Users can send: text messages, screenshots (auto-capture), audio recordings, video/file attachments
-- Admin can reply (notification sent to user), manage ticket status
-- Users can view reply history
+### Storage Management (NEW)
+- **Admin settings**: Max storage per user (MB), max recording duration (sec), auto-delete after (days)
+- **Storage dashboard**: Real-time breakdown by category (Total, Recordings, Media, Support Files)
+- **Endpoint**: GET /api/admin/storage-stats
 
-### Story Progress System (NEW)
-- **Auto-save**: Progress saved on every chapter change
-- **Save & Exit**: Students can save and resume later
-- **Completion fix**: Stories only marked "completed" after ALL chapters read + assessment done
-- Students cannot close story and skip assessments
+### User Support System
+- **Support Widget**: Floating button on all authenticated pages
+- Users send: text, screenshots (auto-capture), audio recordings, file attachments
+- Admin: Reply (auto-notifies user), manage ticket status (open/in_progress/replied/resolved/closed)
+- Status filters, attachment viewer, conversation thread
+
+### Story Progress System
+- Auto-save on chapter change, Save & Exit button
+- Stories only marked "completed" after ALL chapters read + assessment done
+- Compliance modal enforces recording before story access
 
 ### Security
-- Assessment cheating prevention: Fully opaque overlay on assessments
+- Assessment cheating prevention: Fully opaque overlay
+- Admin messaging: Dark text on white background (CSS specificity fix)
 
 ### Guardian Features
-- Student management, PIN changes, ID cards
-- Heritage/culture multi-select, Culture learning preferences
-- **Music & Media tab** — children's media history + per-student toggle
-- Tab order: Students, Word Bank, Audio Memories, Audio Books, Music & Media, Progress, ID Cards, Invite & Earn, Subscription, Wallet, Offers, Affiliate, FAQ
+- Student management, PIN changes, ID cards, heritage/culture multi-select
+- Music & Media tab, Culture learning preferences
+- Per-student recording mode and media controls
 
 ## Prioritized Backlog
 
 ### P0 - ALL COMPLETED
-- [x] All previous P0 items
-- [x] Digital Media system (admin, student, parent, story integration) — iteration 49
-- [x] Assessment cheating fix — iteration 49
-- [x] Admin messaging contrast fix — iteration 50
-- [x] Story completion bug fix — iteration 50
-- [x] Support ticket system — iteration 50
-- [x] Story progress auto-save — iteration 50
-- [x] Brand media analytics — iteration 50
+- [x] All previous P0 items including digital media, support tickets, storage management
+- [x] Recording enforcement with compliance modal — iteration 51
+- [x] Storage settings + dashboard — iteration 51
+- [x] Messaging contrast fix — iteration 51
 
 ### P1 (High)
-- [ ] Real-time world events in stories — Admin configures headlines, AI weaves into stories, parents can toggle off
+- [ ] Real-time world events in stories — Admin configures headlines, AI weaves into stories, parents can toggle
 - [ ] Dual Role (Parent/Student) Toggle — Users 15+ switch views
 - [ ] Story randomization — Vary interests to avoid repetitive stories
 
@@ -85,18 +83,16 @@ AI-powered personalized educational narrative platform with brand integration, d
 - [ ] On-Device LLM Integration
 
 ### P3 (Low/Future)
-- [ ] Video Recording & Analysis
-- [ ] User Demo Flow
-- [ ] Accessibility Features (text-to-sign-language AI)
-- [ ] AR Story Experience, Gamification, Family Shared Narratives
+- [ ] Video Recording & Analysis, User Demo Flow
+- [ ] Accessibility Features, AR, Gamification, Family Narratives
 
 ## Key Credentials
 - **Admin/Guardian:** allen@songsforcenturies.com / LexiAdmin2026!
 
 ## Key Backend Files
-- `/app/backend/routes/media.py` — Digital media CRUD, streaming, student library
-- `/app/backend/routes/support.py` — Support tickets, attachments, admin replies
+- `/app/backend/routes/media.py` — Digital media + storage stats
+- `/app/backend/routes/support.py` — Support tickets + attachments
 - `/app/backend/routes/admin.py` — Impersonation, integrations, messaging
-- `/app/backend/routes/narratives.py` — Story generation, progress save/resume
+- `/app/backend/routes/narratives.py` — Story generation, progress save, completion logic
 - `/app/backend/routes/brands.py` — Brand management, media analytics
 - `/app/backend/story_service.py` — AI prompt with media integration

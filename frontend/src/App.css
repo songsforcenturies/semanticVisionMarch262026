@@ -42,6 +42,13 @@
     background-color: #1A2236 !important;
     color: #F8F5EE !important;
 }
+.sv-dark .bright-input,
+.sv-dark .bright-input input,
+.sv-dark .bright-input textarea,
+.sv-dark .bright-input select {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+}
 .sv-dark .bg-gradient-to-br {
     background: #0A0F1E !important;
 }

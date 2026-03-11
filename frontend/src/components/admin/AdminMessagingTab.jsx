@@ -67,7 +67,7 @@ const AdminMessagingTab = () => {
         <h3 className="text-2xl font-black uppercase mb-4 flex items-center gap-2">
           <Send size={24} className="text-blue-500" /> Send Message
         </h3>
-        <form onSubmit={handleSend} className="space-y-4">
+        <form onSubmit={handleSend} className="space-y-4 bright-input">
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="block font-bold text-sm uppercase mb-2">Send To</label>
