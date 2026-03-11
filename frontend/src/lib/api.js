@@ -413,4 +413,32 @@ export const narrativeProgressAPI = {
   get: (narrativeId) => apiClient.get(`/narratives/${narrativeId}/progress`),
 };
 
+export const backupAPI = {
+  getStatus: () => apiClient.get('/admin/backup/status'),
+  download: () => {
+    const token = localStorage.getItem('token');
+    return fetch(`${API}/admin/backup`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(res => {
+      if (!res.ok) throw new Error('Backup failed');
+      return res.blob().then(blob => {
+        const filename = res.headers.get('Content-Disposition')?.split('filename=')[1] || 'backup.json';
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
+    });
+  },
+  restore: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiClient.post('/admin/restore', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000,
+    });
+  },
+};
+
 export default apiClient;

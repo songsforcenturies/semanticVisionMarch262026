@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { adminAPI, wordBankAPI, adminAffiliateAPI } from '@/lib/api';
+import { adminAPI, wordBankAPI, adminAffiliateAPI, backupAPI } from '@/lib/api';
 import AffiliatesTab from '@/components/admin/AffiliatesTab';
 import AdminAudioBooksTab from '@/components/admin/AdminAudioBooksTab';
 import AdminMessagingTab from '@/components/admin/AdminMessagingTab';
@@ -16,6 +16,7 @@ import {
   DollarSign, Cpu, Users, BarChart3, Settings, Shield,
   Ticket, Crown, PlusCircle, Trash2, UserCheck, BookOpen, Clock, Zap, Sliders, ToggleLeft,
   Megaphone, Building2, Edit, Trophy, Wallet, Link2, Send, CheckCircle, XCircle, MessageSquare, Award, Key, TrendingUp, Eye, Video, Copy,
+  Database, Download, Upload, HardDrive, AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
@@ -455,6 +456,7 @@ const AdminPortal = () => {
     { id: 'support', label: 'Screen Share', icon: Video },
     { id: 'digital-media', label: 'Digital Media', icon: Zap },
     { id: 'support-tickets', label: 'Support Tickets', icon: MessageSquare },
+    { id: 'backup', label: 'Backup & Restore', icon: Database },
     { id: 'settings', label: 'App Settings', icon: Shield },
   ];
 
@@ -1868,6 +1870,8 @@ const AdminPortal = () => {
         {activeTab === 'support-tickets' && <AdminSupportTab />}
 
         {/* =================== APP SETTINGS TAB =================== */}
+        {activeTab === 'backup' && <BackupRestoreTab />}
+
         {activeTab === 'settings' && (
           <div className="space-y-6" data-testid="settings-tab">
             <BrutalCard shadow="xl" className="max-w-2xl">
@@ -1926,6 +1930,178 @@ const StatCard = ({ icon: Icon, label, value, sub, color = 'indigo' }) => {
     <div className={`${bgMap[color]} border-4 border-black p-5 brutal-shadow-sm`}>
       <div className="flex items-center gap-2 mb-2"><Icon size={18} className={textMap[color]} /><p className="font-bold text-xs uppercase text-gray-600">{label}</p></div>
       <p className="text-3xl font-black">{value}{sub && <span className="text-sm text-gray-500 ml-1">{sub}</span>}</p>
+    </div>
+  );
+};
+
+// Backup & Restore Tab
+const BackupRestoreTab = () => {
+  const [backupLoading, setBackupLoading] = React.useState(false);
+  const [restoreLoading, setRestoreLoading] = React.useState(false);
+  const [restoreResult, setRestoreResult] = React.useState(null);
+
+  const { data: backupStatus, isLoading: statusLoading } = useQuery({
+    queryKey: ['backup-status'],
+    queryFn: async () => {
+      const res = await backupAPI.getStatus();
+      return res.data;
+    },
+  });
+
+  const handleBackup = async () => {
+    setBackupLoading(true);
+    try {
+      await backupAPI.download();
+      toast.success('Backup downloaded successfully!');
+    } catch (e) {
+      toast.error('Backup failed: ' + (e.message || 'Unknown error'));
+    } finally {
+      setBackupLoading(false);
+    }
+  };
+
+  const handleRestore = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.endsWith('.json')) {
+      toast.error('Please select a .json backup file');
+      return;
+    }
+    if (!window.confirm('This will restore data from the backup file. Existing data with matching IDs will be updated. Continue?')) {
+      e.target.value = '';
+      return;
+    }
+    setRestoreLoading(true);
+    setRestoreResult(null);
+    try {
+      const res = await backupAPI.restore(file);
+      setRestoreResult(res.data);
+      toast.success(`Restore complete! ${res.data.total_new_documents} new, ${res.data.total_updated_documents} updated`);
+    } catch (err) {
+      toast.error('Restore failed: ' + (err.response?.data?.detail || err.message));
+    } finally {
+      setRestoreLoading(false);
+      e.target.value = '';
+    }
+  };
+
+  return (
+    <div className="space-y-6" data-testid="backup-tab">
+      {/* Warning Banner */}
+      <div className="border-4 border-amber-500 bg-amber-50 p-5 flex items-start gap-3">
+        <AlertTriangle size={24} className="text-amber-600 mt-0.5 shrink-0" />
+        <div>
+          <p className="font-black text-lg uppercase text-amber-800">Always Backup Before Deploying</p>
+          <p className="text-sm font-medium text-amber-700 mt-1">
+            Download a full backup of your database before every deployment. If anything goes wrong, you can restore all your data instantly.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Backup Card */}
+        <BrutalCard shadow="xl">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-emerald-100 border-4 border-black">
+              <Download size={24} className="text-emerald-600" />
+            </div>
+            <div>
+              <h3 className="text-xl font-black uppercase">Download Backup</h3>
+              <p className="text-sm text-gray-500 font-medium">Export entire database as JSON</p>
+            </div>
+          </div>
+
+          {/* DB Stats */}
+          {statusLoading ? (
+            <p className="text-gray-500 font-medium py-4">Loading database info...</p>
+          ) : backupStatus ? (
+            <div className="mb-4 border-4 border-black p-4 bg-gray-50">
+              <div className="flex justify-between items-center mb-3">
+                <span className="font-bold text-sm uppercase text-gray-600">Database Summary</span>
+                <BrutalBadge variant="indigo" size="sm">{backupStatus.total_documents} total docs</BrutalBadge>
+              </div>
+              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                {Object.entries(backupStatus.collections || {}).sort((a, b) => b[1] - a[1]).map(([name, count]) => (
+                  <div key={name} className="flex justify-between text-sm border-b border-gray-200 py-1">
+                    <span className="font-medium text-gray-700 truncate mr-2">{name}</span>
+                    <span className="font-bold text-gray-900">{count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <BrutalButton
+            variant="emerald"
+            fullWidth
+            size="lg"
+            onClick={handleBackup}
+            disabled={backupLoading}
+            className="flex items-center justify-center gap-2"
+            data-testid="download-backup-btn"
+          >
+            <HardDrive size={18} />
+            {backupLoading ? 'Preparing backup...' : 'Download Full Backup'}
+          </BrutalButton>
+        </BrutalCard>
+
+        {/* Restore Card */}
+        <BrutalCard shadow="xl">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-indigo-100 border-4 border-black">
+              <Upload size={24} className="text-indigo-600" />
+            </div>
+            <div>
+              <h3 className="text-xl font-black uppercase">Restore From Backup</h3>
+              <p className="text-sm text-gray-500 font-medium">Upload a backup JSON file to restore</p>
+            </div>
+          </div>
+
+          <div className="mb-4 border-4 border-black p-4 bg-gray-50">
+            <p className="text-sm font-medium text-gray-600 mb-2">How restore works:</p>
+            <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
+              <li>New records are <strong>added</strong> to the database</li>
+              <li>Existing records (matching ID) are <strong>updated</strong></li>
+              <li>No data is ever <strong>deleted</strong> during restore</li>
+            </ul>
+          </div>
+
+          <label
+            className={`block w-full text-center border-4 border-black p-4 font-black uppercase cursor-pointer transition-all ${restoreLoading ? 'bg-gray-200 text-gray-500' : 'bg-indigo-100 hover:bg-indigo-200 text-indigo-800'}`}
+            data-testid="restore-backup-btn"
+          >
+            <div className="flex items-center justify-center gap-2">
+              <Upload size={18} />
+              {restoreLoading ? 'Restoring...' : 'Select Backup File to Restore'}
+            </div>
+            <input
+              type="file"
+              accept=".json"
+              onChange={handleRestore}
+              disabled={restoreLoading}
+              className="hidden"
+            />
+          </label>
+
+          {/* Restore Result */}
+          {restoreResult && (
+            <div className="mt-4 border-4 border-emerald-500 bg-emerald-50 p-4">
+              <p className="font-black text-emerald-800 mb-2 flex items-center gap-2">
+                <CheckCircle size={18} /> Restore Complete
+              </p>
+              <p className="text-sm font-medium">
+                <strong>{restoreResult.total_new_documents}</strong> new documents added,{' '}
+                <strong>{restoreResult.total_updated_documents}</strong> existing updated
+              </p>
+              {restoreResult.backup_meta?.backup_date && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Backup from: {new Date(restoreResult.backup_meta.backup_date).toLocaleString()}
+                </p>
+              )}
+            </div>
+          )}
+        </BrutalCard>
+      </div>
     </div>
   );
 };
