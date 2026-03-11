@@ -63,6 +63,14 @@ AI-powered personalized educational narrative platform with brand integration, d
 - Student management, PIN changes, ID cards, heritage/culture multi-select
 - Music & Media tab, Culture learning preferences
 - Per-student recording mode and media controls
+- **Cumulative Time Log**: Daily login hours, total days active, avg/day, total sessions on progress reports
+
+### Cumulative Time Log System (NEW - iteration 52)
+- **Session tracking**: Automatic start on student login, heartbeat every 60s, end on logout/tab close
+- **Stale session cleanup**: Sessions without heartbeat for 2min auto-close
+- **Parent progress reports**: 4 stat cards (Days Active, Total Time, Avg/Day, Sessions) + Daily Login Hours bar chart
+- **HTML export**: Time log data included in printable progress reports
+- **Endpoints**: POST /api/sessions/start, /heartbeat, /end | GET /api/students/{id}/time-log
 
 ## Prioritized Backlog
 
@@ -71,6 +79,7 @@ AI-powered personalized educational narrative platform with brand integration, d
 - [x] Recording enforcement with compliance modal — iteration 51
 - [x] Storage settings + dashboard — iteration 51
 - [x] Messaging contrast fix — iteration 51
+- [x] Cumulative Time Log for Progress Reports — iteration 52
 
 ### P1 (High)
 - [ ] Real-time world events in stories — Admin configures headlines, AI weaves into stories, parents can toggle
@@ -90,6 +99,7 @@ AI-powered personalized educational narrative platform with brand integration, d
 - **Admin/Guardian:** allen@songsforcenturies.com / LexiAdmin2026!
 
 ## Key Backend Files
+- `/app/backend/routes/sessions.py` — Session tracking + time log aggregation
 - `/app/backend/routes/media.py` — Digital media + storage stats
 - `/app/backend/routes/support.py` — Support tickets + attachments
 - `/app/backend/routes/admin.py` — Impersonation, integrations, messaging
