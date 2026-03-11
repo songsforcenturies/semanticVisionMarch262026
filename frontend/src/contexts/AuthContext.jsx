@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { authAPI } from '@/lib/api';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { authAPI, sessionAPI } from '@/lib/api';
 
 const AuthContext = createContext(null);
 
@@ -16,6 +16,58 @@ export const AuthProvider = ({ children }) => {
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const heartbeatRef = useRef(null);
+  const sessionIdRef = useRef(null);
+  const studentIdRef = useRef(null);
+
+  const stopSessionTracking = useCallback(() => {
+    if (heartbeatRef.current) {
+      clearInterval(heartbeatRef.current);
+      heartbeatRef.current = null;
+    }
+    // Try to end the session
+    if (sessionIdRef.current && studentIdRef.current) {
+      sessionAPI.end(studentIdRef.current, sessionIdRef.current).catch(() => {});
+    }
+    sessionIdRef.current = null;
+    studentIdRef.current = null;
+  }, []);
+
+  const startSessionTracking = useCallback(async (studentData) => {
+    // Stop any existing tracking
+    stopSessionTracking();
+    try {
+      const res = await sessionAPI.start(studentData.id);
+      const sid = res.data.session_id;
+      sessionIdRef.current = sid;
+      studentIdRef.current = studentData.id;
+      // Store in localStorage for beforeunload
+      localStorage.setItem('active_session_id', sid);
+      localStorage.setItem('active_student_id', studentData.id);
+      // Heartbeat every 60 seconds
+      heartbeatRef.current = setInterval(() => {
+        if (sessionIdRef.current && studentIdRef.current) {
+          sessionAPI.heartbeat(studentIdRef.current, sessionIdRef.current).catch(() => {});
+        }
+      }, 60000);
+    } catch (e) {
+      console.error('Failed to start session tracking:', e);
+    }
+  }, [stopSessionTracking]);
+
+  // Handle tab close / page unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const sid = localStorage.getItem('active_session_id');
+      const stId = localStorage.getItem('active_student_id');
+      if (sid && stId) {
+        const url = `${process.env.REACT_APP_BACKEND_URL}/api/sessions/end`;
+        navigator.sendBeacon(url, JSON.stringify({ student_id: stId, session_id: sid }));
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   useEffect(() => {
     // Check for existing token
@@ -29,11 +81,14 @@ export const AuthProvider = ({ children }) => {
     }
 
     if (savedStudent) {
-      setStudent(JSON.parse(savedStudent));
+      const parsedStudent = JSON.parse(savedStudent);
+      setStudent(parsedStudent);
+      // Resume session tracking for returning student
+      startSessionTracking(parsedStudent);
     }
 
     setLoading(false);
-  }, []);
+  }, [startSessionTracking]);
 
   const login = async (email, password) => {
     try {
@@ -87,6 +142,9 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('student', JSON.stringify(studentData));
       setStudent(studentData);
 
+      // Start session tracking
+      startSessionTracking(studentData);
+
       return { success: true, student: studentData };
     } catch (error) {
       console.error('Student login error:', error);
@@ -98,16 +156,22 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    stopSessionTracking();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('student');
+    localStorage.removeItem('active_session_id');
+    localStorage.removeItem('active_student_id');
     setUser(null);
     setStudent(null);
     setIsAuthenticated(false);
   };
 
   const studentLogout = () => {
+    stopSessionTracking();
     localStorage.removeItem('student');
+    localStorage.removeItem('active_session_id');
+    localStorage.removeItem('active_student_id');
     setStudent(null);
   };
 

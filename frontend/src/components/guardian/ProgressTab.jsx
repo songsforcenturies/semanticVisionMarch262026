@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { studentAPI } from '@/lib/api';
 import { BrutalCard, BrutalButton, BrutalBadge } from '@/components/brutal';
-import { TrendingUp, BookOpen, Clock, Target, ChevronLeft, Award, BarChart3, Brain, Download, Printer } from 'lucide-react';
+import { TrendingUp, BookOpen, Clock, Target, ChevronLeft, Award, BarChart3, Brain, Download, Printer, CalendarDays, Timer, Activity } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -48,6 +48,15 @@ const StudentProgressDetail = ({ studentId, onBack }) => {
     queryKey: ['student-progress', studentId],
     queryFn: async () => {
       const res = await studentAPI.getProgress(studentId);
+      return res.data;
+    },
+    enabled: !!studentId,
+  });
+
+  const { data: timeLog, isLoading: timeLogLoading } = useQuery({
+    queryKey: ['student-time-log', studentId],
+    queryFn: async () => {
+      const res = await studentAPI.getTimeLog(studentId);
       return res.data;
     },
     enabled: !!studentId,
@@ -136,6 +145,81 @@ const StudentProgressDetail = ({ studentId, onBack }) => {
         <StatCard label="Avg WPM" value={reading_stats.average_wpm || '—'} sub={`${reading_stats.total_words_read} total words`} icon={BookOpen} color="emerald" />
         <StatCard label="Assessments" value={assessments.completed} sub={`${assessments.average_accuracy}% avg accuracy`} icon={Award} color="rose" />
       </div>
+
+      {/* Cumulative Time Log */}
+      <BrutalCard shadow="lg" data-testid="time-log-section">
+        <h3 className="text-xl font-black uppercase mb-4 flex items-center gap-2">
+          <Timer size={20} className="text-violet-500" /> Cumulative Time Log
+        </h3>
+        {timeLogLoading ? (
+          <p className="text-gray-500 font-medium py-4 text-center">Loading time data...</p>
+        ) : !timeLog || timeLog.total_sessions === 0 ? (
+          <EmptyState message="No login sessions recorded yet" />
+        ) : (
+          <div className="space-y-5">
+            {/* Time Summary Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="bg-violet-50 border-4 border-black p-4 brutal-shadow-sm" data-testid="time-total-days">
+                <div className="flex items-center gap-2 mb-1">
+                  <CalendarDays size={16} className="text-violet-600" />
+                  <p className="font-bold text-xs uppercase text-gray-600">Days Active</p>
+                </div>
+                <p className="text-2xl font-black">{timeLog.total_days_logged_in}</p>
+                <p className="text-xs text-gray-500 font-medium">unique days</p>
+              </div>
+              <div className="bg-violet-50 border-4 border-black p-4 brutal-shadow-sm" data-testid="time-cumulative">
+                <div className="flex items-center gap-2 mb-1">
+                  <Timer size={16} className="text-violet-600" />
+                  <p className="font-bold text-xs uppercase text-gray-600">Total Time</p>
+                </div>
+                <p className="text-2xl font-black">{timeLog.cumulative_display}</p>
+                <p className="text-xs text-gray-500 font-medium">{timeLog.total_sessions} sessions</p>
+              </div>
+              <div className="bg-violet-50 border-4 border-black p-4 brutal-shadow-sm" data-testid="time-avg-daily">
+                <div className="flex items-center gap-2 mb-1">
+                  <Activity size={16} className="text-violet-600" />
+                  <p className="font-bold text-xs uppercase text-gray-600">Avg / Day</p>
+                </div>
+                <p className="text-2xl font-black">{timeLog.average_daily_display}</p>
+                <p className="text-xs text-gray-500 font-medium">per active day</p>
+              </div>
+              <div className="bg-violet-50 border-4 border-black p-4 brutal-shadow-sm" data-testid="time-total-sessions">
+                <div className="flex items-center gap-2 mb-1">
+                  <TrendingUp size={16} className="text-violet-600" />
+                  <p className="font-bold text-xs uppercase text-gray-600">Sessions</p>
+                </div>
+                <p className="text-2xl font-black">{timeLog.total_sessions}</p>
+                <p className="text-xs text-gray-500 font-medium">total logins</p>
+              </div>
+            </div>
+
+            {/* Daily Activity Chart */}
+            {timeLog.daily_logs && timeLog.daily_logs.length > 0 && (
+              <div>
+                <h4 className="font-bold text-sm uppercase text-gray-600 mb-3">Daily Login Hours</h4>
+                <div className="h-52" data-testid="time-log-chart">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={timeLog.daily_logs.slice(-30)}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fontSize: 11, fontWeight: 700 }}
+                        tickFormatter={(d) => d.slice(5)}
+                      />
+                      <YAxis tick={{ fontSize: 11 }} label={{ value: 'Hours', angle: -90, position: 'insideLeft', fontSize: 11, fontWeight: 700 }} />
+                      <Tooltip
+                        formatter={(v) => [`${v.toFixed(2)} hrs`, 'Time']}
+                        labelFormatter={(d) => `Date: ${d}`}
+                      />
+                      <Bar dataKey="hours" fill="#8b5cf6" stroke="#000" strokeWidth={2} radius={[4, 4, 0, 0]} name="Hours" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </BrutalCard>
 
       {/* Charts Row */}
       <div className="grid md:grid-cols-2 gap-6">

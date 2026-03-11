@@ -277,6 +277,20 @@ async def get_student_progress(
         banks = await db.word_banks.find({"id": {"$in": assigned_bank_ids}}, {"_id": 0, "id": 1, "name": 1, "total_tokens": 1}).to_list(50)
         assigned_banks = banks
 
+    # Session time logs
+    sessions = await db.session_logs.find(
+        {"student_id": student_id},
+        {"_id": 0, "date": 1, "duration_seconds": 1}
+    ).to_list(10000)
+    daily_map = {}
+    for s in sessions:
+        date_key = s.get("date", "unknown")
+        if date_key not in daily_map:
+            daily_map[date_key] = 0
+        daily_map[date_key] += s.get("duration_seconds", 0)
+    cumulative_seconds = sum(s.get("duration_seconds", 0) for s in sessions)
+    total_days = len(daily_map)
+
     return {
         "student": {
             "id": student["id"],
@@ -312,6 +326,11 @@ async def get_student_progress(
             "stories": narrative_summaries,
         },
         "assigned_banks": assigned_banks,
+        "time_log": {
+            "total_days_logged_in": total_days,
+            "cumulative_seconds": cumulative_seconds,
+            "total_sessions": len(sessions),
+        },
     }
 
 
@@ -339,10 +358,17 @@ async def export_student_progress(
     a = progress["assessments"]
     n = progress["narratives"]
     banks = progress["assigned_banks"]
+    tl = progress.get("time_log", {})
 
     hours = r["total_reading_seconds"] // 3600
     mins = (r["total_reading_seconds"] % 3600) // 60
     time_str = f"{hours}h {mins}m" if hours else f"{mins}m"
+
+    # Time log formatting
+    tl_cumulative = tl.get("cumulative_seconds", 0)
+    tl_h = tl_cumulative // 3600
+    tl_m = (tl_cumulative % 3600) // 60
+    tl_display = f"{tl_h}h {tl_m}m" if tl_h else f"{tl_m}m"
 
     mastered_words_html = "".join(f'<span class="tag mastered">{w}</span>' for w in v.get("all_mastered", [])) or '<p class="empty">No words mastered yet</p>'
     virtues_html = "".join(f'<span class="tag virtue">{vt}</span>' for vt in s.get("virtues", [])) or '<p class="empty">No virtues assigned</p>'
@@ -426,6 +452,14 @@ async def export_student_progress(
     <div class="stat-box"><div class="label">Reading Time</div><div class="value">{time_str}</div><div class="sub">{r["sessions_count"]} sessions</div></div>
     <div class="stat-box"><div class="label">Avg WPM</div><div class="value">{r["average_wpm"] or "—"}</div><div class="sub">{r["total_words_read"]} total words</div></div>
     <div class="stat-box"><div class="label">Assessments</div><div class="value">{a["completed"]}</div><div class="sub">{a["average_accuracy"]}% avg accuracy</div></div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Cumulative Time Log</h2>
+  <div class="stats-grid">
+    <div class="stat-box"><div class="label">Days Active</div><div class="value">{tl.get("total_days_logged_in", 0)}</div><div class="sub">unique days</div></div>
+    <div class="stat-box"><div class="label">Total Time</div><div class="value">{tl_display}</div><div class="sub">{tl.get("total_sessions", 0)} sessions</div></div>
   </div>
 </div>
 

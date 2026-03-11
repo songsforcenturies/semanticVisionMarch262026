@@ -77,6 +77,15 @@ export const studentAPI = {
   toggleSpellcheck: (id) => apiClient.post(`/students/${id}/spellcheck`),
   toggleSpellingMode: (id) => apiClient.post(`/students/${id}/spelling-mode`),
   getSpellingLogs: (id) => apiClient.get(`/students/${id}/spelling-logs`),
+  getTimeLog: (id) => apiClient.get(`/students/${id}/time-log`),
+};
+
+// ==================== SESSION API ====================
+
+export const sessionAPI = {
+  start: (studentId) => apiClient.post('/sessions/start', { student_id: studentId }),
+  heartbeat: (studentId, sessionId) => apiClient.post('/sessions/heartbeat', { student_id: studentId, session_id: sessionId }),
+  end: (studentId, sessionId) => apiClient.post('/sessions/end', { student_id: studentId, session_id: sessionId }),
 };
 
 // ==================== SUBSCRIPTION API ====================
