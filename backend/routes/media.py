@@ -65,9 +65,6 @@ async def update_media_settings(data: MediaSettingsUpdate, current_user: dict = 
 
 # ==================== ADMIN: BRAND MEDIA CRUD ====================
 
-@router.post("/admin/brand-media/upload")
-
-
 @router.get("/admin/storage-stats")
 async def get_storage_stats(current_user: dict = Depends(get_current_user)):
     """Get storage usage statistics"""
@@ -108,6 +105,7 @@ async def get_storage_stats(current_user: dict = Depends(get_current_user)):
         "media_count": media_count,
     }
 
+@router.post("/admin/brand-media/upload")
 async def upload_brand_media(
     file: UploadFile = File(...),
     title: str = Form(...),
