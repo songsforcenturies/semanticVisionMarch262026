@@ -54,8 +54,9 @@ On March 11, 2026, I used the "Replace Deployment" feature on the Emergent platf
 - This is a production educational platform with active users
 
 ### Financial Impact
-- Multiple deployment credits consumed (6+ deployments at varying credit costs)
-- Build session credits consumed while attempting to diagnose and fix the deployment issue
+- Multiple deployment credits consumed (6+ deployments)
+- From screenshots: credits dropped from 284.46 to 269.56 in just 30 minutes
+- Estimated total credits consumed today: **100-150+ credits** (deployments + build session time)
 - Loss of user trust due to extended outage
 
 ---
