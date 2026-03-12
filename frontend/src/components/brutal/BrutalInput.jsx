@@ -8,7 +8,7 @@ const BrutalInput = React.forwardRef(({
   variant = 'default',
   ...props 
 }, ref) => {
-  const baseStyles = 'w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed';
+  const baseStyles = 'w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-gray-900';
   
   const variants = {
     default: 'bg-white',

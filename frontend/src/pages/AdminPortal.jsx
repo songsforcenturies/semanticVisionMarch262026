@@ -970,7 +970,7 @@ const AdminPortal = () => {
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="block font-bold text-sm uppercase mb-2">Brand Sponsor</label>
-                    <select value={sponsorForm.brand_id} onChange={(e) => setSponsorForm({ ...sponsorForm, brand_id: e.target.value })} className="w-full border-4 border-black px-4 py-3 font-bold" data-testid="sponsor-brand">
+                    <select value={sponsorForm.brand_id} onChange={(e) => setSponsorForm({ ...sponsorForm, brand_id: e.target.value })} className="w-full border-4 border-black px-4 py-3 font-bold bg-white text-gray-900" data-testid="sponsor-brand">
                       <option value="">Select brand...</option>
                       {brands.filter(b => b.is_active).map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                     </select>
@@ -1053,7 +1053,7 @@ const AdminPortal = () => {
                   <div>
                     <label className="block font-bold text-sm uppercase mb-2">Role</label>
                     <select value={createUserForm.role} onChange={(e) => setCreateUserForm({ ...createUserForm, role: e.target.value })}
-                      className="w-full border-4 border-black px-4 py-3 font-bold" data-testid="create-user-role">
+                      className="w-full border-4 border-black px-4 py-3 font-bold bg-white text-gray-900" data-testid="create-user-role">
                       <option value="guardian">Parent / School</option>
                       <option value="teacher">Teacher</option>
                       <option value="brand_partner">Brand Partner</option>
@@ -1140,13 +1140,13 @@ const AdminPortal = () => {
                   <div>
                     <label className="block font-bold text-sm uppercase mb-2">Plan Name</label>
                     <input value={editSubForm.plan_name} onChange={(e) => setEditSubForm({ ...editSubForm, plan_name: e.target.value })}
-                      className="w-full border-4 border-black px-4 py-3 font-bold" placeholder="e.g. starter"
+                      className="w-full border-4 border-black px-4 py-3 font-bold bg-white text-gray-900" placeholder="e.g. starter"
                       data-testid="edit-sub-plan-name" />
                   </div>
                   <div>
                     <label className="block font-bold text-sm uppercase mb-2">Student Seats</label>
                     <input type="number" value={editSubForm.student_seats} onChange={(e) => setEditSubForm({ ...editSubForm, student_seats: e.target.value })}
-                      className="w-full border-4 border-black px-4 py-3 font-bold" placeholder="10"
+                      className="w-full border-4 border-black px-4 py-3 font-bold bg-white text-gray-900" placeholder="10"
                       data-testid="edit-sub-seats" />
                   </div>
                   <div>
@@ -1332,7 +1332,7 @@ const AdminPortal = () => {
                   <BrutalInput label="Coupon Code" value={couponForm.code} onChange={(e) => setCouponForm({ ...couponForm, code: e.target.value.toUpperCase() })} placeholder="e.g. WELCOME50" data-testid="coupon-code" />
                   <div>
                     <label className="block font-bold text-sm uppercase mb-2">Type</label>
-                    <select value={couponForm.coupon_type} onChange={(e) => setCouponForm({ ...couponForm, coupon_type: e.target.value })} className="w-full border-4 border-black px-4 py-3 font-bold" data-testid="coupon-type">
+                    <select value={couponForm.coupon_type} onChange={(e) => setCouponForm({ ...couponForm, coupon_type: e.target.value })} className="w-full border-4 border-black px-4 py-3 font-bold bg-white text-gray-900" data-testid="coupon-type">
                       <option value="wallet_credit">Wallet Credit ($)</option>
                       <option value="percentage_discount">Percentage Discount (%)</option>
                       <option value="free_stories">Free Stories (count)</option>
@@ -1345,7 +1345,7 @@ const AdminPortal = () => {
                   <BrutalInput label="Value" type="number" step="0.01" value={couponForm.value} onChange={(e) => setCouponForm({ ...couponForm, value: e.target.value })} placeholder={couponForm.coupon_type === 'percentage_discount' ? '0-100' : 'Amount'} data-testid="coupon-value" />
                   <div>
                     <label className="block font-bold text-sm uppercase mb-2">Max Uses (0 = unlimited)</label>
-                    <input type="number" min="0" value={couponForm.max_uses} onChange={(e) => setCouponForm({ ...couponForm, max_uses: e.target.value })} className="w-full border-4 border-black px-4 py-3 font-bold" data-testid="coupon-max-uses" />
+                    <input type="number" min="0" value={couponForm.max_uses} onChange={(e) => setCouponForm({ ...couponForm, max_uses: e.target.value })} className="w-full border-4 border-black px-4 py-3 font-bold bg-white text-gray-900" data-testid="coupon-max-uses" />
                   </div>
                   <BrutalInput label="Description" value={couponForm.description} onChange={(e) => setCouponForm({ ...couponForm, description: e.target.value })} placeholder="Optional..." />
                 </div>
@@ -1697,26 +1697,26 @@ const AdminPortal = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div><label className="block font-bold text-sm uppercase mb-2">Per Seat Price ($/mo)</label>
-                    <input type="number" step="0.01" value={billingForm.per_seat_price} onChange={(e) => setBillingForm({ ...billingForm, per_seat_price: parseFloat(e.target.value) || 0 })} className="w-full border-4 border-black px-4 py-3 font-bold" data-testid="per-seat-price" /></div>
+                    <input type="number" step="0.01" value={billingForm.per_seat_price} onChange={(e) => setBillingForm({ ...billingForm, per_seat_price: parseFloat(e.target.value) || 0 })} className="w-full border-4 border-black px-4 py-3 font-bold bg-white text-gray-900" data-testid="per-seat-price" /></div>
                   <div><label className="block font-bold text-sm uppercase mb-2">ROI Markup (%)</label>
-                    <input type="number" value={billingForm.roi_markup_percent} onChange={(e) => setBillingForm({ ...billingForm, roi_markup_percent: parseFloat(e.target.value) || 0 })} className="w-full border-4 border-black px-4 py-3 font-bold" data-testid="roi-markup" />
+                    <input type="number" value={billingForm.roi_markup_percent} onChange={(e) => setBillingForm({ ...billingForm, roi_markup_percent: parseFloat(e.target.value) || 0 })} className="w-full border-4 border-black px-4 py-3 font-bold bg-white text-gray-900" data-testid="roi-markup" />
                     <p className="text-xs text-gray-500 mt-1">300% = charge 3x AI cost</p></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div><label className="block font-bold text-sm uppercase mb-2">Flat Fee Per Story ($)</label>
-                    <input type="number" step="0.01" value={billingForm.flat_fee_per_story} onChange={(e) => setBillingForm({ ...billingForm, flat_fee_per_story: parseFloat(e.target.value) || 0 })} className="w-full border-4 border-black px-4 py-3 font-bold" /></div>
+                    <input type="number" step="0.01" value={billingForm.flat_fee_per_story} onChange={(e) => setBillingForm({ ...billingForm, flat_fee_per_story: parseFloat(e.target.value) || 0 })} className="w-full border-4 border-black px-4 py-3 font-bold bg-white text-gray-900" /></div>
                   <div><label className="block font-bold text-sm uppercase mb-2">Avg AI Cost/Story ($)</label>
-                    <input type="number" step="0.01" value={billingForm.avg_cost_per_story} onChange={(e) => setBillingForm({ ...billingForm, avg_cost_per_story: parseFloat(e.target.value) || 0 })} className="w-full border-4 border-black px-4 py-3 font-bold" /></div>
+                    <input type="number" step="0.01" value={billingForm.avg_cost_per_story} onChange={(e) => setBillingForm({ ...billingForm, avg_cost_per_story: parseFloat(e.target.value) || 0 })} className="w-full border-4 border-black px-4 py-3 font-bold bg-white text-gray-900" /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div><label className="block font-bold text-sm uppercase mb-2">Free Tier Stories</label>
-                    <input type="number" value={billingForm.free_tier_stories} onChange={(e) => setBillingForm({ ...billingForm, free_tier_stories: parseInt(e.target.value) || 0 })} className="w-full border-4 border-black px-4 py-3 font-bold" /></div>
+                    <input type="number" value={billingForm.free_tier_stories} onChange={(e) => setBillingForm({ ...billingForm, free_tier_stories: parseInt(e.target.value) || 0 })} className="w-full border-4 border-black px-4 py-3 font-bold bg-white text-gray-900" /></div>
                   <div><label className="block font-bold text-sm uppercase mb-2">Referral Reward (USD - wallet credit)</label>
-                    <input type="number" step="0.01" value={billingForm.referral_reward_amount} onChange={(e) => setBillingForm({ ...billingForm, referral_reward_amount: parseFloat(e.target.value) || 0 })} className="w-full border-4 border-black px-4 py-3 font-bold" data-testid="referral-reward" /></div>
+                    <input type="number" step="0.01" value={billingForm.referral_reward_amount} onChange={(e) => setBillingForm({ ...billingForm, referral_reward_amount: parseFloat(e.target.value) || 0 })} className="w-full border-4 border-black px-4 py-3 font-bold bg-white text-gray-900" data-testid="referral-reward" /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div><label className="block font-bold text-sm uppercase mb-2">Donation Cost/Story ($)</label>
-                    <input type="number" step="0.01" value={billingForm.donation_cost_per_story} onChange={(e) => setBillingForm({ ...billingForm, donation_cost_per_story: parseFloat(e.target.value) || 0 })} className="w-full border-4 border-black px-4 py-3 font-bold" /></div>
+                    <input type="number" step="0.01" value={billingForm.donation_cost_per_story} onChange={(e) => setBillingForm({ ...billingForm, donation_cost_per_story: parseFloat(e.target.value) || 0 })} className="w-full border-4 border-black px-4 py-3 font-bold bg-white text-gray-900" /></div>
                   <label className="flex items-center gap-2 p-3 border-4 border-black cursor-pointer self-end">
                     <input type="checkbox" checked={billingForm.remove_limits_on_paid} onChange={(e) => setBillingForm({ ...billingForm, remove_limits_on_paid: e.target.checked })} className="w-6 h-6" />
                     <span className="font-bold text-sm">Remove all limits for paid users</span>
@@ -1836,11 +1836,11 @@ const AdminPortal = () => {
                 <div>
                   <p className="font-bold text-sm uppercase mb-2">Model</p>
                   {llmForm.provider === 'emergent' ? (
-                    <select value={llmForm.model} onChange={(e) => setLlmForm({ ...llmForm, model: e.target.value })} className="w-full border-4 border-black px-4 py-3 font-bold" data-testid="model-select">
+                    <select value={llmForm.model} onChange={(e) => setLlmForm({ ...llmForm, model: e.target.value })} className="w-full border-4 border-black px-4 py-3 font-bold bg-white text-gray-900" data-testid="model-select">
                       <option value="gpt-5.2">GPT-5.2 (Best quality)</option><option value="gpt-4o">GPT-4o (Good quality)</option><option value="gpt-4o-mini">GPT-4o Mini (Budget)</option>
                     </select>
                   ) : (
-                    <select value={llmForm.model} onChange={(e) => setLlmForm({ ...llmForm, model: e.target.value })} className="w-full border-4 border-black px-4 py-3 font-bold" data-testid="model-select">
+                    <select value={llmForm.model} onChange={(e) => setLlmForm({ ...llmForm, model: e.target.value })} className="w-full border-4 border-black px-4 py-3 font-bold bg-white text-gray-900" data-testid="model-select">
                       <option value="openrouter/auto">Auto (Smart routing)</option>
                       <option value="qwen/qwen3-next-80b-a3b-instruct:free">Qwen3 80B (FREE)</option>
                       <option value="openai/gpt-oss-120b:free">GPT-OSS 120B (FREE)</option>
@@ -1903,10 +1903,10 @@ const AdminPortal = () => {
                   <h4 className="font-black uppercase text-lg mb-4">Free Account Limits</h4>
                   <div className="grid grid-cols-2 gap-4">
                     <div><label className="block font-bold text-sm uppercase mb-2">Max Stories</label>
-                      <input type="number" min={1} max={100} value={settingsForm.free_account_story_limit} onChange={(e) => setSettingsForm({ ...settingsForm, free_account_story_limit: parseInt(e.target.value) || 5 })} className="w-full border-4 border-black px-4 py-3 font-bold" data-testid="free-story-limit" />
+                      <input type="number" min={1} max={100} value={settingsForm.free_account_story_limit} onChange={(e) => setSettingsForm({ ...settingsForm, free_account_story_limit: parseInt(e.target.value) || 5 })} className="w-full border-4 border-black px-4 py-3 font-bold bg-white text-gray-900" data-testid="free-story-limit" />
                     </div>
                     <div><label className="block font-bold text-sm uppercase mb-2">Max Assessments</label>
-                      <input type="number" min={1} max={100} value={settingsForm.free_account_assessment_limit} onChange={(e) => setSettingsForm({ ...settingsForm, free_account_assessment_limit: parseInt(e.target.value) || 10 })} className="w-full border-4 border-black px-4 py-3 font-bold" data-testid="free-assessment-limit" />
+                      <input type="number" min={1} max={100} value={settingsForm.free_account_assessment_limit} onChange={(e) => setSettingsForm({ ...settingsForm, free_account_assessment_limit: parseInt(e.target.value) || 10 })} className="w-full border-4 border-black px-4 py-3 font-bold bg-white text-gray-900" data-testid="free-assessment-limit" />
                     </div>
                   </div>
                 </div>

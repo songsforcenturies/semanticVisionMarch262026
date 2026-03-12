@@ -115,14 +115,14 @@ const DigitalMediaTab = () => {
             <label className="block font-bold text-sm uppercase mb-1">Price per Stream ($)</label>
             <input type="number" step="0.01" min="0" value={settings.default_price_per_stream ?? 0}
               onChange={(e) => settingsMut.mutate({ default_price_per_stream: parseFloat(e.target.value) || 0 })}
-              className="w-full px-4 py-2 border-4 border-black font-bold" style={{ color: '#111' }}
+              className="w-full px-4 py-2 border-4 border-black font-bold bg-white text-gray-900"
               data-testid="price-per-stream" />
           </div>
           <div>
             <label className="block font-bold text-sm uppercase mb-1">Price per Download ($)</label>
             <input type="number" step="0.01" min="0" value={settings.default_price_per_download ?? 0.99}
               onChange={(e) => settingsMut.mutate({ default_price_per_download: parseFloat(e.target.value) || 0 })}
-              className="w-full px-4 py-2 border-4 border-black font-bold" style={{ color: '#111' }}
+              className="w-full px-4 py-2 border-4 border-black font-bold bg-white text-gray-900"
               data-testid="price-per-download" />
           </div>
         </div>
@@ -131,19 +131,19 @@ const DigitalMediaTab = () => {
             <label className="block font-bold text-sm uppercase mb-1">Max Storage per User (MB)</label>
             <input type="number" min="0" value={settings.max_storage_per_user_mb ?? 500}
               onChange={(e) => settingsMut.mutate({ max_storage_per_user_mb: parseInt(e.target.value) || 500 })}
-              className="w-full px-4 py-2 border-4 border-black font-bold" style={{ color: '#111' }} />
+              className="w-full px-4 py-2 border-4 border-black font-bold bg-white text-gray-900" />
           </div>
           <div>
             <label className="block font-bold text-sm uppercase mb-1">Max Recording Duration (sec)</label>
             <input type="number" min="0" value={settings.max_recording_duration_sec ?? 600}
               onChange={(e) => settingsMut.mutate({ max_recording_duration_sec: parseInt(e.target.value) || 600 })}
-              className="w-full px-4 py-2 border-4 border-black font-bold" style={{ color: '#111' }} />
+              className="w-full px-4 py-2 border-4 border-black font-bold bg-white text-gray-900" />
           </div>
           <div>
             <label className="block font-bold text-sm uppercase mb-1">Auto-Delete After (days)</label>
             <input type="number" min="0" value={settings.auto_delete_recordings_days ?? 0}
               onChange={(e) => settingsMut.mutate({ auto_delete_recordings_days: parseInt(e.target.value) || 0 })}
-              className="w-full px-4 py-2 border-4 border-black font-bold" style={{ color: '#111' }} />
+              className="w-full px-4 py-2 border-4 border-black font-bold bg-white text-gray-900" />
             <p className="text-xs text-gray-400 mt-1">0 = never delete</p>
           </div>
         </div>
@@ -198,7 +198,7 @@ const DigitalMediaTab = () => {
             <div>
               <label className="block font-bold text-sm uppercase mb-1">Link to Brand</label>
               <select value={uploadForm.brand_id} onChange={(e) => setUploadForm({ ...uploadForm, brand_id: e.target.value })}
-                className="w-full px-4 py-2 border-4 border-black font-bold" style={{ color: '#111' }}>
+                className="w-full px-4 py-2 border-4 border-black font-bold bg-white text-gray-900" style={{ color: '#111' }}>
                 <option value="">— No Brand —</option>
                 {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
@@ -225,7 +225,7 @@ const DigitalMediaTab = () => {
             <div>
               <label className="block font-bold text-sm uppercase mb-1">Link to Brand</label>
               <select value={ytForm.brand_id} onChange={(e) => setYtForm({ ...ytForm, brand_id: e.target.value })}
-                className="w-full px-4 py-2 border-4 border-black font-bold" style={{ color: '#111' }}>
+                className="w-full px-4 py-2 border-4 border-black font-bold bg-white text-gray-900" style={{ color: '#111' }}>
                 <option value="">— No Brand —</option>
                 {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>

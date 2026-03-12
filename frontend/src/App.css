@@ -169,3 +169,16 @@
 /* recharts dark */
 .sv-dark .recharts-text { fill: #94A3B8 !important; }
 .sv-dark .recharts-cartesian-grid line { stroke: rgba(255,255,255,0.06) !important; }
+
+
+/* Global fix: ensure all form inputs have visible text */
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+    color: #111827 !important;
+    background-color: white !important;
+}
+input::placeholder,
+textarea::placeholder {
+    color: #9ca3af !important;
+}

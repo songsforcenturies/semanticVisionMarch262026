@@ -216,7 +216,7 @@ const MarketplaceTab = () => {
               <textarea value={createForm.baseline_words}
                 onChange={(e) => setCreateForm({ ...createForm, baseline_words: e.target.value })}
                 placeholder="word1, word2, word3..."
-                className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-emerald-500 min-h-[60px]"
+                className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-emerald-500 min-h-[60px] bg-white text-gray-900"
                 data-testid="wb-baseline" />
             </div>
             <div>
@@ -224,7 +224,7 @@ const MarketplaceTab = () => {
               <textarea value={createForm.target_words}
                 onChange={(e) => setCreateForm({ ...createForm, target_words: e.target.value })}
                 placeholder="word1, word2, word3..."
-                className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-emerald-500 min-h-[60px]"
+                className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-emerald-500 min-h-[60px] bg-white text-gray-900"
                 data-testid="wb-target" />
             </div>
             <div>
@@ -232,7 +232,7 @@ const MarketplaceTab = () => {
               <textarea value={createForm.stretch_words}
                 onChange={(e) => setCreateForm({ ...createForm, stretch_words: e.target.value })}
                 placeholder="word1, word2, word3..."
-                className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-emerald-500 min-h-[60px]"
+                className="w-full px-4 py-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-emerald-500 min-h-[60px] bg-white text-gray-900"
                 data-testid="wb-stretch" />
             </div>
             <BrutalButton type="submit" variant="emerald" fullWidth size="lg"
