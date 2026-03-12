@@ -9,6 +9,7 @@ import uuid, os, json as json_lib
 from database import db, logger
 from models import UserRole
 from auth import get_current_user, get_current_admin, get_current_guardian
+from services import send_email
 
 router = APIRouter()
 
