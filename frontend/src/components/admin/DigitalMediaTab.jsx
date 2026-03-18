@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminAPI } from '@/lib/api';
 import { BrutalCard, BrutalButton, BrutalInput, BrutalBadge } from '@/components/brutal';
-import { Music, Video, Upload, Trash2, Play, Settings, Power, DollarSign, Youtube, HardDrive } from 'lucide-react';
+import { Music, Video, Upload, Trash2, Play, Settings, DollarSign, Youtube, HardDrive, Save, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 const DigitalMediaTab = () => {
@@ -12,11 +12,20 @@ const DigitalMediaTab = () => {
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadForm, setUploadForm] = useState({ title: '', artist: '', brand_id: '' });
   const [ytForm, setYtForm] = useState({ title: '', artist: '', youtube_url: '', brand_id: '', price_per_stream: 0, price_per_download: 0.99 });
+  const [localSettings, setLocalSettings] = useState(null);
+  const [settingsDirty, setSettingsDirty] = useState(false);
 
   const { data: settings = {} } = useQuery({
     queryKey: ['media-settings'],
     queryFn: async () => (await adminAPI.getMediaSettings()).data,
   });
+
+  // Sync server settings to local state
+  useEffect(() => {
+    if (settings && !localSettings) {
+      setLocalSettings({ ...settings });
+    }
+  }, [settings, localSettings]);
 
   const { data: media = [] } = useQuery({
     queryKey: ['brand-media'],
@@ -30,22 +39,24 @@ const DigitalMediaTab = () => {
 
   const { data: storageStats = {} } = useQuery({
     queryKey: ['storage-stats'],
-    queryFn: async () => {
-      const res = await adminAPI.getStorageStats();
-      return res.data;
-    },
+    queryFn: async () => (await adminAPI.getStorageStats()).data,
   });
 
   const settingsMut = useMutation({
     mutationFn: (data) => adminAPI.updateMediaSettings(data),
-    onSuccess: () => { qc.invalidateQueries(['media-settings']); toast.success('Settings updated'); },
+    onSuccess: () => {
+      qc.invalidateQueries(['media-settings']);
+      setSettingsDirty(false);
+      toast.success('Settings saved');
+    },
   });
 
   const uploadMut = useMutation({
     mutationFn: async (formData) => (await adminAPI.uploadBrandMedia(formData)).data,
     onSuccess: () => {
       qc.invalidateQueries(['brand-media']);
-      toast.success('Media uploaded');
+      qc.invalidateQueries(['storage-stats']);
+      toast.success('Media uploaded successfully');
       setShowUpload(false);
       setUploadFile(null);
       setUploadForm({ title: '', artist: '', brand_id: '' });
@@ -61,22 +72,22 @@ const DigitalMediaTab = () => {
       setShowYoutube(false);
       setYtForm({ title: '', artist: '', youtube_url: '', brand_id: '', price_per_stream: 0, price_per_download: 0.99 });
     },
-    onError: (err) => toast.error(err.response?.data?.detail || 'Failed'),
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed to add'),
   });
 
   const deleteMut = useMutation({
     mutationFn: (id) => adminAPI.deleteBrandMedia(id),
-    onSuccess: () => { qc.invalidateQueries(['brand-media']); toast.success('Deleted'); },
-  });
-
-  const updateMut = useMutation({
-    mutationFn: ({ id, data }) => adminAPI.updateBrandMedia(id, data),
-    onSuccess: () => { qc.invalidateQueries(['brand-media']); toast.success('Updated'); },
+    onSuccess: () => {
+      qc.invalidateQueries(['brand-media']);
+      qc.invalidateQueries(['storage-stats']);
+      toast.success('Deleted');
+    },
   });
 
   const handleUpload = (e) => {
     e.preventDefault();
-    if (!uploadFile || !uploadForm.title) return;
+    if (!uploadFile) return toast.error('Select a file');
+    if (!uploadForm.title) return toast.error('Title required');
     const fd = new FormData();
     fd.append('file', uploadFile);
     fd.append('title', uploadForm.title);
@@ -87,41 +98,68 @@ const DigitalMediaTab = () => {
 
   const handleAddYoutube = (e) => {
     e.preventDefault();
-    if (!ytForm.title || !ytForm.youtube_url) return;
-    createYtMut.mutate({ ...ytForm, media_type: 'video' });
+    createYtMut.mutate(ytForm);
   };
 
-  const brandName = (id) => brands.find(b => b.id === id)?.name || '—';
+  const updateLocalSetting = (key, value) => {
+    setLocalSettings(prev => ({ ...prev, [key]: value }));
+    setSettingsDirty(true);
+  };
+
+  const handleSaveSettings = () => {
+    settingsMut.mutate(localSettings);
+  };
+
+  const brandName = (id) => brands.find(b => b.id === id)?.name || '';
+
+  const s = localSettings || settings;
 
   return (
     <div className="space-y-6" data-testid="digital-media-tab">
-      {/* Settings */}
-      <BrutalCard shadow="xl">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-2xl font-black uppercase flex items-center gap-2">
-            <Settings size={24} className="text-violet-500" /> Media Settings
+      {/* How It Works Banner */}
+      <BrutalCard shadow="lg" className="border-indigo-500">
+        <h3 className="text-lg font-black uppercase flex items-center gap-2 mb-2">
+          <Music size={20} className="text-indigo-500" /> How Media Works in Stories
+        </h3>
+        <p className="text-sm font-medium text-gray-600">
+          Media you add here (audio, video, YouTube) is automatically available for AI story generation.
+          When a story is created, the AI can embed your approved media directly into the narrative.
+          Students hear/see the media as they read. Parents can opt-out per student in their Media Settings.
+        </p>
+      </BrutalCard>
+
+      {/* Settings Card */}
+      <BrutalCard shadow="lg" data-testid="media-settings-card">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-black uppercase flex items-center gap-2">
+            <Settings size={20} className="text-gray-500" /> Media &amp; Storage Settings
           </h3>
           <BrutalButton
-            variant={settings.digital_media_enabled ? 'emerald' : 'rose'}
-            onClick={() => settingsMut.mutate({ digital_media_enabled: !settings.digital_media_enabled })}
-            data-testid="media-master-toggle"
+            variant={settingsDirty ? "emerald" : "default"}
+            size="sm"
+            onClick={handleSaveSettings}
+            disabled={!settingsDirty || settingsMut.isPending}
+            data-testid="save-settings-btn"
           >
-            <Power size={16} className="mr-1" />
-            {settings.digital_media_enabled ? 'ENABLED' : 'DISABLED'}
+            <Save size={14} className="mr-1" />
+            {settingsMut.isPending ? 'Saving...' : settingsDirty ? 'Save Changes' : 'Saved'}
           </BrutalButton>
         </div>
+
         <div className="grid md:grid-cols-2 gap-4">
           <div>
-            <label className="block font-bold text-sm uppercase mb-1">Price per Stream ($)</label>
-            <input type="number" step="0.01" min="0" value={settings.default_price_per_stream ?? 0}
-              onChange={(e) => settingsMut.mutate({ default_price_per_stream: parseFloat(e.target.value) || 0 })}
+            <label className="block font-bold text-sm uppercase mb-1">Default Price per Stream ($)</label>
+            <input type="number" step="0.01" min="0"
+              value={s.default_price_per_stream ?? 0.01}
+              onChange={(e) => updateLocalSetting('default_price_per_stream', parseFloat(e.target.value) || 0)}
               className="w-full px-4 py-2 border-4 border-black font-bold bg-white text-gray-900"
               data-testid="price-per-stream" />
           </div>
           <div>
-            <label className="block font-bold text-sm uppercase mb-1">Price per Download ($)</label>
-            <input type="number" step="0.01" min="0" value={settings.default_price_per_download ?? 0.99}
-              onChange={(e) => settingsMut.mutate({ default_price_per_download: parseFloat(e.target.value) || 0 })}
+            <label className="block font-bold text-sm uppercase mb-1">Default Price per Download ($)</label>
+            <input type="number" step="0.01" min="0"
+              value={s.default_price_per_download ?? 0.99}
+              onChange={(e) => updateLocalSetting('default_price_per_download', parseFloat(e.target.value) || 0)}
               className="w-full px-4 py-2 border-4 border-black font-bold bg-white text-gray-900"
               data-testid="price-per-download" />
           </div>
@@ -129,24 +167,30 @@ const DigitalMediaTab = () => {
         <div className="grid md:grid-cols-3 gap-4 mt-4">
           <div>
             <label className="block font-bold text-sm uppercase mb-1">Max Storage per User (MB)</label>
-            <input type="number" min="0" value={settings.max_storage_per_user_mb ?? 500}
-              onChange={(e) => settingsMut.mutate({ max_storage_per_user_mb: parseInt(e.target.value) || 500 })}
+            <input type="number" min="0"
+              value={s.max_storage_per_user_mb ?? 500}
+              onChange={(e) => updateLocalSetting('max_storage_per_user_mb', parseInt(e.target.value) || 0)}
               className="w-full px-4 py-2 border-4 border-black font-bold bg-white text-gray-900" />
           </div>
           <div>
             <label className="block font-bold text-sm uppercase mb-1">Max Recording Duration (sec)</label>
-            <input type="number" min="0" value={settings.max_recording_duration_sec ?? 600}
-              onChange={(e) => settingsMut.mutate({ max_recording_duration_sec: parseInt(e.target.value) || 600 })}
+            <input type="number" min="0"
+              value={s.max_recording_duration_sec ?? 600}
+              onChange={(e) => updateLocalSetting('max_recording_duration_sec', parseInt(e.target.value) || 0)}
               className="w-full px-4 py-2 border-4 border-black font-bold bg-white text-gray-900" />
           </div>
           <div>
             <label className="block font-bold text-sm uppercase mb-1">Auto-Delete After (days)</label>
-            <input type="number" min="0" value={settings.auto_delete_recordings_days ?? 0}
-              onChange={(e) => settingsMut.mutate({ auto_delete_recordings_days: parseInt(e.target.value) || 0 })}
+            <input type="number" min="0"
+              value={s.auto_delete_recordings_days ?? 0}
+              onChange={(e) => updateLocalSetting('auto_delete_recordings_days', parseInt(e.target.value) || 0)}
               className="w-full px-4 py-2 border-4 border-black font-bold bg-white text-gray-900" />
             <p className="text-xs text-gray-400 mt-1">0 = never delete</p>
           </div>
         </div>
+        {settingsDirty && (
+          <p className="text-sm font-bold text-amber-600 mt-3">You have unsaved changes</p>
+        )}
       </BrutalCard>
 
       {/* Storage Stats */}
@@ -174,7 +218,7 @@ const DigitalMediaTab = () => {
         </div>
       </BrutalCard>
 
-      {/* Actions */}
+      {/* Add Media Buttons */}
       <div className="flex gap-3 flex-wrap">
         <BrutalButton variant="indigo" onClick={() => { setShowUpload(!showUpload); setShowYoutube(false); }} data-testid="upload-audio-btn">
           <Upload size={16} className="mr-1" /> Upload Audio/Video
@@ -198,7 +242,7 @@ const DigitalMediaTab = () => {
             <div>
               <label className="block font-bold text-sm uppercase mb-1">Link to Brand</label>
               <select value={uploadForm.brand_id} onChange={(e) => setUploadForm({ ...uploadForm, brand_id: e.target.value })}
-                className="w-full px-4 py-2 border-4 border-black font-bold bg-white text-gray-900" style={{ color: '#111' }}>
+                className="w-full px-4 py-2 border-4 border-black font-bold bg-white text-gray-900">
                 <option value="">— No Brand —</option>
                 {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
@@ -225,7 +269,7 @@ const DigitalMediaTab = () => {
             <div>
               <label className="block font-bold text-sm uppercase mb-1">Link to Brand</label>
               <select value={ytForm.brand_id} onChange={(e) => setYtForm({ ...ytForm, brand_id: e.target.value })}
-                className="w-full px-4 py-2 border-4 border-black font-bold bg-white text-gray-900" style={{ color: '#111' }}>
+                className="w-full px-4 py-2 border-4 border-black font-bold bg-white text-gray-900">
                 <option value="">— No Brand —</option>
                 {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
@@ -237,18 +281,24 @@ const DigitalMediaTab = () => {
         </BrutalCard>
       )}
 
-      {/* Media List */}
-      <h3 className="text-2xl font-black uppercase">All Media ({media.length})</h3>
-      {media.length === 0 ? (
-        <BrutalCard shadow="md" className="text-center py-8">
-          <Music size={48} className="mx-auto text-gray-300 mb-3" />
-          <p className="text-lg font-bold text-gray-500">No media added yet</p>
-        </BrutalCard>
-      ) : (
-        <div className="space-y-3">
-          {media.map((m) => (
-            <BrutalCard key={m.id} shadow="md" data-testid={`media-${m.id}`}>
-              <div className="flex items-center justify-between gap-3">
+      {/* Media Library / Playlist */}
+      <BrutalCard shadow="xl" data-testid="media-library">
+        <h3 className="text-xl font-black uppercase flex items-center gap-2 mb-1">
+          <Play size={20} className="text-emerald-500" /> Media Library ({media.length})
+        </h3>
+        <p className="text-sm text-gray-500 font-medium mb-4">
+          All approved media below is automatically injected into AI-generated stories system-wide.
+        </p>
+        {media.length === 0 ? (
+          <div className="text-center py-8 border-4 border-dashed border-gray-300">
+            <Music size={48} className="mx-auto text-gray-300 mb-3" />
+            <p className="text-lg font-bold text-gray-400">No media added yet</p>
+            <p className="text-sm text-gray-400">Upload audio/video or add YouTube links above</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {media.map((m) => (
+              <div key={m.id} className="flex items-center justify-between gap-3 p-3 border-4 border-black bg-white" data-testid={`media-${m.id}`}>
                 <div className="flex items-center gap-3 min-w-0">
                   <div className={`w-10 h-10 flex items-center justify-center border-4 border-black flex-shrink-0 ${m.media_type === 'video' ? 'bg-rose-100' : 'bg-indigo-100'}`}>
                     {m.media_type === 'video' ? <Video size={20} className="text-rose-600" /> : <Music size={20} className="text-indigo-600" />}
@@ -259,6 +309,7 @@ const DigitalMediaTab = () => {
                     <div className="flex gap-2 mt-1 flex-wrap">
                       <BrutalBadge variant={m.status === 'approved' ? 'emerald' : 'amber'} size="sm">{m.status}</BrutalBadge>
                       <BrutalBadge variant="default" size="sm">{m.source}</BrutalBadge>
+                      {m.source === 'youtube' && <BrutalBadge variant="rose" size="sm">YouTube</BrutalBadge>}
                       <span className="text-xs text-gray-400">
                         <Play size={10} className="inline" /> {m.total_streams || 0} streams | {m.total_likes || 0} likes | {m.total_downloads || 0} downloads
                       </span>
@@ -267,15 +318,15 @@ const DigitalMediaTab = () => {
                 </div>
                 <div className="flex gap-1 flex-shrink-0">
                   <BrutalButton variant="dark" size="sm"
-                    onClick={() => { if (window.confirm('Delete?')) deleteMut.mutate(m.id); }}>
+                    onClick={() => { if (window.confirm('Delete this media?')) deleteMut.mutate(m.id); }}>
                     <Trash2 size={14} />
                   </BrutalButton>
                 </div>
               </div>
-            </BrutalCard>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </BrutalCard>
     </div>
   );
 };
