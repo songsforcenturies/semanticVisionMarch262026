@@ -15,7 +15,7 @@ import os
 import time
 
 # Use the public URL
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://learning-portal-v1.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://production-crisis-2.preview.emergentagent.com')
 BASE_URL = BASE_URL.rstrip('/')
 API_URL = f"{BASE_URL}/api"
 

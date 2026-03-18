@@ -3,7 +3,7 @@
 **Version 6.0 -- Definitive Edition**
 **March 2026**
 
-**Platform:** https://learning-portal-v1.preview.emergentagent.com
+**Platform:** https://production-crisis-2.preview.emergentagent.com
 **Support:** allen@songsforcenturies.com
 **Patent Status:** Provisional Patent Application Filed (98 Claims)
 
@@ -1413,7 +1413,7 @@ All screenshots are from the live application and are available for download:
 | 30 | fig30_story_text.jpeg | Story content with vocabulary badges |
 | 31 | fig31_mobile_landing.jpeg | Mobile-responsive landing page |
 
-**Download all screenshots:** https://learning-portal-v1.preview.emergentagent.com/api/patent/definitive-bundle
+**Download all screenshots:** https://production-crisis-2.preview.emergentagent.com/api/patent/definitive-bundle
 
 ---
 
