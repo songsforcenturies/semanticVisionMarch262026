@@ -109,6 +109,40 @@ async def startup_migrate():
             User, UserRole, Subscription, SubscriptionPlan,
         )
         from auth import get_password_hash
+        import json as _json
+
+        # ===== FULL DB RESTORE FROM SEED BACKUP (if DB is empty) =====
+        user_count = await db.users.count_documents({})
+        if user_count == 0:
+            seed_path = Path(__file__).parent / "seed_backup.json"
+            if seed_path.exists():
+                logger.info("DATABASE EMPTY — Restoring from seed_backup.json ...")
+                try:
+                    with open(seed_path, "r") as f:
+                        seed_data = _json.load(f)
+                    collections = seed_data.get("collections", {})
+                    total_restored = 0
+                    for coll_name, docs in collections.items():
+                        if not docs:
+                            continue
+                        coll = db[coll_name]
+                        for doc in docs:
+                            doc.pop("_id", None)
+                            doc_id = doc.get("id")
+                            if doc_id:
+                                await coll.update_one(
+                                    {"id": doc_id},
+                                    {"$setOnInsert": doc},
+                                    upsert=True,
+                                )
+                            else:
+                                await coll.insert_one(doc)
+                            total_restored += 1
+                    logger.info(f"SEED RESTORE COMPLETE — {total_restored} documents across {len(collections)} collections")
+                except Exception as restore_err:
+                    logger.error(f"SEED RESTORE FAILED: {restore_err}", exc_info=True)
+            else:
+                logger.warning("DB is empty and no seed_backup.json found — starting fresh.")
 
         # ===== BOOTSTRAP: Create master admin if not exists =====
         master_email = "allen@songsforcenturies.com"

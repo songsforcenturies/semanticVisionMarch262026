@@ -61,6 +61,7 @@ AI-powered personalized educational narrative platform with brand integration, d
 - **Self-bootstrapping startup**: Auto-creates admin user, subscription, and seed word banks on empty database
 - **DB indexes**: Production indexes created on startup for users, students, word_banks, narratives, session_logs
 - **Backup & Restore system**: Full database export/import via Admin Portal for deployment safety
+- **Auto Seed Restore**: On startup, if DB is empty, auto-restores all data from bundled `seed_backup.json` (579 docs, 37 collections) — ensures production deploys always have data
 
 ### Guardian Features
 - Student management, PIN changes, ID cards, heritage/culture multi-select
