@@ -126,18 +126,13 @@ async def startup_migrate():
                         if not docs:
                             continue
                         coll = db[coll_name]
+                        clean_docs = []
                         for doc in docs:
                             doc.pop("_id", None)
-                            doc_id = doc.get("id")
-                            if doc_id:
-                                await coll.update_one(
-                                    {"id": doc_id},
-                                    {"$setOnInsert": doc},
-                                    upsert=True,
-                                )
-                            else:
-                                await coll.insert_one(doc)
-                            total_restored += 1
+                            clean_docs.append(doc)
+                        await coll.insert_many(clean_docs, ordered=False)
+                        total_restored += len(clean_docs)
+                        logger.info(f"  Restored {coll_name}: {len(clean_docs)} docs")
                     logger.info(f"SEED RESTORE COMPLETE — {total_restored} documents across {len(collections)} collections")
                 except Exception as restore_err:
                     logger.error(f"SEED RESTORE FAILED: {restore_err}", exc_info=True)
