@@ -78,6 +78,11 @@ app.include_router(backup_router, prefix="/api")
 # ==================== LIFECYCLE EVENTS ====================
 from database import db, client
 
+# ===== PING (no DB, no auth - for deployment verification) =====
+@app.get("/api/ping")
+async def ping():
+    return {"status": "alive", "version": "2.0.0"}
+
 # ===== HEALTH CHECK (no auth required) =====
 @app.get("/api/diagnostics")
 async def diagnostics_check():
