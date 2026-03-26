@@ -434,7 +434,7 @@ async def evaluate_written_answer(data: WrittenAnswerEval):
     from story_service import story_service
     story_service.set_db(db)
     llm_config = await story_service._get_llm_config()
-    provider = llm_config.get("provider", "emergent")
+    provider = llm_config.get("provider", "openrouter")
     model = llm_config.get("model", "gpt-5.2")
 
     prompt = f"""Evaluate this student's written answer to a reading comprehension question.
@@ -458,26 +458,19 @@ Return ONLY valid JSON:
 }}"""
 
     try:
-        if provider == "openrouter":
-            from openai import AsyncOpenAI
-            api_key = llm_config.get("openrouter_key") or os.environ.get("OPENROUTER_API_KEY")
-            client = AsyncOpenAI(
-                base_url="https://openrouter.ai/api/v1", api_key=api_key,
-                default_headers={"HTTP-Referer": "https://leximaster.app"},
-                max_retries=1, timeout=30.0,
-            )
-            response = await client.chat.completions.create(
-                model=model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.3, max_tokens=500,
-            )
-            text = response.choices[0].message.content or ""
-        else:
-            api_key = os.environ.get('EMERGENT_LLM_KEY')
-            from emergentintegrations.llm.chat import LlmChat, UserMessage
-            chat = LlmChat(api_key=api_key, session_id=f"eval_{data.student_id}_{data.chapter_number}")
-            chat.with_model("openai", model if provider == "emergent" else "gpt-5.2")
-            text = await chat.send_message(UserMessage(text=prompt))
+        from openai import AsyncOpenAI
+        api_key = llm_config.get("openrouter_key") or os.environ.get("OPENROUTER_API_KEY")
+        client = AsyncOpenAI(
+            base_url="https://openrouter.ai/api/v1", api_key=api_key,
+            default_headers={"HTTP-Referer": "https://semanticvision.ai"},
+            max_retries=1, timeout=30.0,
+        )
+        response = await client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3, max_tokens=500,
+        )
+        text = response.choices[0].message.content or ""
 
         text = text.strip()
         if "```" in text:
@@ -729,7 +722,7 @@ async def evaluate_assessment(assessment_id: str, submission: AssessmentSubmissi
         from story_service import story_service
         story_service.set_db(db)
         llm_config = await story_service._get_llm_config()
-        provider = llm_config.get("provider", "emergent")
+        provider = llm_config.get("provider", "openrouter")
         model = llm_config.get("model", "gpt-5.2")
 
         # Get student spelling settings
@@ -774,31 +767,19 @@ Return ONLY valid JSON (no markdown):
   ]
 }}"""
 
-        if provider == "openrouter":
-            from openai import AsyncOpenAI
-            api_key = llm_config.get("openrouter_key") or os.environ.get("OPENROUTER_API_KEY")
-            client = AsyncOpenAI(
-                base_url="https://openrouter.ai/api/v1", api_key=api_key,
-                default_headers={"HTTP-Referer": "https://leximaster.app"},
-                max_retries=1, timeout=60.0,
-            )
-            response_obj = await client.chat.completions.create(
-                model=model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.3, max_tokens=4000,
-            )
-            response = response_obj.choices[0].message.content or ""
-        else:
-            api_key = os.environ.get('EMERGENT_LLM_KEY')
-            from emergentintegrations.llm.chat import LlmChat, UserMessage
-            chat = LlmChat(
-                api_key=api_key,
-                session_id=f"assess_{assessment_id}",
-                system_message="You are an educational assessment evaluator. Be encouraging but fair."
-            )
-            chat.with_model("openai", model if provider == "emergent" else "gpt-5.2")
-            message = UserMessage(text=prompt)
-            response = await chat.send_message(message)
+        from openai import AsyncOpenAI
+        api_key = llm_config.get("openrouter_key") or os.environ.get("OPENROUTER_API_KEY")
+        client = AsyncOpenAI(
+            base_url="https://openrouter.ai/api/v1", api_key=api_key,
+            default_headers={"HTTP-Referer": "https://semanticvision.ai"},
+            max_retries=1, timeout=60.0,
+        )
+        response_obj = await client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3, max_tokens=4000,
+        )
+        response = response_obj.choices[0].message.content or ""
 
         # Parse response — robust JSON extraction
         text = response.strip()

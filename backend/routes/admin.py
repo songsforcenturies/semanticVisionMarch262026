@@ -131,8 +131,8 @@ async def get_available_models(current_user: dict = Depends(get_current_user)):
     """Get list of configured LLM models"""
     config = await db.system_config.find_one({"key": "llm_config"}, {"_id": 0})
     default_config = {
-        "provider": "emergent",
-        "model": "gpt-5.2",
+        "provider": "openrouter",
+        "model": "openai/gpt-4o-mini",
         "fallback_provider": None,
         "fallback_model": None,
         "openrouter_key": None,
@@ -141,7 +141,7 @@ async def get_available_models(current_user: dict = Depends(get_current_user)):
 
 
 class LLMConfigUpdate(BaseModel):
-    provider: str  # "emergent" | "openrouter"
+    provider: str  # "openrouter"
     model: str
     openrouter_key: Optional[str] = None
 
@@ -220,9 +220,7 @@ async def create_wallet_topup(data: TopupRequest, request: Request, current_user
     if not stripe_key:
         raise HTTPException(status_code=500, detail="Payment system not configured")
 
-    from emergentintegrations.payments.stripe.checkout import (
-        StripeCheckout, CheckoutSessionRequest,
-    )
+    from stripe_utils import StripeCheckout, CheckoutSessionRequest
 
     host_url = str(request.base_url).rstrip("/")
     webhook_url = f"{host_url}/api/webhook/stripe"
@@ -273,7 +271,7 @@ async def get_payment_status(session_id: str, request: Request, current_user: di
         return {"status": txn["status"], "payment_status": "paid", "amount": txn["amount"]}
 
     stripe_key = await _get_stripe_key()
-    from emergentintegrations.payments.stripe.checkout import StripeCheckout
+    from stripe_utils import StripeCheckout
 
     host_url = str(request.base_url).rstrip("/")
     webhook_url = f"{host_url}/api/webhook/stripe"
@@ -340,7 +338,7 @@ async def stripe_webhook(request: Request):
     stripe_key = await _get_stripe_key()
 
     try:
-        from emergentintegrations.payments.stripe.checkout import StripeCheckout
+        from stripe_utils import StripeCheckout
         host_url = str(request.base_url).rstrip("/")
         webhook_url = f"{host_url}/api/webhook/stripe"
         stripe_checkout = StripeCheckout(api_key=stripe_key, webhook_url=webhook_url)
@@ -1349,14 +1347,9 @@ async def define_word(data: DefineWordRequest, current_user: dict = Depends(get_
     from story_service import story_service
     
     llm_config = await story_service._get_llm_config()
-    provider = llm_config.get("provider", "emergent")
-    model = llm_config.get("model", "gpt-5.2")
-    
-    if provider == "openrouter":
-        api_key = llm_config.get("openrouter_key") or os.environ.get("OPENROUTER_API_KEY")
-    else:
-        api_key = os.environ.get("EMERGENT_LLM_KEY")
-    
+    model = llm_config.get("model", "openai/gpt-4o-mini")
+    api_key = llm_config.get("openrouter_key") or os.environ.get("OPENROUTER_API_KEY")
+
     prompt = f"""Define the word "{data.word}" for a student learning vocabulary.
 {f'The word appears in this context: "{data.context}"' if data.context else ''}
 
@@ -1364,18 +1357,12 @@ Return ONLY valid JSON:
 {{"word": "{data.word}", "definition": "clear simple definition", "part_of_speech": "noun/verb/adj/etc", "example_sentence": "example usage", "pronunciation_hint": "how to say it", "synonyms": ["syn1", "syn2"]}}"""
 
     try:
-        if provider == "openrouter":
-            from openai import AsyncOpenAI
-            client = AsyncOpenAI(base_url="https://openrouter.ai/api/v1", api_key=api_key, timeout=30.0)
-            resp = await client.chat.completions.create(
-                model=model, messages=[{"role": "user", "content": prompt}], max_tokens=500, temperature=0.3,
-            )
-            text = resp.choices[0].message.content or ""
-        else:
-            from emergentintegrations.llm.chat import LlmChat, UserMessage
-            chat = LlmChat(api_key=api_key, session_id=f"define_{data.word}", system_message="You are a vocabulary dictionary assistant. Return only valid JSON.")
-            chat.with_model("openai", model)
-            text = await chat.send_message(UserMessage(text=prompt))
+        from openai import AsyncOpenAI
+        client = AsyncOpenAI(base_url="https://openrouter.ai/api/v1", api_key=api_key, timeout=30.0)
+        resp = await client.chat.completions.create(
+            model=model, messages=[{"role": "user", "content": prompt}], max_tokens=500, temperature=0.3,
+        )
+        text = resp.choices[0].message.content or ""
         
         text = text.strip()
         if text.startswith("```"):
@@ -1687,7 +1674,7 @@ async def create_donation(data: DonationRequest, request: Request, current_user:
     if not stripe_key:
         raise HTTPException(status_code=500, detail="Payment not configured")
     
-    from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
+    from stripe_utils import StripeCheckout, CheckoutSessionRequest
     origin = data.origin_url.rstrip("/")
     host_url = str(request.base_url).rstrip("/")
     webhook_url = f"{host_url}/api/webhook/stripe"
@@ -1732,7 +1719,7 @@ async def get_donation_status(session_id: str, request: Request, current_user: d
         return {"status": "paid", "amount": donation["amount"], "stories_funded": donation["stories_funded"]}
     
     stripe_key = await _get_stripe_key()
-    from emergentintegrations.payments.stripe.checkout import StripeCheckout
+    from stripe_utils import StripeCheckout
     host_url = str(request.base_url).rstrip("/")
     stripe_checkout = StripeCheckout(api_key=stripe_key, webhook_url=f"{host_url}/api/webhook/stripe")
     checkout_status = await stripe_checkout.get_checkout_status(session_id)

@@ -1,12 +1,12 @@
 """
 AI Story Generation Service for Semantic Vision
-Supports Emergent LLM Key and OpenRouter for flexible model selection
+Supports OpenRouter for flexible model selection
 """
 import os
 import json
 import time
 from typing import List, Dict, Any, Optional
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+from openai import AsyncOpenAI
 
 
 class StoryGenerationService:
@@ -23,9 +23,9 @@ class StoryGenerationService:
     def _get_api_key(self):
         """Lazy load API key"""
         if not self.api_key:
-            self.api_key = os.environ.get('EMERGENT_LLM_KEY')
+            self.api_key = os.environ.get('OPENROUTER_API_KEY')
             if not self.api_key:
-                raise ValueError("EMERGENT_LLM_KEY not found in environment")
+                raise ValueError("OPENROUTER_API_KEY not found in environment")
         return self.api_key
     
     async def _get_llm_config(self):
@@ -34,7 +34,7 @@ class StoryGenerationService:
             config = await self.db.system_config.find_one({"key": "llm_config"}, {"_id": 0})
             if config and config.get("value"):
                 return config["value"]
-        return {"provider": "emergent", "model": "gpt-5.2"}
+        return {"provider": "openrouter", "model": "openai/gpt-4o-mini"}
     
     async def _log_cost(self, student_id: str, student_name: str, guardian_id: str, 
                         guardian_name: str, model: str, provider: str,
@@ -113,16 +113,13 @@ class StoryGenerationService:
         
         start_time = time.time()
         llm_config = await self._get_llm_config()
-        provider = llm_config.get("provider", "emergent")
+        provider = llm_config.get("provider", "openrouter")
         model = llm_config.get("model", "gpt-5.2")
         
         # Get API key
-        if provider == "openrouter":
-            api_key = llm_config.get("openrouter_key") or os.environ.get("OPENROUTER_API_KEY")
-            if not api_key:
-                raise ValueError("OpenRouter API key not configured")
-        else:
-            api_key = self._get_api_key()
+        api_key = llm_config.get("openrouter_key") or os.environ.get("OPENROUTER_API_KEY")
+        if not api_key:
+            raise ValueError("OPENROUTER_API_KEY not configured")
         
         # Prepare vocabulary lists
         baseline_list = [w['word'] for w in baseline_words]
@@ -324,65 +321,52 @@ Return ONLY valid JSON (no markdown):
         prompt_tokens_est = len(system_message.split()) + len(user_prompt.split())
         
         try:
-            if provider == "openrouter":
-                # Use OpenAI client with OpenRouter base URL
-                from openai import AsyncOpenAI
-                client = AsyncOpenAI(
-                    base_url="https://openrouter.ai/api/v1",
-                    api_key=api_key,
-                    default_headers={"HTTP-Referer": "https://leximaster.app"},
-                    max_retries=1,
-                    timeout=60.0,
-                )
-                # Some free models don't support system messages, merge into user message
-                merged_prompt = f"{system_message}\n\n---\n\n{user_prompt}"
-                
-                # Try with retries and fallback models
-                fallback_models = [
-                    model,
-                    "qwen/qwen3-next-80b-a3b-instruct:free",
-                    "openai/gpt-oss-120b:free",
-                    "nvidia/nemotron-nano-9b-v2:free",
-                ]
-                last_error = None
-                for attempt_model in fallback_models:
-                    try:
-                        response = await client.chat.completions.create(
-                            model=attempt_model,
-                            messages=[
-                                {"role": "user", "content": merged_prompt}
-                            ],
-                            temperature=0.8,
-                            max_tokens=8000,
-                        )
-                        choice = response.choices[0]
-                        response_text = choice.message.content or ""
-                        # Some models use reasoning field instead of content
-                        if not response_text and hasattr(choice.message, 'reasoning'):
-                            response_text = choice.message.reasoning or ""
-                        if not response_text:
-                            raise ValueError("Empty response from model")
-                        model = attempt_model  # Record actual model used
-                        completion_tokens_est = len(response_text.split())
-                        last_error = None
-                        break
-                    except Exception as e:
-                        last_error = e
-                        continue
-                
-                if last_error:
-                    raise last_error
-            else:
-                # Use Emergent LLM integration
-                chat = LlmChat(
-                    api_key=api_key,
-                    session_id=f"story_gen_{student_name}_{int(time.time())}",
-                    system_message=system_message
-                )
-                chat.with_model("openai", model)
-                message = UserMessage(text=user_prompt)
-                response_text = await chat.send_message(message)
-                completion_tokens_est = len(response_text.split())
+            # Use OpenAI client with OpenRouter base URL
+            client = AsyncOpenAI(
+                base_url="https://openrouter.ai/api/v1",
+                api_key=api_key,
+                default_headers={"HTTP-Referer": "https://semanticvision.ai"},
+                max_retries=1,
+                timeout=60.0,
+            )
+            # Some free models don't support system messages, merge into user message
+            merged_prompt = f"{system_message}\n\n---\n\n{user_prompt}"
+
+            # Try with retries and fallback models
+            fallback_models = [
+                model,
+                "openai/gpt-4o-mini",
+                "google/gemma-3-27b-it:free",
+                "nvidia/nemotron-nano-9b-v2:free",
+            ]
+            last_error = None
+            for attempt_model in fallback_models:
+                try:
+                    response = await client.chat.completions.create(
+                        model=attempt_model,
+                        messages=[
+                            {"role": "user", "content": merged_prompt}
+                        ],
+                        temperature=0.8,
+                        max_tokens=8000,
+                    )
+                    choice = response.choices[0]
+                    response_text = choice.message.content or ""
+                    # Some models use reasoning field instead of content
+                    if not response_text and hasattr(choice.message, 'reasoning'):
+                        response_text = choice.message.reasoning or ""
+                    if not response_text:
+                        raise ValueError("Empty response from model")
+                    model = attempt_model  # Record actual model used
+                    completion_tokens_est = len(response_text.split())
+                    last_error = None
+                    break
+                except Exception as e:
+                    last_error = e
+                    continue
+
+            if last_error:
+                raise last_error
             
             # Parse JSON response - handle markdown code blocks
             text = response_text.strip()

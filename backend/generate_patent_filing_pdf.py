@@ -19,9 +19,10 @@ GOLD = HexColor('#D4A853')
 GRAY = HexColor('#6B7280')
 WATERMARK_COLOR = Color(0.83, 0.66, 0.33, alpha=0.06)
 OUTPUT_PATH = "/app/PATENT_FILING_MARCH_2026.pdf"
-LOGO_URL = "https://static.prod-images.emergentagent.com/jobs/8b913a97-ba7b-435e-8e90-73ac25e34079/images/72f3b3d732cd091365bdf11f343589739cb6fd5005ed51d737d58ae77a551635.png"
+LOGO_PATH = os.path.join(os.path.dirname(__file__), "assets", "logo.png")
 
-logo_data = requests.get(LOGO_URL).content
+with open(LOGO_PATH, "rb") as f:
+    logo_data = f.read()
 logo_io = BytesIO(logo_data)
 
 styles = getSampleStyleSheet()

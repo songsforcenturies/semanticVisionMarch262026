@@ -23,9 +23,9 @@ function Section({ children, className = '', id }) {
   );
 }
 
-const HERO_IMG = 'https://static.prod-images.emergentagent.com/jobs/d53a056c-422b-4e0c-b8e4-a07558693bb6/images/03582229e0be380a6c098b8a96ab41371358a0238fa5c0c58dea3cb93237dfc0.png';
-const BRAND_IMG = 'https://static.prod-images.emergentagent.com/jobs/a7f4a6e3-cc2b-4b52-b065-85c816bf5f24/images/fab4bc5cad3f11db957dba9d1ea3837612ddd3a1a1acf696e4acabcb3be81e9e.png';
-const CULTURE_IMG = 'https://static.prod-images.emergentagent.com/jobs/d53a056c-422b-4e0c-b8e4-a07558693bb6/images/535aaa1914ba5e98959665413a19273c5d5d9cb4a349b3c5d6d04f77b0ce7fbb.png';
+const HERO_IMG = '/hero-img.png';
+const BRAND_IMG = '/brand-img.png';
+const CULTURE_IMG = '/culture-img.png';
 
 const C = {
   bg: '#0A0F1E', surface: '#111827', card: '#1A2236',

@@ -105,27 +105,30 @@ async def upload_recording(
 @router.post("/recordings/{recording_id}/analyze")
 async def analyze_recording(recording_id: str, current_user=Depends(get_current_user)):
     """Analyze a recording: transcribe with Whisper and score diction"""
-    from emergentintegrations.llm.openai import OpenAISpeechToText
-    
+    from openai import OpenAI
+
     recording = await db.reading_recordings.find_one({"id": recording_id}, {"_id": 0})
     if not recording:
         raise HTTPException(status_code=404, detail="Recording not found")
-    
+
     filepath = recording["file_path"]
     chapter_text = recording.get("chapter_text", "")
-    
+
     try:
-        stt = OpenAISpeechToText(api_key=os.environ.get("EMERGENT_LLM_KEY"))
-        
+        client = OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=os.environ.get("OPENROUTER_API_KEY"),
+        )
+
         with open(filepath, "rb") as audio_file:
-            response = stt.transcribe(
+            response = client.audio.transcriptions.create(
                 file=audio_file,
-                model="whisper-1",
+                model="openai/whisper-1",
                 response_format="verbose_json",
                 language="en",
-                temperature=0.0
+                temperature=0.0,
             )
-        
+
         transcribed_text = ""
         if hasattr(response, 'text'):
             transcribed_text = response.text.strip()

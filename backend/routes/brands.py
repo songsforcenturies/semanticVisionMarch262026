@@ -651,39 +651,27 @@ Requirements:
 - Do NOT include any JSON formatting, just the story text"""
 
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
-        import time as _time
-        api_key = os.environ.get("EMERGENT_LLM_KEY")
-        if not api_key:
-            raise HTTPException(status_code=500, detail="AI service not configured")
+        from openai import AsyncOpenAI
 
         story_service.set_db(db)
         llm_config = await story_service._get_llm_config()
-        provider = llm_config.get("provider", "emergent")
-        model = llm_config.get("model", "gpt-5.2")
+        model = llm_config.get("model", "openai/gpt-4o-mini")
 
-        if provider == "openrouter":
-            openrouter_key = llm_config.get("openrouter_key") or os.environ.get("OPENROUTER_API_KEY")
-            if not openrouter_key:
-                raise HTTPException(status_code=500, detail="OpenRouter API key not configured")
-            # OpenRouter path - use direct API
-            import httpx
-            headers = {"Authorization": f"Bearer {openrouter_key}", "Content-Type": "application/json"}
-            body = {"model": model, "messages": [{"role": "user", "content": prompt}], "max_tokens": 500}
-            async with httpx.AsyncClient(timeout=60) as client_http:
-                resp = await client_http.post("https://openrouter.ai/api/v1/chat/completions", json=body, headers=headers)
-                resp.raise_for_status()
-                preview_text = resp.json()["choices"][0]["message"]["content"].strip()
-        else:
-            chat = LlmChat(
-                api_key=api_key,
-                session_id=f"brand_preview_{brand_id}_{int(_time.time())}",
-                system_message="You are an expert educational story writer for children."
-            )
-            chat.with_model("openai", model)
-            message = UserMessage(text=prompt)
-            preview_text = await chat.send_message(message)
-            preview_text = preview_text.strip()
+        api_key = llm_config.get("openrouter_key") or os.environ.get("OPENROUTER_API_KEY")
+        if not api_key:
+            raise HTTPException(status_code=500, detail="OpenRouter API key not configured")
+
+        client = AsyncOpenAI(
+            base_url="https://openrouter.ai/api/v1", api_key=api_key,
+            default_headers={"HTTP-Referer": "https://semanticvision.ai"},
+            max_retries=1, timeout=60.0,
+        )
+        resp = await client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=500,
+        )
+        preview_text = (resp.choices[0].message.content or "").strip()
 
         # Cache it
         now_iso = datetime.now(timezone.utc).isoformat()
@@ -1286,7 +1274,7 @@ async def brand_topup(data: BrandTopupRequest, request: Request, current_user: d
     if not stripe_key:
         raise HTTPException(status_code=500, detail="Payment not configured")
 
-    from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
+    from stripe_utils import StripeCheckout, CheckoutSessionRequest
     origin = data.origin_url.rstrip("/")
     host_url = str(request.base_url).rstrip("/")
     webhook_url = f"{host_url}/api/webhook/stripe"
@@ -1321,7 +1309,7 @@ async def brand_topup_status(session_id: str, request: Request, current_user: di
         return {"status": "paid", "amount": txn["amount"]}
 
     stripe_key = await _get_stripe_key()
-    from emergentintegrations.payments.stripe.checkout import StripeCheckout
+    from stripe_utils import StripeCheckout
     host_url = str(request.base_url).rstrip("/")
     stripe_checkout = StripeCheckout(api_key=stripe_key, webhook_url=f"{host_url}/api/webhook/stripe")
     checkout_status = await stripe_checkout.get_checkout_status(session_id)

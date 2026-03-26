@@ -138,7 +138,7 @@ const AdminPortal = () => {
   });
 
   // === Form States ===
-  const [llmForm, setLlmForm] = useState({ provider: 'emergent', model: 'gpt-5.2', openrouter_key: '' });
+  const [llmForm, setLlmForm] = useState({ provider: 'openrouter', model: 'openai/gpt-4o-mini', openrouter_key: '' });
   const [settingsForm, setSettingsForm] = useState({
     global_spellcheck_disabled: false, global_spelling_mode: 'phonetic',
     free_account_story_limit: 5, free_account_assessment_limit: 10,
@@ -414,7 +414,7 @@ const AdminPortal = () => {
 
   // === Sync forms with data ===
   React.useEffect(() => {
-    if (modelConfig) setLlmForm({ provider: modelConfig.provider || 'emergent', model: modelConfig.model || 'gpt-5.2', openrouter_key: modelConfig.openrouter_key || '' });
+    if (modelConfig) setLlmForm({ provider: modelConfig.provider || 'openrouter', model: modelConfig.model || 'openai/gpt-4o-mini', openrouter_key: modelConfig.openrouter_key || '' });
   }, [modelConfig]);
   React.useEffect(() => {
     if (adminSettings) setSettingsForm({
@@ -1819,41 +1819,24 @@ const AdminPortal = () => {
               <h3 className="text-2xl font-black uppercase mb-6">LLM Provider Configuration</h3>
               <form onSubmit={(e) => { e.preventDefault(); updateModelMutation.mutate(llmForm); }} className="space-y-6">
                 <div>
-                  <p className="font-bold text-sm uppercase mb-3">Provider</p>
-                  <div className="flex gap-4">
-                    <label className={`flex-1 p-4 border-4 border-black cursor-pointer ${llmForm.provider === 'emergent' ? 'bg-indigo-100 brutal-shadow-md' : 'bg-white'}`}>
-                      <input type="radio" name="provider" value="emergent" checked={llmForm.provider === 'emergent'} onChange={() => setLlmForm({ ...llmForm, provider: 'emergent', model: 'gpt-5.2' })} className="mr-2" />
-                      <span className="font-black text-lg">Emergent LLM</span>
-                      <p className="text-sm font-medium text-gray-600 mt-1">Uses Universal Key. Models: GPT-5.2, GPT-4o</p>
-                    </label>
-                    <label className={`flex-1 p-4 border-4 border-black cursor-pointer ${llmForm.provider === 'openrouter' ? 'bg-emerald-100 brutal-shadow-md' : 'bg-white'}`}>
-                      <input type="radio" name="provider" value="openrouter" checked={llmForm.provider === 'openrouter'} onChange={() => setLlmForm({ ...llmForm, provider: 'openrouter', model: 'openrouter/auto' })} className="mr-2" />
-                      <span className="font-black text-lg">OpenRouter</span>
-                      <p className="text-sm font-medium text-gray-600 mt-1">300+ models including free options</p>
-                    </label>
-                  </div>
+                  <p className="font-bold text-sm uppercase mb-3">Provider: OpenRouter</p>
+                  <p className="text-sm font-medium text-gray-600 mb-4">300+ models including free options. Powered by OpenRouter.</p>
                 </div>
                 <div>
                   <p className="font-bold text-sm uppercase mb-2">Model</p>
-                  {llmForm.provider === 'emergent' ? (
-                    <select value={llmForm.model} onChange={(e) => setLlmForm({ ...llmForm, model: e.target.value })} className="w-full border-4 border-black px-4 py-3 font-bold bg-white text-gray-900" data-testid="model-select">
-                      <option value="gpt-5.2">GPT-5.2 (Best quality)</option><option value="gpt-4o">GPT-4o (Good quality)</option><option value="gpt-4o-mini">GPT-4o Mini (Budget)</option>
-                    </select>
-                  ) : (
-                    <select value={llmForm.model} onChange={(e) => setLlmForm({ ...llmForm, model: e.target.value })} className="w-full border-4 border-black px-4 py-3 font-bold bg-white text-gray-900" data-testid="model-select">
-                      <option value="openrouter/auto">Auto (Smart routing)</option>
-                      <option value="qwen/qwen3-next-80b-a3b-instruct:free">Qwen3 80B (FREE)</option>
-                      <option value="openai/gpt-oss-120b:free">GPT-OSS 120B (FREE)</option>
-                      <option value="nvidia/nemotron-nano-9b-v2:free">Nemotron Nano 9B (FREE)</option>
-                    </select>
-                  )}
+                  <select value={llmForm.model} onChange={(e) => setLlmForm({ ...llmForm, model: e.target.value })} className="w-full border-4 border-black px-4 py-3 font-bold bg-white text-gray-900" data-testid="model-select">
+                    <option value="openai/gpt-4o-mini">GPT-4o Mini (Budget, reliable)</option>
+                    <option value="openai/gpt-4o">GPT-4o (Best quality)</option>
+                    <option value="openrouter/auto">Auto (Smart routing)</option>
+                    <option value="google/gemma-3-27b-it:free">Gemma 3 27B (FREE)</option>
+                    <option value="qwen/qwen3-next-80b-a3b-instruct:free">Qwen3 80B (FREE)</option>
+                    <option value="nvidia/nemotron-nano-9b-v2:free">Nemotron Nano 9B (FREE)</option>
+                  </select>
                 </div>
-                {llmForm.provider === 'openrouter' && (
-                  <BrutalInput label="OpenRouter API Key" type="password" value={llmForm.openrouter_key} onChange={(e) => setLlmForm({ ...llmForm, openrouter_key: e.target.value })} placeholder="sk-or-v1-..." data-testid="openrouter-key-input" />
-                )}
+                <BrutalInput label="OpenRouter API Key" type="password" value={llmForm.openrouter_key} onChange={(e) => setLlmForm({ ...llmForm, openrouter_key: e.target.value })} placeholder="sk-or-v1-..." data-testid="openrouter-key-input" />
                 <BrutalCard className="bg-amber-50 border-amber-500">
                   <p className="font-bold text-sm">Current Config:</p>
-                  <p className="font-mono text-sm mt-1">Provider: {modelConfig?.provider || 'emergent'} | Model: {modelConfig?.model || 'gpt-5.2'}</p>
+                  <p className="font-mono text-sm mt-1">Provider: OpenRouter | Model: {modelConfig?.model || 'openai/gpt-4o-mini'}</p>
                 </BrutalCard>
                 <BrutalButton type="submit" variant="indigo" fullWidth size="lg" disabled={updateModelMutation.isPending} data-testid="save-config-btn">
                   {updateModelMutation.isPending ? 'Saving...' : 'Save Configuration'}
