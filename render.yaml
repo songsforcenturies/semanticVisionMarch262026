@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: semantic-vision-api
+    runtime: python
+    region: ohio
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: MONGO_URL
+        sync: false
+      - key: DB_NAME
+        value: leximaster_db
+      - key: CORS_ORIGINS
+        value: https://semanticvision.ai,https://frontend-psi-sepia-55.vercel.app
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: SENDER_EMAIL
+        value: "Semantic Vision <hello@semanticvision.ai>"
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_SECRET
+        sync: false
+      - key: DAILY_CO_API_KEY
+        sync: false
+      - key: FRONTEND_URL
+        value: https://semanticvision.ai
+      - key: PYTHON_VERSION
+        value: "3.11.11"
