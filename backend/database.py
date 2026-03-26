@@ -4,6 +4,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import os
 import logging
+import certifi
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -15,6 +16,7 @@ client = AsyncIOMotorClient(
     serverSelectionTimeoutMS=10000,
     connectTimeoutMS=10000,
     socketTimeoutMS=30000,
+    tlsCAFile=certifi.where(),
 )
 db = client[os.environ['DB_NAME']]
 
