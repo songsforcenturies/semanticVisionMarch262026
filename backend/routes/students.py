@@ -274,6 +274,18 @@ async def get_student_progress(
     narratives = await db.narratives.find(
         {"student_id": student_id}, {"_id": 0, "id": 1, "title": 1, "status": 1, "total_word_count": 1, "created_date": 1, "chapters_completed": 1, "chapters": 1}
     ).sort("created_date", -1).to_list(100)
+    # Get last read dates from read_logs for each narrative
+    narrative_ids = [n["id"] for n in narratives]
+    last_read_map = {}
+    if narrative_ids:
+        pipeline = [
+            {"$match": {"narrative_id": {"$in": narrative_ids}}},
+            {"$sort": {"created_date": -1}},
+            {"$group": {"_id": "$narrative_id", "last_read": {"$first": "$created_date"}}},
+        ]
+        last_reads = await db.read_logs.aggregate(pipeline).to_list(100)
+        last_read_map = {lr["_id"]: lr["last_read"] for lr in last_reads}
+
     narrative_summaries = []
     for n in narratives:
         narrative_summaries.append({
@@ -284,6 +296,7 @@ async def get_student_progress(
             "chapters_total": len(n.get("chapters", [])),
             "chapters_completed": len(n.get("chapters_completed", [])),
             "created_date": n.get("created_date", ""),
+            "last_read_date": last_read_map.get(n["id"], ""),
         })
 
     # Assessments

@@ -290,6 +290,10 @@ const StudentProgressDetail = ({ studentId, onBack }) => {
                   <p className="text-sm text-gray-500 font-medium">
                     {story.total_word_count} words · {story.chapters_completed}/{story.chapters_total} chapters
                   </p>
+                  <p className="text-xs text-gray-400 font-medium mt-1">
+                    Created: {story.created_date ? new Date(story.created_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                    {story.last_read_date ? ` · Last read: ${new Date(story.last_read_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ' · Not read yet'}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <BrutalBadge variant={story.status === 'completed' ? 'emerald' : story.status === 'archived' ? 'gray' : 'amber'} size="sm">
