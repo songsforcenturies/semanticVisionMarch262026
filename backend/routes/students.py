@@ -1,6 +1,6 @@
 """Student management routes: CRUD, progress, export, parental controls."""
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from typing import Optional, List
 from pydantic import BaseModel
 from datetime import datetime, timezone
@@ -76,46 +76,56 @@ async def upload_student_photo(
     file: UploadFile = File(...),
     current_user: dict = Depends(get_current_user)
 ):
-    """Upload a photo for a student. Only the guardian or admin can upload."""
+    """Upload a photo for a student. Stored as base64 in MongoDB (survives deploys)."""
     student = await db.students.find_one({"id": student_id})
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
-    # Authorization: must be the guardian or an admin
     is_admin = current_user.get("role") == "admin"
     is_guardian = student["guardian_id"] == current_user["id"]
     if not is_admin and not is_guardian:
         raise HTTPException(status_code=403, detail="Not authorized to upload photo for this student")
 
-    # Validate file type
     allowed_types = {"image/jpeg", "image/png", "image/webp", "image/gif"}
     if file.content_type not in allowed_types:
         raise HTTPException(status_code=400, detail="Invalid file type. Allowed: JPEG, PNG, WebP, GIF")
 
-    # Save the file with Pillow compression
-    photos_dir = Path(__file__).parent.parent / "uploads" / "photos"
-    photos_dir.mkdir(parents=True, exist_ok=True)
-    file_path = photos_dir / f"{student_id}.jpg"
-
     try:
         from PIL import Image as PILImage
+        import base64
         raw_bytes = await file.read()
         img = PILImage.open(io.BytesIO(raw_bytes))
         img = img.convert("RGB")
         img.thumbnail((400, 400), PILImage.LANCZOS)
-        img.save(str(file_path), "JPEG", quality=85)
+        buf = io.BytesIO()
+        img.save(buf, "JPEG", quality=85)
+        b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+        photo_data_url = f"data:image/jpeg;base64,{b64}"
     except Exception as e:
-        logger.error(f"Failed to save photo for student {student_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to save photo")
+        logger.error(f"Failed to process photo for student {student_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to process photo")
 
-    # Update student record with photo_url
-    photo_url = f"/api/uploads/photos/{student_id}.jpg"
     await db.students.update_one(
         {"id": student_id},
-        {"$set": {"photo_url": photo_url}}
+        {"$set": {"photo_url": photo_data_url}}
     )
 
-    return {"message": "Photo uploaded successfully", "photo_url": photo_url}
+    return {"message": "Photo uploaded successfully", "photo_url": photo_data_url}
+
+
+@router.get("/students/{student_id}/photo")
+async def get_student_photo(student_id: str):
+    """Get student photo as image response."""
+    student = await db.students.find_one({"id": student_id}, {"_id": 0, "photo_url": 1})
+    if not student or not student.get("photo_url"):
+        raise HTTPException(status_code=404, detail="No photo found")
+    photo_url = student["photo_url"]
+    if photo_url.startswith("data:image"):
+        import base64
+        b64_data = photo_url.split(",", 1)[1]
+        img_bytes = base64.b64decode(b64_data)
+        return StreamingResponse(io.BytesIO(img_bytes), media_type="image/jpeg")
+    raise HTTPException(status_code=404, detail="No photo found")
 
 
 @router.get("/students", response_model=List[Student])

@@ -68,7 +68,7 @@ const CardFace = ({ data, type, forPrint = false }) => {
           {isStudent && data.photo_url ? (
             <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0" style={{ border: `2px solid ${accent}60` }}>
               <img
-                src={`${API_BASE}${data.photo_url}`}
+                src={data.photo_url.startsWith('data:') ? data.photo_url : `${API_BASE}${data.photo_url}`}
                 alt={data.name}
                 className="w-full h-full object-cover"
                 onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}

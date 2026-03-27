@@ -461,7 +461,7 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
                 <div className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center"
                   style={{ background: 'rgba(255,255,255,0.08)', border: '2px solid rgba(212,168,83,0.4)' }}>
                   {student?.photo_url ? (
-                    <img src={`${process.env.REACT_APP_BACKEND_URL}${student.photo_url}`} alt={student.full_name}
+                    <img src={student.photo_url.startsWith('data:') ? student.photo_url : `${process.env.REACT_APP_BACKEND_URL}${student.photo_url}`} alt={student.full_name}
                       className="w-full h-full object-cover" />
                   ) : (
                     <User size={32} className="text-slate-500" />
