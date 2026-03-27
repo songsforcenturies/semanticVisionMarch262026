@@ -5,7 +5,7 @@ from typing import Optional, List
 from pydantic import BaseModel
 from datetime import datetime, timezone
 from pathlib import Path
-import uuid, random, string, shutil
+import uuid, random, string, shutil, io
 
 from database import db, logger
 from models import (
@@ -92,14 +92,18 @@ async def upload_student_photo(
     if file.content_type not in allowed_types:
         raise HTTPException(status_code=400, detail="Invalid file type. Allowed: JPEG, PNG, WebP, GIF")
 
-    # Save the file
+    # Save the file with Pillow compression
     photos_dir = Path(__file__).parent.parent / "uploads" / "photos"
     photos_dir.mkdir(parents=True, exist_ok=True)
     file_path = photos_dir / f"{student_id}.jpg"
 
     try:
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        from PIL import Image as PILImage
+        raw_bytes = await file.read()
+        img = PILImage.open(io.BytesIO(raw_bytes))
+        img = img.convert("RGB")
+        img.thumbnail((400, 400), PILImage.LANCZOS)
+        img.save(str(file_path), "JPEG", quality=85)
     except Exception as e:
         logger.error(f"Failed to save photo for student {student_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to save photo")

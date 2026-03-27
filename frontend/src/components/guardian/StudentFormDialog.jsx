@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { studentAPI, subscriptionAPI, wordBankAPI } from '@/lib/api';
 import { Dialog } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { X, Check, ChevronRight, ChevronLeft, User, Heart, Sparkles, BookOpen, Globe, Camera } from 'lucide-react';
+import { X, Check, ChevronRight, ChevronLeft, User, Heart, Sparkles, BookOpen, Globe, Camera, ZoomIn } from 'lucide-react';
+import Cropper from 'react-easy-crop';
 
 const GRADE_LEVELS = [
   { value: 'pre-k', label: 'Pre-K' },
@@ -119,6 +120,116 @@ const EMOTION_OPTIONS = [
   { value: 'acceptance', label: 'Acceptance', desc: 'Embracing reality and finding peace with it' },
 ];
 
+// ==================== IMAGE CROP UTILITIES ====================
+
+const getCroppedImg = (imageSrc, pixelCrop) => {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    image.onload = () => {
+      const canvas = document.createElement('canvas');
+      const maxSize = 400;
+      canvas.width = maxSize;
+      canvas.height = maxSize;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(
+        image,
+        pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height,
+        0, 0, maxSize, maxSize
+      );
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) { reject(new Error('Canvas is empty')); return; }
+          resolve(blob);
+        },
+        'image/jpeg',
+        0.85
+      );
+    };
+    image.onerror = () => reject(new Error('Failed to load image'));
+    image.src = imageSrc;
+  });
+};
+
+const ImageCropModal = ({ isOpen, imageSrc, onCropComplete, onClose }) => {
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+
+  const onCropCompleteInternal = useCallback((_, croppedPixels) => {
+    setCroppedAreaPixels(croppedPixels);
+  }, []);
+
+  const handleSave = async () => {
+    if (!croppedAreaPixels || !imageSrc) return;
+    try {
+      const blob = await getCroppedImg(imageSrc, croppedAreaPixels);
+      onCropComplete(blob);
+    } catch (err) {
+      console.error('Crop failed:', err);
+    }
+  };
+
+  if (!isOpen || !imageSrc) return null;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.85)' }}>
+      <div className="w-full max-w-md rounded-2xl overflow-hidden shadow-2xl" style={{ background: '#1A2236', border: '1px solid rgba(212,168,83,0.3)' }}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <h3 className="text-base font-bold text-white">Crop Photo</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Cropper Area */}
+        <div className="relative w-full" style={{ height: '320px', background: '#0f1623' }}>
+          <Cropper
+            image={imageSrc}
+            crop={crop}
+            zoom={zoom}
+            aspect={1}
+            cropShape="round"
+            showGrid={false}
+            onCropChange={setCrop}
+            onZoomChange={setZoom}
+            onCropComplete={onCropCompleteInternal}
+          />
+        </div>
+
+        {/* Zoom Slider */}
+        <div className="flex items-center gap-3 px-5 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <ZoomIn size={16} className="text-slate-400 flex-shrink-0" />
+          <input
+            type="range"
+            min={1}
+            max={3}
+            step={0.05}
+            value={zoom}
+            onChange={(e) => setZoom(Number(e.target.value))}
+            className="flex-1 accent-amber-500"
+          />
+          <span className="text-xs text-slate-400 w-8 text-right">{zoom.toFixed(1)}x</span>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-end gap-2 px-5 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <button onClick={onClose}
+            className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-300 hover:bg-white/5 transition">
+            Cancel
+          </button>
+          <button onClick={handleSave}
+            className="px-5 py-2 rounded-xl text-sm font-bold text-black transition-all hover:scale-[1.02]"
+            style={{ background: '#D4A853' }}>
+            Crop &amp; Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const STEPS = [
   { id: 'basic', label: 'Basic Info', icon: User },
   { id: 'virtues', label: 'Virtues', icon: Heart },
@@ -168,6 +279,8 @@ const DarkSelect = ({ label, hint, children, ...props }) => (
 const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks = false }) => {
   const queryClient = useQueryClient();
   const [step, setStep] = useState(0);
+  const [cropImage, setCropImage] = useState(null);
+  const [showCropModal, setShowCropModal] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '', age: '', grade_level: '', interests: '',
     virtues: [], strengths: '', weaknesses: '',
@@ -358,16 +471,15 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
                   <p className="text-sm font-semibold text-slate-200 mb-1">Student Photo</p>
                   <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-purple-600 text-white rounded-lg hover:bg-purple-700 cursor-pointer transition-colors">
                     <Camera size={14} /> {student?.photo_url ? 'Change Photo' : 'Upload Photo'}
-                    <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (!file || !student) return;
-                      try {
-                        await studentAPI.uploadPhoto(student.id, file);
-                        queryClient.invalidateQueries(['students']);
-                        toast.success('Photo uploaded!');
-                      } catch (err) {
-                        toast.error('Upload failed: ' + (err.response?.data?.detail || err.message));
-                      }
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        setCropImage(reader.result);
+                        setShowCropModal(true);
+                      };
+                      reader.readAsDataURL(file);
                       e.target.value = '';
                     }} />
                   </label>
@@ -705,6 +817,26 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
           </div>
         </div>
       </div>
+
+      {/* Image Crop Modal */}
+      <ImageCropModal
+        isOpen={showCropModal}
+        imageSrc={cropImage}
+        onClose={() => { setShowCropModal(false); setCropImage(null); }}
+        onCropComplete={async (croppedBlob) => {
+          setShowCropModal(false);
+          setCropImage(null);
+          if (!student) return;
+          try {
+            const file = new File([croppedBlob], `${student.id}.jpg`, { type: 'image/jpeg' });
+            await studentAPI.uploadPhoto(student.id, file);
+            queryClient.invalidateQueries(['students']);
+            toast.success('Photo uploaded!');
+          } catch (err) {
+            toast.error('Upload failed: ' + (err.response?.data?.detail || err.message));
+          }
+        }}
+      />
     </div>
   );
 };

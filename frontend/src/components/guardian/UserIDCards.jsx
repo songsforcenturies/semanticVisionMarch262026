@@ -7,6 +7,40 @@ import { toast } from 'sonner';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
+// Compress and resize an image file to 400x400 JPEG before upload
+const compressImageFile = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const maxSize = 400;
+        const canvas = document.createElement('canvas');
+        canvas.width = maxSize;
+        canvas.height = maxSize;
+        const ctx = canvas.getContext('2d');
+        // Center-crop: pick the largest centered square from the source
+        const srcSize = Math.min(img.width, img.height);
+        const srcX = (img.width - srcSize) / 2;
+        const srcY = (img.height - srcSize) / 2;
+        ctx.drawImage(img, srcX, srcY, srcSize, srcSize, 0, 0, maxSize, maxSize);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) { reject(new Error('Canvas is empty')); return; }
+            resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+          },
+          'image/jpeg',
+          0.85
+        );
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = reader.result;
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+};
+
 const CardFace = ({ data, type, forPrint = false }) => {
   const isStudent = type === 'student';
   const bg = isStudent ? 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%)' : 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)';
@@ -365,7 +399,8 @@ const UserIDCards = () => {
                     const file = e.target.files?.[0];
                     if (!file) return;
                     try {
-                      await studentAPI.uploadPhoto(student.student_id || student.id, file);
+                      const compressed = await compressImageFile(file);
+                      await studentAPI.uploadPhoto(student.student_id || student.id, compressed);
                       queryClient.refetchQueries({ queryKey: ['user-card-data'] });
                       toast.success(`Photo uploaded for ${student.name}`);
                     } catch (err) {
