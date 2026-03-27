@@ -3,8 +3,22 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { parentalControlsAPI } from '@/lib/api';
 import api from '@/lib/api';
 import { BrutalCard, BrutalButton } from '@/components/brutal';
-import { Shield, Mic, Video, Clock, ToggleLeft, ToggleRight, ChevronDown, ChevronUp, Save, Headphones, BookOpen, Music, Image, Volume2, Sparkles } from 'lucide-react';
+import { Shield, Mic, Video, Clock, ToggleLeft, ToggleRight, ChevronDown, ChevronUp, Save, Headphones, BookOpen, Music, Image, Volume2, Sparkles, Globe } from 'lucide-react';
 import { toast } from 'sonner';
+
+const STORY_LANGUAGE_OPTIONS = [
+  { value: 'en', label: 'English' },
+  { value: 'es', label: 'Spanish' },
+  { value: 'fr', label: 'French' },
+  { value: 'zh', label: 'Chinese' },
+  { value: 'hi', label: 'Hindi' },
+  { value: 'ar', label: 'Arabic' },
+  { value: 'pt', label: 'Portuguese' },
+  { value: 'ru', label: 'Russian' },
+  { value: 'ja', label: 'Japanese' },
+  { value: 'de', label: 'German' },
+  { value: 'ko', label: 'Korean' },
+];
 
 const LEARNING_SUPPORT_OPTIONS = [
   { value: 'dyslexia', label: 'Dyslexia' },
@@ -25,6 +39,7 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
   const [illustrationsEnabled, setIllustrationsEnabled] = useState(false);
   const [illustrationStyle, setIllustrationStyle] = useState('storybook');
   const [ttsEnabled, setTtsEnabled] = useState(true);
+  const [storyLanguage, setStoryLanguage] = useState('en');
 
   const { data: savedControls } = useQuery({
     queryKey: ['parental-controls', studentId],
@@ -52,6 +67,7 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
       setIllustrationsEnabled(studentData.illustrations_enabled || false);
       setIllustrationStyle(studentData.illustration_style || 'storybook');
       setTtsEnabled(studentData.tts_enabled !== false);
+      setStoryLanguage(studentData.language || 'en');
     }
   }, [studentData]);
 
@@ -83,6 +99,7 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
       illustrations_enabled: illustrationsEnabled,
       illustration_style: illustrationStyle,
       tts_enabled: ttsEnabled,
+      language: storyLanguage,
     });
   };
 
@@ -295,6 +312,28 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Story Language */}
+          <div className="mt-4 mb-3">
+            <p className="text-xs font-bold uppercase mb-2" style={{ color: '#6366f1' }}>
+              <Globe size={14} className="inline mr-1" style={{ verticalAlign: 'middle' }} />
+              Story Language
+            </p>
+            <p className="text-xs mb-2" style={{ color: '#8c8780' }}>
+              Choose the language for generated stories
+            </p>
+            <select
+              value={storyLanguage}
+              onChange={(e) => setStoryLanguage(e.target.value)}
+              className="w-full px-3 py-2 rounded-md text-sm font-bold"
+              style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.15)', color: '#2d2a26' }}
+              data-testid="story-language-select"
+            >
+              {STORY_LANGUAGE_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
           </div>
 
           {/* Story Enhancements */}

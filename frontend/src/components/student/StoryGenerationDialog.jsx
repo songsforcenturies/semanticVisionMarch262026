@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { narrativeAPI } from '@/lib/api';
 import { BrutalButton, BrutalInput, BrutalCard, BrutalBadge } from '@/components/brutal';
@@ -6,6 +7,7 @@ import { X, Sparkles, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 
 const StoryGenerationDialog = ({ isOpen, onClose, student }) => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [storyPrompt, setStoryPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -14,7 +16,7 @@ const StoryGenerationDialog = ({ isOpen, onClose, student }) => {
     mutationFn: (data) => narrativeAPI.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries(['student-narratives']);
-      toast.success('Story generated successfully! 🎉');
+      toast.success(t('student.storyGenerated'));
       onClose();
       setStoryPrompt('');
     },
@@ -28,7 +30,7 @@ const StoryGenerationDialog = ({ isOpen, onClose, student }) => {
     e.preventDefault();
     
     if (!storyPrompt.trim()) {
-      toast.error('Please enter a story idea');
+      toast.error(t('student.pleaseEnterIdea'));
       return;
     }
 
@@ -58,7 +60,7 @@ const StoryGenerationDialog = ({ isOpen, onClose, student }) => {
         <div className="flex items-start justify-between p-4 sm:p-6 pb-3 sm:pb-4 border-b-4 border-black shrink-0">
           <div className="flex items-center gap-2 sm:gap-3">
             <Sparkles size={24} className="text-indigo-600" />
-            <h2 className="text-lg sm:text-2xl font-black uppercase">Generate Your Story</h2>
+            <h2 className="text-lg sm:text-2xl font-black uppercase">{t('student.generateStory')}</h2>
           </div>
           <button
             onClick={onClose}
@@ -74,7 +76,7 @@ const StoryGenerationDialog = ({ isOpen, onClose, student }) => {
         <div className="overflow-y-auto flex-1 p-4 sm:p-6 space-y-4">
           {/* Student Info */}
           <div className="bg-indigo-50 border-4 border-black p-4">
-            <p className="font-bold text-sm uppercase mb-1">Story personalized for: <span className="text-lg">{student.full_name}</span></p>
+            <p className="font-bold text-sm uppercase mb-1">{t('student.storyPersonalized')}: <span className="text-lg">{student.full_name}</span></p>
             <div className="flex flex-wrap gap-1 mt-2">
               {student.interests?.map((interest, idx) => (
                 <BrutalBadge key={idx} variant="indigo" size="sm">{interest}</BrutalBadge>
@@ -88,13 +90,13 @@ const StoryGenerationDialog = ({ isOpen, onClose, student }) => {
           {/* Word Banks Count */}
           {student.assigned_banks?.length > 0 && (
             <p className="font-bold text-sm text-emerald-700">
-              Using vocabulary from {student.assigned_banks.length} word bank(s)
+              {t('student.usingVocab')} {student.assigned_banks.length} {t('student.wordBanks')}
             </p>
           )}
 
           {/* Story Prompt Input */}
           <div>
-            <label className="block mb-2 font-bold uppercase text-sm">What kind of story do you want?</label>
+            <label className="block mb-2 font-bold uppercase text-sm">{t('student.whatKindStory')}</label>
             <textarea
               value={storyPrompt}
               onChange={(e) => setStoryPrompt(e.target.value)}
@@ -109,7 +111,7 @@ const StoryGenerationDialog = ({ isOpen, onClose, student }) => {
 
           {/* Suggested Prompts - Compact */}
           <div>
-            <p className="font-bold text-xs uppercase mb-2">Quick ideas:</p>
+            <p className="font-bold text-xs uppercase mb-2">{t('student.quickIdeas')}:</p>
             <div className="flex flex-wrap gap-2">
               {suggestedPrompts.map((prompt, idx) => (
                 <button
@@ -127,7 +129,7 @@ const StoryGenerationDialog = ({ isOpen, onClose, student }) => {
 
           {isGenerating && (
             <div className="bg-yellow-100 border-4 border-black p-4 text-center">
-              <p className="font-bold">AI is creating your story... This may take 30-60 seconds!</p>
+              <p className="font-bold">{t('student.generatingStory')}</p>
             </div>
           )}
         </div>
@@ -147,12 +149,12 @@ const StoryGenerationDialog = ({ isOpen, onClose, student }) => {
             {isGenerating ? (
               <>
                 <div className="animate-spin">...</div>
-                Generating...
+                {t('student.generatingStory')}
               </>
             ) : (
               <>
                 <Sparkles size={20} />
-                Generate Story
+                {t('student.generateBtn')}
               </>
             )}
           </BrutalButton>
@@ -163,7 +165,7 @@ const StoryGenerationDialog = ({ isOpen, onClose, student }) => {
             onClick={onClose}
             disabled={isGenerating}
           >
-            Cancel
+            {t('student.cancel')}
           </BrutalButton>
         </div>
       </div>

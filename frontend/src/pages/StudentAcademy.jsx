@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { studentAPI, narrativeAPI, classroomAPI } from '@/lib/api';
@@ -39,6 +40,7 @@ const StatCard = ({ icon: Icon, label, value, sub, accent }) => (
 );
 
 const StudentAcademy = () => {
+  const { t } = useTranslation();
   const { student, studentLogout } = useAuth();
   const navigate = useNavigate();
   const [showStoryDialog, setShowStoryDialog] = useState(false);
@@ -89,7 +91,7 @@ const StudentAcademy = () => {
   if (studentLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: C.bg }}>
-        <div className="text-xl font-bold" style={{ color: C.cream }}>Loading...</div>
+        <div className="text-xl font-bold" style={{ color: C.cream }}>{t('student.loading')}</div>
       </div>
     );
   }
@@ -104,7 +106,7 @@ const StudentAcademy = () => {
   const agenticScore = studentData?.agentic_reach_score || 0;
 
   return (
-    <AppShell title="Semantic Vision Academy" subtitle={`Welcome, ${studentData?.full_name}!`} onLogout={handleLogout}
+    <AppShell title={t('student.academy')} subtitle={`${t('common.welcome')}, ${studentData?.full_name}!`} onLogout={handleLogout}
       isStudent={true} studentId={student?.id}
       rightContent={
         <div className="flex items-center gap-2 flex-wrap">
@@ -112,31 +114,31 @@ const StudentAcademy = () => {
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-105"
             style={{ color: showSpelling ? '#D4A853' : '#94A3B8', border: '1px solid rgba(255,255,255,0.1)', background: showSpelling ? 'rgba(212,168,83,0.1)' : 'rgba(255,255,255,0.04)' }}
             data-testid="student-spelling-btn">
-            <Award size={14} /> Spelling Bee
+            <Award size={14} /> {t('student.spellingBee')}
           </button>
           <button onClick={() => { setShowMusic(!showMusic); setShowSpelling(false); setShowOffline(false); setShowFAQ(false); }}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-105"
             style={{ color: showMusic ? '#D4A853' : '#94A3B8', border: '1px solid rgba(255,255,255,0.1)', background: showMusic ? 'rgba(212,168,83,0.1)' : 'rgba(255,255,255,0.04)' }}
             data-testid="student-music-btn">
-            <Music size={14} /> My Music
+            <Music size={14} /> {t('student.myMusic')}
           </button>
           <button onClick={() => { setShowOffline(!showOffline); setShowSpelling(false); setShowFAQ(false); setShowMusic(false); }}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-105"
             style={{ color: showOffline ? '#D4A853' : '#94A3B8', border: '1px solid rgba(255,255,255,0.1)', background: showOffline ? 'rgba(212,168,83,0.1)' : 'rgba(255,255,255,0.04)' }}
             data-testid="student-offline-btn">
-            <WifiOff size={14} /> Offline
+            <WifiOff size={14} /> {t('student.offline')}
           </button>
           <button onClick={() => { setShowFAQ(!showFAQ); setShowOffline(false); setShowSpelling(false); }}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-105"
             style={{ color: showFAQ ? '#D4A853' : '#94A3B8', border: '1px solid rgba(255,255,255,0.1)', background: showFAQ ? 'rgba(212,168,83,0.1)' : 'rgba(255,255,255,0.04)' }}
             data-testid="student-faq-btn">
-            <HelpCircle size={14} /> FAQ
+            <HelpCircle size={14} /> {t('student.faq')}
           </button>
           <button onClick={resetOnboarding}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-105"
             style={{ color: '#94A3B8', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)' }}
             data-testid="reset-onboarding-btn">
-            <RotateCcw size={14} /> Tutorial
+            <RotateCcw size={14} /> {t('student.tutorial')}
           </button>
         </div>
       }
@@ -145,14 +147,14 @@ const StudentAcademy = () => {
         {/* FAQ Section */}
         {showFAQ && (
           <div className="mb-6">
-            <FAQSection items={studentFAQ} title="Student FAQ" />
+            <FAQSection items={studentFAQ} title={t('student.studentFaq')} />
           </div>
         )}
 
         {/* Offline Library Section */}
         {showOffline && (
           <div className="mb-6">
-            <h2 className="text-lg sm:text-xl font-bold mb-3" style={{ fontFamily: "'Sora', sans-serif", color: C.cream }}>Offline Library</h2>
+            <h2 className="text-lg sm:text-xl font-bold mb-3" style={{ fontFamily: "'Sora', sans-serif", color: C.cream }}>{t('student.offlineLibrary')}</h2>
             <OfflineLibrary studentId={student?.id} onReadStory={(story) => setSelectedNarrative(story)} />
           </div>
         )}
@@ -160,7 +162,7 @@ const StudentAcademy = () => {
         {/* Spelling Bee Section */}
         {showSpelling && (
           <div className="mb-6">
-            <h2 className="text-lg sm:text-xl font-bold mb-3" style={{ fontFamily: "'Sora', sans-serif", color: C.cream }}>Spelling Bee Contests</h2>
+            <h2 className="text-lg sm:text-xl font-bold mb-3" style={{ fontFamily: "'Sora', sans-serif", color: C.cream }}>{t('student.spellingBeeContests')}</h2>
             <SpellingBee studentId={student?.id} studentName={studentData?.full_name} />
           </div>
         )}
@@ -168,7 +170,7 @@ const StudentAcademy = () => {
         {/* My Music Section */}
         {showMusic && (
           <div className="mb-6">
-            <h2 className="text-lg sm:text-xl font-bold mb-3" style={{ fontFamily: "'Sora', sans-serif", color: C.cream }}>My Music & Media</h2>
+            <h2 className="text-lg sm:text-xl font-bold mb-3" style={{ fontFamily: "'Sora', sans-serif", color: C.cream }}>{t('student.myMusicMedia')}</h2>
             <StudentMediaLibrary student={studentData} />
           </div>
         )}
@@ -185,9 +187,9 @@ const StudentAcademy = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
-          <StatCard icon={BookMarked} label="Vocabulary Mastered" value={masteredCount} sub={`Target: ${biologicalTarget} words`} accent="#818CF8" />
+          <StatCard icon={BookMarked} label={t('student.vocabMastered')} value={masteredCount} sub={`${t('student.target')}: ${biologicalTarget} words`} accent="#818CF8" />
           <StatCard icon={TrendingUp} label="Agentic Reach Score" value={Math.round(agenticScore)} sub={agenticScore >= 600 ? 'Expert' : agenticScore >= 300 ? 'Adept' : agenticScore >= 100 ? 'Apprentice' : 'Initiate'} accent="#34D399" />
-          <StatCard icon={Clock} label="Reading Time" value={`${Math.floor((studentData?.total_reading_seconds || 0) / 60)}m`} sub={`${studentData?.average_wpm || 0} WPM average`} accent="#FBBF24" />
+          <StatCard icon={Clock} label={t('student.readingTime')} value={`${Math.floor((studentData?.total_reading_seconds || 0) / 60)}m`} sub={`${studentData?.average_wpm || 0} WPM ${t('student.average')}`} accent="#FBBF24" />
         </div>
 
         {/* Join Classroom */}
@@ -198,8 +200,8 @@ const StudentAcademy = () => {
                 <Users size={20} style={{ color: C.teal }} />
               </div>
               <div>
-                <h3 className="text-sm sm:text-base font-bold" style={{ color: C.cream }}>Join Classroom</h3>
-                <p className="text-xs" style={{ color: C.muted }}>Enter teacher's code</p>
+                <h3 className="text-sm sm:text-base font-bold" style={{ color: C.cream }}>{t('student.joinClassroom')}</h3>
+                <p className="text-xs" style={{ color: C.muted }}>{t('student.enterTeacherCode')}</p>
               </div>
             </div>
             <form onSubmit={handleJoinSession} className="flex items-center gap-2 sm:ml-auto">
@@ -226,11 +228,11 @@ const StudentAcademy = () => {
         {/* Stories */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4 gap-2">
-            <h2 className="text-xl sm:text-2xl font-bold" style={{ fontFamily: "'Sora', sans-serif", color: C.cream }}>Your Stories</h2>
+            <h2 className="text-xl sm:text-2xl font-bold" style={{ fontFamily: "'Sora', sans-serif", color: C.cream }}>{t('student.yourStories')}</h2>
             <button onClick={() => setShowStoryDialog(true)} disabled={!canGenerateStory}
               className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold text-black transition-all hover:scale-105 disabled:opacity-50 flex-shrink-0"
               style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` }}>
-              <Plus size={16} /> <span className="hidden sm:inline">Create New Story</span><span className="sm:hidden">New</span>
+              <Plus size={16} /> <span className="hidden sm:inline">{t('student.createNewStory')}</span><span className="sm:hidden">New</span>
             </button>
           </div>
 
@@ -251,7 +253,7 @@ const StudentAcademy = () => {
                 <button onClick={() => setShowStoryDialog(true)}
                   className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-black mx-auto hover:scale-105 transition-all"
                   style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` }}>
-                  <Plus size={18} /> Create Your First Story
+                  <Plus size={18} /> {t('student.createFirstStory')}
                 </button>
               )}
             </div>

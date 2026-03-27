@@ -29,7 +29,12 @@
     "loginHere": "Inicia sesion aqui",
     "securePayment": "Pago seguro con Stripe",
     "copyright": "2026 Semantic Vision - Construyendo Vocabulario, Una Historia a la Vez",
-    "language": "Idioma"
+    "language": "Idioma",
+    "saving": "Guardando...",
+    "deleting": "Eliminando...",
+    "prev": "Anterior",
+    "next": "Siguiente",
+    "page": "Pagina"
   },
   "landing": {
     "title": "Semantic Vision",
@@ -153,10 +158,48 @@
     "inviteEarn": "Invitar y Ganar",
     "progress": "Progreso"
   },
+  "student": {
+    "academy": "Academia Semantic Vision",
+    "loading": "Cargando...",
+    "spellingBee": "Concurso de Ortografia",
+    "myMusic": "Mi Musica",
+    "offline": "Sin Conexion",
+    "faq": "Preguntas Frecuentes",
+    "tutorial": "Tutorial",
+    "studentFaq": "Preguntas Frecuentes del Estudiante",
+    "offlineLibrary": "Biblioteca Sin Conexion",
+    "spellingBeeContests": "Concursos de Ortografia",
+    "myMusicMedia": "Mi Musica y Medios",
+    "yourTasks": "Tus Tareas",
+    "vocabMastered": "Vocabulario Dominado",
+    "target": "Objetivo",
+    "readingTime": "Tiempo de Lectura",
+    "average": "promedio",
+    "joinClassroom": "Unirse al Aula",
+    "enterTeacherCode": "Ingresa el codigo del profesor",
+    "yourStories": "Tus Historias",
+    "createNewStory": "Crear Nueva Historia",
+    "createFirstStory": "Crea Tu Primera Historia",
+    "generateStory": "Genera Tu Historia",
+    "storyPersonalized": "Historia personalizada para",
+    "usingVocab": "Usando vocabulario de",
+    "wordBanks": "banco(s) de palabras",
+    "whatKindStory": "Que tipo de historia quieres?",
+    "quickIdeas": "Ideas Rapidas",
+    "generateBtn": "Generar Historia",
+    "cancel": "Cancelar",
+    "pleaseEnterIdea": "Por favor ingresa una idea para la historia",
+    "storyGenerated": "Historia generada exitosamente!",
+    "generatingStory": "Generando tu historia..."
+  },
   "teacher": {
+    "portal": "Portal del Profesor",
     "portalTitle": "Portal del Profesor",
     "classroom": "Aula",
-    "sessions": "Sesiones"
+    "sessions": "Sesiones",
+    "analytics": "Analiticas",
+    "faq": "Preguntas Frecuentes",
+    "teacherFaq": "Preguntas Frecuentes para Profesores y Escuelas"
   },
   "brand": {
     "portalTitle": "Portal de Marca",

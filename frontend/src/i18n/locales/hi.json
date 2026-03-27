@@ -29,7 +29,12 @@
     "loginHere": "यहां लॉग इन करें",
     "securePayment": "Stripe द्वारा सुरक्षित भुगतान",
     "copyright": "2026 Semantic Vision - कहानियों से शब्दावली बनाएं",
-    "language": "भाषा"
+    "language": "भाषा",
+    "saving": "सहेज रहा है...",
+    "deleting": "हटा रहा है...",
+    "prev": "पिछला",
+    "next": "अगला",
+    "page": "पृष्ठ"
   },
   "landing": {
     "title": "Semantic Vision",
@@ -99,10 +104,48 @@
     "inviteEarn": "आमंत्रित करें और कमाएं",
     "progress": "प्रगति"
   },
+  "student": {
+    "academy": "Semantic Vision अकादमी",
+    "loading": "लोड हो रहा है...",
+    "spellingBee": "वर्तनी प्रतियोगिता",
+    "myMusic": "मेरा संगीत",
+    "offline": "ऑफलाइन",
+    "faq": "सामान्य प्रश्न",
+    "tutorial": "ट्यूटोरियल",
+    "studentFaq": "छात्र सामान्य प्रश्न",
+    "offlineLibrary": "ऑफलाइन पुस्तकालय",
+    "spellingBeeContests": "वर्तनी प्रतियोगिताएं",
+    "myMusicMedia": "मेरा संगीत और मीडिया",
+    "yourTasks": "आपके कार्य",
+    "vocabMastered": "शब्दावली में महारत",
+    "target": "लक्ष्य",
+    "readingTime": "पढ़ने का समय",
+    "average": "औसत",
+    "joinClassroom": "कक्षा में शामिल हों",
+    "enterTeacherCode": "शिक्षक का कोड दर्ज करें",
+    "yourStories": "आपकी कहानियां",
+    "createNewStory": "नई कहानी बनाएं",
+    "createFirstStory": "अपनी पहली कहानी बनाएं",
+    "generateStory": "अपनी कहानी बनाएं",
+    "storyPersonalized": "कहानी इसके लिए व्यक्तिगत",
+    "usingVocab": "शब्दावली का उपयोग",
+    "wordBanks": "शब्द बैंक से",
+    "whatKindStory": "आप किस तरह की कहानी चाहते हैं?",
+    "quickIdeas": "त्वरित विचार",
+    "generateBtn": "कहानी बनाएं",
+    "cancel": "रद्द करें",
+    "pleaseEnterIdea": "कृपया एक कहानी का विचार दर्ज करें",
+    "storyGenerated": "कहानी सफलतापूर्वक बनी!",
+    "generatingStory": "आपकी कहानी बन रही है..."
+  },
   "teacher": {
+    "portal": "शिक्षक पोर्टल",
     "portalTitle": "शिक्षक पोर्टल",
     "classroom": "कक्षा",
-    "sessions": "सत्र"
+    "sessions": "सत्र",
+    "analytics": "विश्लेषण",
+    "faq": "सामान्य प्रश्न",
+    "teacherFaq": "शिक्षक और विद्यालय सामान्य प्रश्न"
   },
   "brand": {
     "portalTitle": "ब्रांड पोर्टल",

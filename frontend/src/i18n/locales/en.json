@@ -29,7 +29,12 @@
     "loginHere": "Login here",
     "securePayment": "Secure payment powered by Stripe",
     "copyright": "2026 Semantic Vision - Building Vocabulary, One Story at a Time",
-    "language": "Language"
+    "language": "Language",
+    "saving": "Saving...",
+    "deleting": "Deleting...",
+    "prev": "Prev",
+    "next": "Next",
+    "page": "Page"
   },
   "landing": {
     "title": "Semantic Vision",
@@ -153,10 +158,48 @@
     "inviteEarn": "Invite & Earn",
     "progress": "Progress"
   },
+  "student": {
+    "academy": "Semantic Vision Academy",
+    "loading": "Loading...",
+    "spellingBee": "Spelling Bee",
+    "myMusic": "My Music",
+    "offline": "Offline",
+    "faq": "FAQ",
+    "tutorial": "Tutorial",
+    "studentFaq": "Student FAQ",
+    "offlineLibrary": "Offline Library",
+    "spellingBeeContests": "Spelling Bee Contests",
+    "myMusicMedia": "My Music & Media",
+    "yourTasks": "Your Tasks",
+    "vocabMastered": "Vocabulary Mastered",
+    "target": "Target",
+    "readingTime": "Reading Time",
+    "average": "average",
+    "joinClassroom": "Join Classroom",
+    "enterTeacherCode": "Enter teacher's code",
+    "yourStories": "Your Stories",
+    "createNewStory": "Create New Story",
+    "createFirstStory": "Create Your First Story",
+    "generateStory": "Generate Your Story",
+    "storyPersonalized": "Story personalized for",
+    "usingVocab": "Using vocabulary from",
+    "wordBanks": "word bank(s)",
+    "whatKindStory": "What kind of story do you want?",
+    "quickIdeas": "Quick Ideas",
+    "generateBtn": "Generate Story",
+    "cancel": "Cancel",
+    "pleaseEnterIdea": "Please enter a story idea",
+    "storyGenerated": "Story generated successfully!",
+    "generatingStory": "Generating your story..."
+  },
   "teacher": {
+    "portal": "Teacher Portal",
     "portalTitle": "Teacher Portal",
     "classroom": "Classroom",
-    "sessions": "Sessions"
+    "sessions": "Sessions",
+    "analytics": "Analytics",
+    "faq": "FAQ",
+    "teacherFaq": "Teacher & School FAQ"
   },
   "brand": {
     "portalTitle": "Brand Portal",

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import AppShell from '@/components/AppShell';
@@ -9,6 +10,7 @@ import FAQSection from '@/components/FAQSection';
 import { teacherFAQ } from '@/components/faqContent';
 
 const TeacherPortal = () => {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('sessions');
@@ -16,15 +18,15 @@ const TeacherPortal = () => {
   const handleLogout = () => { logout(); navigate('/login?type=teacher'); };
 
   const tabs = [
-    { id: 'sessions', label: 'Sessions', icon: Users },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'faq', label: 'FAQ', icon: HelpCircle },
+    { id: 'sessions', label: t('teacher.sessions'), icon: Users },
+    { id: 'analytics', label: t('teacher.analytics'), icon: BarChart3 },
+    { id: 'faq', label: t('teacher.faq'), icon: HelpCircle },
   ];
 
   return (
     <AppShell
-      title="Teacher Portal"
-      subtitle={`Welcome, ${user?.full_name}!`}
+      title={t('teacher.portal')}
+      subtitle={`${t('common.welcome')}, ${user?.full_name}!`}
       onLogout={handleLogout}
     >
       <div className="container mx-auto px-4 py-6" data-testid="teacher-portal">
@@ -45,7 +47,7 @@ const TeacherPortal = () => {
         <div>
           {activeTab === 'sessions' && <SessionsTab />}
           {activeTab === 'analytics' && <ClassAnalyticsTab />}
-          {activeTab === 'faq' && <FAQSection items={teacherFAQ} title="Teacher & School FAQ" />}
+          {activeTab === 'faq' && <FAQSection items={teacherFAQ} title={t('teacher.teacherFaq')} />}
         </div>
       </div>
     </AppShell>

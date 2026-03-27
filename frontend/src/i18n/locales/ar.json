@@ -29,7 +29,12 @@
     "loginHere": "سجل الدخول هنا",
     "securePayment": "دفع آمن عبر Stripe",
     "copyright": "2026 Semantic Vision - بناء المفردات قصة تلو الأخرى",
-    "language": "اللغة"
+    "language": "اللغة",
+    "saving": "جاري الحفظ...",
+    "deleting": "جاري الحذف...",
+    "prev": "السابق",
+    "next": "التالي",
+    "page": "صفحة"
   },
   "landing": {
     "title": "Semantic Vision",
@@ -99,10 +104,48 @@
     "inviteEarn": "ادعُ واكسب",
     "progress": "التقدم"
   },
+  "student": {
+    "academy": "أكاديمية Semantic Vision",
+    "loading": "جاري التحميل...",
+    "spellingBee": "مسابقة الإملاء",
+    "myMusic": "موسيقاي",
+    "offline": "غير متصل",
+    "faq": "الأسئلة الشائعة",
+    "tutorial": "الدليل التعليمي",
+    "studentFaq": "الأسئلة الشائعة للطالب",
+    "offlineLibrary": "المكتبة بدون اتصال",
+    "spellingBeeContests": "مسابقات الإملاء",
+    "myMusicMedia": "موسيقاي ووسائطي",
+    "yourTasks": "مهامك",
+    "vocabMastered": "المفردات المتقنة",
+    "target": "الهدف",
+    "readingTime": "وقت القراءة",
+    "average": "متوسط",
+    "joinClassroom": "الانضمام للفصل",
+    "enterTeacherCode": "أدخل رمز المعلم",
+    "yourStories": "قصصك",
+    "createNewStory": "إنشاء قصة جديدة",
+    "createFirstStory": "أنشئ قصتك الأولى",
+    "generateStory": "أنشئ قصتك",
+    "storyPersonalized": "قصة مخصصة لـ",
+    "usingVocab": "باستخدام مفردات من",
+    "wordBanks": "بنك(بنوك) كلمات",
+    "whatKindStory": "أي نوع من القصص تريد؟",
+    "quickIdeas": "أفكار سريعة",
+    "generateBtn": "إنشاء القصة",
+    "cancel": "إلغاء",
+    "pleaseEnterIdea": "يرجى إدخال فكرة للقصة",
+    "storyGenerated": "تم إنشاء القصة بنجاح!",
+    "generatingStory": "جاري إنشاء قصتك..."
+  },
   "teacher": {
+    "portal": "بوابة المعلم",
     "portalTitle": "بوابة المعلم",
     "classroom": "الفصل",
-    "sessions": "الجلسات"
+    "sessions": "الجلسات",
+    "analytics": "التحليلات",
+    "faq": "الأسئلة الشائعة",
+    "teacherFaq": "الأسئلة الشائعة للمعلمين والمدارس"
   },
   "brand": {
     "portalTitle": "بوابة العلامة التجارية",

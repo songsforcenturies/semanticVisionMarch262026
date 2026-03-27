@@ -29,7 +29,12 @@
     "loginHere": "在此登录",
     "securePayment": "由Stripe提供安全支付",
     "copyright": "2026 Semantic Vision - 用故事构建词汇",
-    "language": "语言"
+    "language": "语言",
+    "saving": "保存中...",
+    "deleting": "删除中...",
+    "prev": "上一页",
+    "next": "下一页",
+    "page": "页"
   },
   "landing": {
     "title": "Semantic Vision",
@@ -99,10 +104,48 @@
     "inviteEarn": "邀请赚钱",
     "progress": "进度"
   },
+  "student": {
+    "academy": "Semantic Vision 学院",
+    "loading": "加载中...",
+    "spellingBee": "拼写比赛",
+    "myMusic": "我的音乐",
+    "offline": "离线",
+    "faq": "常见问题",
+    "tutorial": "教程",
+    "studentFaq": "学生常见问题",
+    "offlineLibrary": "离线图书馆",
+    "spellingBeeContests": "拼写比赛",
+    "myMusicMedia": "我的音乐和媒体",
+    "yourTasks": "你的任务",
+    "vocabMastered": "已掌握词汇",
+    "target": "目标",
+    "readingTime": "阅读时间",
+    "average": "平均",
+    "joinClassroom": "加入课堂",
+    "enterTeacherCode": "输入教师代码",
+    "yourStories": "你的故事",
+    "createNewStory": "创建新故事",
+    "createFirstStory": "创建你的第一个故事",
+    "generateStory": "生成你的故事",
+    "storyPersonalized": "为以下人员定制的故事",
+    "usingVocab": "使用来自",
+    "wordBanks": "个词汇库的词汇",
+    "whatKindStory": "你想要什么样的故事？",
+    "quickIdeas": "快速创意",
+    "generateBtn": "生成故事",
+    "cancel": "取消",
+    "pleaseEnterIdea": "请输入一个故事创意",
+    "storyGenerated": "故事生成成功！",
+    "generatingStory": "正在生成你的故事..."
+  },
   "teacher": {
+    "portal": "教师门户",
     "portalTitle": "教师门户",
     "classroom": "课堂",
-    "sessions": "课程"
+    "sessions": "课程",
+    "analytics": "分析",
+    "faq": "常见问题",
+    "teacherFaq": "教师和学校常见问题"
   },
   "brand": {
     "portalTitle": "品牌门户",
