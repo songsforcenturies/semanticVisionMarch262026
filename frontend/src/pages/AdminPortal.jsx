@@ -1932,9 +1932,20 @@ const BackupRestoreTab = () => {
   });
 
   const handleBackup = async () => {
+    // Generate default filename with date/time
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const defaultName = `semantic_vision_backup_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+
+    const userFilename = window.prompt(
+      'Enter a name for the backup file (or keep the default):',
+      defaultName
+    );
+    if (userFilename === null) return; // User cancelled
+
     setBackupLoading(true);
     try {
-      await backupAPI.download();
+      await backupAPI.download(userFilename || defaultName);
       toast.success('Backup downloaded successfully!');
     } catch (e) {
       toast.error('Backup failed: ' + (e.message || 'Unknown error'));

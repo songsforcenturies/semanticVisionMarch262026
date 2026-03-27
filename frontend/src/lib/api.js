@@ -415,9 +415,12 @@ export const narrativeProgressAPI = {
 
 export const backupAPI = {
   getStatus: () => apiClient.get('/admin/backup/status'),
-  download: () => {
+  download: (customFilename) => {
     const token = localStorage.getItem('token');
-    return fetch(`${API}/admin/backup`, {
+    const url = customFilename
+      ? `${API}/admin/backup?filename=${encodeURIComponent(customFilename)}`
+      : `${API}/admin/backup`;
+    return fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
     }).then(res => {
       if (!res.ok) throw new Error('Backup failed');
@@ -431,6 +434,7 @@ export const backupAPI = {
       });
     });
   },
+  getInfo: () => apiClient.get('/admin/backup/info'),
   restore: (file) => {
     const formData = new FormData();
     formData.append('file', file);
