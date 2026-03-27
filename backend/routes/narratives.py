@@ -85,15 +85,33 @@ async def create_narrative(narrative_data: NarrativeCreate):
         media_config = await db.system_config.find_one({"key": "media_settings"}, {"_id": 0})
         media_enabled = media_config.get("value", {}).get("digital_media_enabled", False) if media_config else False
         student_media_ok = student.get("digital_media_enabled", True)
-        if media_enabled and student_media_ok:
+        force_media = student.get("force_media_in_stories", False)
+        media_count = max(1, min(5, student.get("media_integration_count", 2)))
+        preferred_media_ids = student.get("preferred_media_ids", [])
+        # If force_media is True, include media even when global digital_media_enabled is False
+        if (media_enabled and student_media_ok) or force_media:
             import random as rand_mod
             approved_media = await db.brand_media.find({"status": "approved"}, {"_id": 0}).to_list(50)
-            rand_mod.shuffle(approved_media)
+            # Prioritize preferred media IDs first
+            preferred_items = []
+            remaining_items = []
+            if preferred_media_ids:
+                preferred_set = set(preferred_media_ids)
+                for m in approved_media:
+                    if m["id"] in preferred_set:
+                        preferred_items.append(m)
+                    else:
+                        remaining_items.append(m)
+            else:
+                remaining_items = approved_media
+            rand_mod.shuffle(remaining_items)
+            # Combine: preferred first, then random to fill up to media_count
+            ordered_media = preferred_items + remaining_items
             media_placements = [{
                 "id": m["id"], "title": m["title"], "artist": m.get("artist", ""),
                 "media_type": m["media_type"], "source": m.get("source", ""),
                 "file_url": m.get("file_url", ""), "youtube_url": m.get("youtube_url", ""),
-            } for m in approved_media[:2]]
+            } for m in ordered_media[:media_count]]
         if brand_enabled and ad_prefs.get("allow_brand_stories", False):
             blocked = ad_prefs.get("blocked_categories", [])
             student_age = student.get("age", 10)
@@ -136,6 +154,8 @@ async def create_narrative(narrative_data: NarrativeCreate):
             media_placements=media_placements,
             strengths=student.get("strengths", ""),
             weaknesses=student.get("weaknesses", ""),
+            media_count=media_count,
+            force_media=force_media,
         )
         
         # Record brand impressions (after narrative creation so we have the real ID)

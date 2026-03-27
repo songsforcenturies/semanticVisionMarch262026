@@ -234,6 +234,10 @@ class Student(MongoBaseModel):
     assessment_mode: str = "written"  # "written", "oral", or "both"
     spellcheck_disabled: bool = False
     spelling_mode: str = "phonetic"  # "exact" or "phonetic"
+    # Learning Through Songs/Media controls
+    force_media_in_stories: bool = False  # When True, media MUST be included in every story
+    media_integration_count: int = 2  # Number of media references to include (1-5)
+    preferred_media_ids: List[str] = Field(default_factory=list)  # Specific media IDs to always include
     created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -247,6 +251,9 @@ class StudentCreate(BaseModel):
     weaknesses: str = ""
     accessibility_needs: List[str] = Field(default_factory=list)
     assessment_mode: str = "written"
+    force_media_in_stories: bool = False
+    media_integration_count: int = 2
+    preferred_media_ids: List[str] = Field(default_factory=list)
 
 
 class StudentUpdate(BaseModel):
@@ -266,6 +273,9 @@ class StudentUpdate(BaseModel):
     language: Optional[str] = None
     accessibility_needs: Optional[List[str]] = None
     assessment_mode: Optional[str] = None
+    force_media_in_stories: Optional[bool] = None
+    media_integration_count: Optional[int] = None
+    preferred_media_ids: Optional[List[str]] = None
 
 
 # Subscription Entity

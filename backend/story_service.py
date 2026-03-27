@@ -108,6 +108,8 @@ class StoryGenerationService:
         media_placements: List[Dict[str, Any]] = [],
         strengths: str = "",
         weaknesses: str = "",
+        media_count: int = 2,
+        force_media: bool = False,
     ) -> Dict[str, Any]:
         """Generate a 5-chapter educational story"""
         
@@ -209,6 +211,10 @@ Include 1-2 natural brand mentions across the story where they solve a problem o
                 mtype = mp.get("media_type", "audio")
                 desc = f"- \"{mp['title']}\" by {mp.get('artist', 'Unknown')} ({mtype})"
                 media_items.append(desc)
+            if force_media:
+                media_instruction = f"""MANDATORY: You MUST include exactly {media_count} [MEDIA:id:title] tags in the story. Each chapter should have at least one if possible."""
+            else:
+                media_instruction = f"""Include exactly {media_count} media references across the story, making them feel organic to the narrative."""
             media_section = f"""
 DIGITAL MEDIA INTEGRATION: Naturally embed references to these songs/videos into the story at moments where music or media would enhance the experience.
 When the character encounters a moment of inspiration, celebration, learning, or reflection, mention one of these songs/videos as something the character hears, discovers, or is reminded of.
@@ -216,7 +222,7 @@ Format each media reference in the story text as: [MEDIA:media_id:title] — thi
 Available media:
 {chr(10).join(media_items)}
 Media IDs: {', '.join(f"{mp['id']}" for mp in media_placements)}
-Include 1-2 media references across the story, making them feel organic to the narrative."""
+{media_instruction}"""
 
         # Build strengths & weaknesses prompt section
         strengths_section = ""

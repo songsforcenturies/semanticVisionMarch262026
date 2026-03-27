@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { parentalControlsAPI } from '@/lib/api';
 import api from '@/lib/api';
 import { BrutalCard, BrutalButton } from '@/components/brutal';
-import { Shield, Mic, Video, Clock, ToggleLeft, ToggleRight, ChevronDown, ChevronUp, Save, Headphones, BookOpen } from 'lucide-react';
+import { Shield, Mic, Video, Clock, ToggleLeft, ToggleRight, ChevronDown, ChevronUp, Save, Headphones, BookOpen, Music } from 'lucide-react';
 import { toast } from 'sonner';
 
 const LEARNING_SUPPORT_OPTIONS = [
@@ -20,6 +20,8 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
   const [controls, setControls] = useState(null);
   const [assessmentMode, setAssessmentMode] = useState('written');
   const [accessibilityNeeds, setAccessibilityNeeds] = useState([]);
+  const [forceMedia, setForceMedia] = useState(false);
+  const [mediaIntegrationCount, setMediaIntegrationCount] = useState(2);
 
   const { data: savedControls } = useQuery({
     queryKey: ['parental-controls', studentId],
@@ -42,6 +44,8 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
     if (studentData) {
       setAssessmentMode(studentData.assessment_mode || 'written');
       setAccessibilityNeeds(studentData.accessibility_needs || []);
+      setForceMedia(studentData.force_media_in_stories || false);
+      setMediaIntegrationCount(studentData.media_integration_count ?? 2);
     }
   }, [studentData]);
 
@@ -64,10 +68,12 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
 
   const handleSave = () => {
     if (controls) saveMutation.mutate(controls);
-    // Also save assessment mode and accessibility needs to the student record
+    // Also save assessment mode, accessibility needs, and media settings to the student record
     saveStudentMutation.mutate({
       assessment_mode: assessmentMode,
       accessibility_needs: accessibilityNeeds,
+      force_media_in_stories: forceMedia,
+      media_integration_count: mediaIntegrationCount,
     });
   };
 
@@ -239,6 +245,47 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
                   {opt.label}
                 </label>
               ))}
+            </div>
+          </div>
+
+          {/* Learning Through Songs & Media */}
+          <div className="mt-4 mb-3">
+            <p className="text-xs font-bold uppercase mb-2" style={{ color: '#6366f1' }}>
+              <Music size={14} className="inline mr-1" style={{ verticalAlign: 'middle' }} />
+              Learning Through Songs & Media
+            </p>
+            <div className="flex items-start justify-between gap-3 py-3" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+              <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                <Music size={16} className="mt-0.5 flex-shrink-0" style={{ color: '#6366f1' }} />
+                <div>
+                  <p className="text-sm font-bold" style={{ color: '#2d2a26' }}>Force songs/media in every story</p>
+                  <p className="text-xs mt-0.5" style={{ color: '#8c8780' }}>When enabled, songs and media will always be included in generated stories</p>
+                </div>
+              </div>
+              <button onClick={() => setForceMedia(!forceMedia)} className="flex-shrink-0 mt-0.5"
+                data-testid="toggle-force-media">
+                {forceMedia ? (
+                  <ToggleRight size={28} style={{ color: '#6366f1' }} />
+                ) : (
+                  <ToggleLeft size={28} style={{ color: '#b0aba4' }} />
+                )}
+              </button>
+            </div>
+            <div className="py-3" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+              <div className="flex items-start gap-2.5">
+                <Music size={16} className="mt-0.5 flex-shrink-0" style={{ color: '#6366f1' }} />
+                <div className="flex-1">
+                  <p className="text-sm font-bold" style={{ color: '#2d2a26' }}>Number of song/media integrations per story</p>
+                  <p className="text-xs mt-0.5" style={{ color: '#8c8780' }}>
+                    How many songs or media references to include (1-5)
+                  </p>
+                  <input type="number" min="1" max="5" value={mediaIntegrationCount}
+                    onChange={(e) => setMediaIntegrationCount(Math.max(1, Math.min(5, parseInt(e.target.value) || 1)))}
+                    className="mt-2 w-20 px-3 py-1.5 rounded-md text-sm font-bold text-center"
+                    style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.15)', color: '#2d2a26' }}
+                    data-testid="media-integration-count-input" />
+                </div>
+              </div>
             </div>
           </div>
 
