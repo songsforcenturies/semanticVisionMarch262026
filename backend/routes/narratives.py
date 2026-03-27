@@ -258,13 +258,51 @@ async def get_narrative(narrative_id: str):
     return narrative
 
 
+@router.post("/narratives/{narrative_id}/archive")
+async def archive_narrative(narrative_id: str, current_user: dict = Depends(get_current_user)):
+    """Archive a narrative (hide from student view but keep data)"""
+    narrative = await db.narratives.find_one({"id": narrative_id}, {"_id": 0, "student_id": 1})
+    if not narrative:
+        raise HTTPException(status_code=404, detail="Narrative not found")
+    # Guardian must own the student, or be admin
+    if current_user.get("role") != "admin":
+        student = await db.students.find_one({"id": narrative["student_id"]}, {"_id": 0, "guardian_id": 1})
+        if not student or student.get("guardian_id") != current_user["id"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+    await db.narratives.update_one({"id": narrative_id}, {"$set": {"status": "archived", "archived_date": datetime.now(timezone.utc).isoformat()}})
+    return {"message": "Story archived successfully"}
+
+
+@router.post("/narratives/{narrative_id}/unarchive")
+async def unarchive_narrative(narrative_id: str, current_user: dict = Depends(get_current_user)):
+    """Restore an archived narrative"""
+    narrative = await db.narratives.find_one({"id": narrative_id}, {"_id": 0, "student_id": 1})
+    if not narrative:
+        raise HTTPException(status_code=404, detail="Narrative not found")
+    if current_user.get("role") != "admin":
+        student = await db.students.find_one({"id": narrative["student_id"]}, {"_id": 0, "guardian_id": 1})
+        if not student or student.get("guardian_id") != current_user["id"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+    await db.narratives.update_one({"id": narrative_id}, {"$set": {"status": "active"}, "$unset": {"archived_date": ""}})
+    return {"message": "Story restored successfully"}
+
+
 @router.delete("/narratives/{narrative_id}")
 async def delete_narrative(narrative_id: str, current_user: dict = Depends(get_current_user)):
-    """Delete a narrative"""
-    result = await db.narratives.delete_one({"id": narrative_id})
-    if result.deleted_count == 0:
+    """Permanently delete a narrative (guardian or admin only)"""
+    narrative = await db.narratives.find_one({"id": narrative_id}, {"_id": 0, "student_id": 1})
+    if not narrative:
         raise HTTPException(status_code=404, detail="Narrative not found")
-    return {"message": "Narrative deleted successfully"}
+    # Guardian must own the student, or be admin
+    if current_user.get("role") != "admin":
+        student = await db.students.find_one({"id": narrative["student_id"]}, {"_id": 0, "guardian_id": 1})
+        if not student or student.get("guardian_id") != current_user["id"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+    await db.narratives.delete_one({"id": narrative_id})
+    # Also clean up related data
+    await db.assessments.delete_many({"narrative_id": narrative_id})
+    await db.read_logs.delete_many({"narrative_id": narrative_id})
+    return {"message": "Story permanently deleted"}
 
 
 # ==================== TEXT-TO-SPEECH ROUTES ====================

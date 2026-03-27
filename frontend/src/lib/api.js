@@ -123,6 +123,8 @@ export const narrativeAPI = {
   getAll: (studentId) => apiClient.get('/narratives', { params: { student_id: studentId } }),
   getById: (id) => apiClient.get(`/narratives/${id}`),
   delete: (id) => apiClient.delete(`/narratives/${id}`),
+  archive: (id) => apiClient.post(`/narratives/${id}/archive`),
+  unarchive: (id) => apiClient.post(`/narratives/${id}/unarchive`),
 };
 
 // ==================== READ LOG API ====================
