@@ -367,11 +367,22 @@ async def student_login(data: StudentPinLogin):
     })
     if not student:
         raise HTTPException(status_code=401, detail="Invalid student code or PIN")
-    
+
     # Get guardian info
     guardian = await db.users.find_one({"id": student["guardian_id"]})
-    
+
+    # Create JWT token for student (so authenticated endpoints work)
+    access_token = create_access_token(data={
+        "sub": student["id"],
+        "email": f"student_{student['id']}@semanticvision.ai",
+        "role": "student",
+        "student_id": student["id"],
+        "guardian_id": student.get("guardian_id", ""),
+    })
+
     return {
+        "access_token": access_token,
+        "token_type": "bearer",
         "student": {
             "id": student["id"],
             "full_name": student["full_name"],
@@ -390,11 +401,28 @@ async def student_login(data: StudentPinLogin):
 
 @router.get("/auth/me")
 async def get_me(current_user: dict = Depends(get_current_user)):
-    """Get current authenticated user"""
+    """Get current authenticated user (or student)"""
+    # Handle student tokens
+    if current_user.get("role") == "student":
+        student = await db.students.find_one({"id": current_user["id"]}, {"_id": 0})
+        if not student:
+            raise HTTPException(status_code=404, detail="Student not found")
+        return {
+            "id": student["id"],
+            "full_name": student.get("full_name", ""),
+            "email": f"student_{student['id']}@semanticvision.ai",
+            "role": "student",
+            "student_id": student["id"],
+            "guardian_id": student.get("guardian_id", ""),
+            "grade_level": student.get("grade_level"),
+            "age": student.get("age"),
+            "interests": student.get("interests", []),
+        }
+
     user = await db.users.find_one({"id": current_user["id"]})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     return UserResponse(**user)
 
 

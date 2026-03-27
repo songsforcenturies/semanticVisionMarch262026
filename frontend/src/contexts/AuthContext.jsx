@@ -137,8 +137,12 @@ export const AuthProvider = ({ children }) => {
   const studentLogin = async (studentCode, pin) => {
     try {
       const response = await authAPI.studentLogin(studentCode, pin);
-      const { student: studentData } = response.data;
+      const { student: studentData, access_token } = response.data;
 
+      // Store token for authenticated API calls
+      if (access_token) {
+        localStorage.setItem('token', access_token);
+      }
       localStorage.setItem('student', JSON.stringify(studentData));
       setStudent(studentData);
 
@@ -148,9 +152,9 @@ export const AuthProvider = ({ children }) => {
       return { success: true, student: studentData };
     } catch (error) {
       console.error('Student login error:', error);
-      return { 
-        success: false, 
-        error: error.response?.data?.detail || 'Invalid credentials' 
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'Invalid credentials'
       };
     }
   };
