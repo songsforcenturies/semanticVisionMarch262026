@@ -314,11 +314,11 @@ const StudentProgressDetail = ({ studentId, onBack }) => {
                     }} className="text-xs font-bold px-3 py-1.5 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors">Restore</button>
                   ) : (
                     <button onClick={async () => {
-                      if (!window.confirm('Archive this story? It will be hidden from the student.')) return;
+                      if (!window.confirm('Archive this story?\n\n• Hidden from the student\'s story list\n• Data still available for parents, brands & system analytics\n• Can be restored anytime')) return;
                       await narrativeAPI.archive(story.id);
                       story.status = 'archived';
                       await queryClient.refetchQueries({ queryKey: ['student-progress', studentId] });
-                      toast.success('Story archived — hidden from student');
+                      toast.success('Story archived — hidden from student. Data preserved for parents & analytics.');
                     }} className="text-xs font-bold px-3 py-1.5 bg-gray-700 text-white rounded hover:bg-gray-800 transition-colors">Archive</button>
                   )}
                   <button onClick={async () => {
