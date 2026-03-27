@@ -25,6 +25,7 @@ const StudentsTab = () => {
   const [storyPrompt, setStoryPrompt] = useState('');
   const [storyGenerating, setStoryGenerating] = useState(false);
   const [storyProgress, setStoryProgress] = useState('');
+  const [personalized, setPersonalized] = useState(true);
 
   // Fetch students
   const { data: students = [], isLoading: studentsLoading } = useQuery({
@@ -167,6 +168,7 @@ const StudentsTab = () => {
     }
     setStoryPrompt('');
     setStoryProgress('');
+    setPersonalized(true);
     setStoryDialogOpen(true);
   };
 
@@ -204,6 +206,7 @@ const StudentsTab = () => {
         student_ids: selectedStudentIds,
         prompt: storyPrompt.trim(),
         bank_ids: [],
+        personalized,
       });
       const data = response.data;
       if (data.generated > 0) {
@@ -657,6 +660,26 @@ const StudentsTab = () => {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Personalization Toggle */}
+            <div className="mb-4">
+              <label className="flex items-center gap-3 cursor-pointer p-3 border-2 border-black bg-emerald-50 hover:bg-emerald-100 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={personalized}
+                  onChange={(e) => setPersonalized(e.target.checked)}
+                  className="w-5 h-5 accent-emerald-600"
+                />
+                <div>
+                  <span className="font-bold text-sm">Personalize to child's profile</span>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {personalized
+                      ? 'Story will use interests, strengths, weaknesses, virtues, belief system & cultural context'
+                      : 'Story will be generic, using only the prompt and word banks'}
+                  </p>
+                </div>
+              </label>
             </div>
 
             {/* Progress */}

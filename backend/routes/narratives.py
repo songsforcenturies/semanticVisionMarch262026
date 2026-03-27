@@ -35,9 +35,12 @@ async def create_narrative(narrative_data: NarrativeCreate):
             detail="Student has no assigned word banks. Please assign word banks first."
         )
     
+    # Resolve bank_ids: use provided ones, or fall back to student's assigned banks
+    effective_bank_ids = narrative_data.bank_ids if narrative_data.bank_ids else (student.get("assigned_banks") or [])
+
     # Fetch word banks
     word_banks = []
-    for bank_id in narrative_data.bank_ids:
+    for bank_id in effective_bank_ids:
         bank = await db.word_banks.find_one({"id": bank_id})
         if bank:
             word_banks.append(bank)
@@ -133,12 +136,15 @@ async def create_narrative(narrative_data: NarrativeCreate):
                 if len(brand_placements) >= 2:
                     break
         
+        # When personalized=False, use empty/default values for profile fields
+        use_personalization = getattr(narrative_data, 'personalized', True)
+
         story_data = await story_service.generate_story(
             student_name=student["full_name"],
             student_age=student.get("age", 10),
             grade_level=student.get("grade_level", "1-12"),
-            interests=student.get("interests", []),
-            virtues=student.get("virtues", []),
+            interests=student.get("interests", []) if use_personalization else [],
+            virtues=student.get("virtues", []) if use_personalization else [],
             prompt=narrative_data.prompt,
             baseline_words=baseline_words,
             target_words=target_words,
@@ -146,15 +152,15 @@ async def create_narrative(narrative_data: NarrativeCreate):
             student_id=student["id"],
             guardian_id=student.get("guardian_id", ""),
             guardian_name=guardian.get("full_name", "") if guardian else "",
-            belief_system=student.get("belief_system", ""),
-            cultural_context=student.get("cultural_context", ""),
+            belief_system=student.get("belief_system", "") if use_personalization else "",
+            cultural_context=student.get("cultural_context", "") if use_personalization else "",
             custom_heritage=student.get("custom_heritage", ""),
             culture_learning=student.get("culture_learning", []),
             language=student.get("language", "English"),
             brand_placements=brand_placements,
             media_placements=media_placements,
-            strengths=student.get("strengths", ""),
-            weaknesses=student.get("weaknesses", ""),
+            strengths=student.get("strengths", "") if use_personalization else "",
+            weaknesses=student.get("weaknesses", "") if use_personalization else "",
             media_count=media_count,
             force_media=force_media,
             illustrations_enabled=student.get("illustrations_enabled", False),
@@ -198,7 +204,7 @@ async def create_narrative(narrative_data: NarrativeCreate):
         narrative = Narrative(
             title=story_data["title"],
             student_id=narrative_data.student_id,
-            bank_ids=narrative_data.bank_ids,
+            bank_ids=effective_bank_ids,
             theme=story_data.get("theme", narrative_data.prompt),
             chapters=chapters,
             total_word_count=story_data.get("total_word_count", 0),
@@ -242,6 +248,7 @@ class NarrativeBatchCreate(BaseModel):
     student_ids: List[str]
     prompt: str
     bank_ids: List[str] = []
+    personalized: bool = True
 
 
 @router.post("/narratives/batch")
@@ -276,6 +283,7 @@ async def create_narratives_batch(batch_data: NarrativeBatchCreate, current_user
                 student_id=sid,
                 prompt=batch_data.prompt,
                 bank_ids=bank_ids,
+                personalized=batch_data.personalized,
             )
             narrative = await create_narrative(narrative_create)
             narrative_id = narrative.id if hasattr(narrative, "id") else (narrative.get("id") if isinstance(narrative, dict) else None)

@@ -395,7 +395,8 @@ class Narrative(MongoBaseModel):
 class NarrativeCreate(BaseModel):
     student_id: str
     prompt: str
-    bank_ids: List[str]
+    bank_ids: List[str] = []
+    personalized: bool = True
 
 
 # Assessment Entity

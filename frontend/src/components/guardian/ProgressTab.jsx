@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { studentAPI, narrativeAPI } from '@/lib/api';
 import { toast } from 'sonner';
 import { BrutalCard, BrutalButton, BrutalBadge } from '@/components/brutal';
-import { TrendingUp, BookOpen, Clock, Target, ChevronLeft, Award, BarChart3, Brain, Download, Printer, CalendarDays, Timer, Activity } from 'lucide-react';
+import { TrendingUp, BookOpen, Clock, Target, ChevronLeft, Award, BarChart3, Brain, Download, Printer, CalendarDays, Timer, Activity, Eye, X } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -47,6 +47,8 @@ const formatTime = (seconds) => {
 const StudentProgressDetail = ({ studentId, onBack }) => {
   const queryClient = useQueryClient();
   const [showArchived, setShowArchived] = useState(false);
+  const [readingStory, setReadingStory] = useState(null);
+  const [readingChapter, setReadingChapter] = useState(1);
   const { data: progress, isLoading } = useQuery({
     queryKey: ['student-progress', studentId],
     queryFn: async () => {
@@ -304,6 +306,17 @@ const StudentProgressDetail = ({ studentId, onBack }) => {
                   <BrutalBadge variant={story.status === 'completed' ? 'emerald' : story.status === 'archived' ? 'gray' : 'amber'} size="sm">
                     {story.status}
                   </BrutalBadge>
+                  <button onClick={async () => {
+                    try {
+                      const res = await narrativeAPI.getById(story.id);
+                      setReadingStory(res.data);
+                      setReadingChapter(1);
+                    } catch (err) {
+                      toast.error('Failed to load story');
+                    }
+                  }} className="text-xs font-bold px-3 py-1.5 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition-colors flex items-center gap-1">
+                    <Eye size={12} /> Read
+                  </button>
                   {story.status === 'archived' ? (
                     <button onClick={async () => {
                       if (!window.confirm('Restore this story? It will be visible to the student again.')) return;
@@ -383,6 +396,79 @@ const StudentProgressDetail = ({ studentId, onBack }) => {
             ))}
           </div>
         </BrutalCard>
+      )}
+
+      {/* Story Reader Modal */}
+      {readingStory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white border-4 border-black max-w-3xl w-full mx-4 max-h-[90vh] flex flex-col shadow-[8px_8px_0_0_rgba(0,0,0,1)]">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b-4 border-black bg-indigo-50">
+              <div>
+                <h3 className="text-xl font-black uppercase">{readingStory.title}</h3>
+                <p className="text-sm font-medium text-gray-500">
+                  Chapter {readingChapter} of {readingStory.chapters?.length || 0}
+                </p>
+              </div>
+              <button onClick={() => setReadingStory(null)} className="p-1 hover:bg-indigo-100 border-2 border-black">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Chapter Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {readingStory.chapters && readingStory.chapters.length > 0 ? (
+                <div>
+                  <h4 className="text-lg font-black mb-4">
+                    {readingStory.chapters[readingChapter - 1]?.title || `Chapter ${readingChapter}`}
+                  </h4>
+                  <div className="prose max-w-none text-base leading-relaxed whitespace-pre-wrap">
+                    {readingStory.chapters[readingChapter - 1]?.content || 'No content available'}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-500 font-medium text-center py-8">No chapters available</p>
+              )}
+            </div>
+
+            {/* Chapter Navigation */}
+            {readingStory.chapters && readingStory.chapters.length > 1 && (
+              <div className="flex items-center justify-between p-4 border-t-4 border-black bg-gray-50">
+                <BrutalButton
+                  variant="default"
+                  size="sm"
+                  onClick={() => setReadingChapter((c) => Math.max(1, c - 1))}
+                  disabled={readingChapter <= 1}
+                >
+                  Previous
+                </BrutalButton>
+                <div className="flex gap-1">
+                  {readingStory.chapters.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setReadingChapter(idx + 1)}
+                      className={`w-8 h-8 text-xs font-black border-2 border-black ${
+                        readingChapter === idx + 1
+                          ? 'bg-indigo-500 text-white'
+                          : 'bg-white hover:bg-indigo-50'
+                      }`}
+                    >
+                      {idx + 1}
+                    </button>
+                  ))}
+                </div>
+                <BrutalButton
+                  variant="default"
+                  size="sm"
+                  onClick={() => setReadingChapter((c) => Math.min(readingStory.chapters.length, c + 1))}
+                  disabled={readingChapter >= readingStory.chapters.length}
+                >
+                  Next
+                </BrutalButton>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
