@@ -417,18 +417,17 @@ export const backupAPI = {
   getStatus: () => apiClient.get('/admin/backup/status'),
   download: (customFilename) => {
     const token = localStorage.getItem('token');
-    const url = customFilename
-      ? `${API}/admin/backup?filename=${encodeURIComponent(customFilename)}`
-      : `${API}/admin/backup`;
-    return fetch(url, {
+    return fetch(`${API}/admin/backup`, {
       headers: { Authorization: `Bearer ${token}` },
     }).then(res => {
       if (!res.ok) throw new Error('Backup failed');
       return res.blob().then(blob => {
-        const filename = res.headers.get('Content-Disposition')?.split('filename=')[1] || 'backup.json';
+        const downloadName = customFilename
+          ? (customFilename.endsWith('.json') ? customFilename : `${customFilename}.json`)
+          : 'backup.json';
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = filename;
+        a.download = downloadName;
         a.click();
         URL.revokeObjectURL(a.href);
       });
