@@ -464,6 +464,10 @@ async def get_user_card(current_user: dict = Depends(get_current_user)):
         else:
             start_date = str(created)[:10] if created else ""
 
+        vocab_mastered = len(s.get("mastered_tokens", []))
+        vocab_target = s.get("biological_target", 4000)
+        interests = s.get("interests", [])
+
         student_cards.append({
             "type": "student",
             "student_id": s.get("id", ""),
@@ -478,6 +482,9 @@ async def get_user_card(current_user: dict = Depends(get_current_user)):
             "year": current_year,
             "website_url": "semanticvision.ai",
             "logo_text": "Semantic Vision",
+            "vocab_mastered": vocab_mastered,
+            "vocab_target": vocab_target,
+            "interests": interests[:3],
         })
 
     return {"guardian_card": guardian_card, "student_cards": student_cards}

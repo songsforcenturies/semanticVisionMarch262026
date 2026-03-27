@@ -62,49 +62,80 @@ const CardFace = ({ data, type, forPrint = false }) => {
         backgroundSize: '20px 20px',
       }} />
 
-      {/* Header bar */}
-      <div className="relative px-4 pt-2 pb-0 flex items-center justify-between">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: `${accent}90` }}>
-            {isStudent ? (data.logo_text || 'Semantic Vision') : 'Semantic Vision'}
-          </p>
-          <p className="text-[9px] font-medium" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            {isStudent ? 'Student ID' : 'Member Card'}
-            {isStudent && data.year ? ` - ${data.year}` : ''}
-          </p>
-        </div>
-        <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: `${accent}15`, border: `1px solid ${accent}30` }}>
-          <CreditCard size={14} style={{ color: accent }} />
-        </div>
-      </div>
+      {isStudent ? (
+        /* ===== STUDENT CARD: two-column — info left, photo right ===== */
+        <div className="relative flex h-full">
+          {/* Left column: all info */}
+          <div className="flex-1 px-4 py-3 flex flex-col justify-between min-w-0">
+            {/* Top: logo + name */}
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: `${accent}80` }}>
+                {data.logo_text || 'Semantic Vision'} <span style={{ color: `${accent}50` }}>• {data.year}</span>
+              </p>
+              <p className="text-white font-black text-xl leading-tight mt-1 truncate">{data.name}</p>
+            </div>
 
-      {/* Main content — two-column layout for students */}
-      <div className="relative px-4 pb-2 pt-1 flex gap-3">
-        {/* Left side: info */}
-        <div className="flex-1 min-w-0">
-          <p className="text-white font-black text-base tracking-wide truncate">{data.name}</p>
-          <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5">
-            {isStudent ? (
-              <>
+            {/* Middle: code + details */}
+            <div className="mt-1">
+              <p className="text-[8px] font-bold uppercase tracking-wider" style={{ color: `${accent}60` }}>Student Code</p>
+              <p className="text-sm font-mono font-black text-white tracking-[0.15em]">{data.student_code}</p>
+              <div className="flex gap-4 mt-1.5">
                 <div>
-                  <p className="text-[8px] font-bold uppercase" style={{ color: `${accent}70` }}>Student Code</p>
-                  <p className="text-xs font-mono font-black text-white tracking-wider">{data.student_code}</p>
+                  <p className="text-[7px] font-bold uppercase" style={{ color: `${accent}50` }}>Grade</p>
+                  <p className="text-xs font-bold text-white capitalize">{data.grade_level || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-[8px] font-bold uppercase" style={{ color: `${accent}70` }}>Grade</p>
-                  <p className="text-[10px] font-bold text-white capitalize">{data.grade_level || data.reading_level || 'N/A'}</p>
+                  <p className="text-[7px] font-bold uppercase" style={{ color: `${accent}50` }}>Age</p>
+                  <p className="text-xs font-bold text-white">{data.age || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-[8px] font-bold uppercase" style={{ color: `${accent}70` }}>Start Date</p>
-                  <p className="text-[10px] font-bold text-white">{data.start_date || 'N/A'}</p>
+                  <p className="text-[7px] font-bold uppercase" style={{ color: `${accent}50` }}>Vocab</p>
+                  <p className="text-xs font-black" style={{ color: accent }}>{data.vocab_mastered || 0}<span className="text-[9px] font-medium text-white/40">/{data.vocab_target || 4000}</span></p>
                 </div>
-                <div>
-                  <p className="text-[8px] font-bold uppercase" style={{ color: `${accent}70` }}>Age</p>
-                  <p className="text-[10px] font-bold text-white">{data.age || 'N/A'}</p>
-                </div>
-              </>
+              </div>
+            </div>
+
+            {/* Bottom: website + date */}
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-[8px] font-mono" style={{ color: `${accent}50` }}>{data.website_url || 'semanticvision.ai'}</p>
+              <p className="text-[7px]" style={{ color: 'rgba(255,255,255,0.3)' }}>{data.start_date || ''}</p>
+            </div>
+          </div>
+
+          {/* Right column: full-height photo */}
+          <div className="w-[35%] flex-shrink-0 relative">
+            <div className="absolute inset-0" style={{ background: `linear-gradient(90deg, ${bg.includes('#1e1b4b') ? '#312e81' : '#1e293b'}00, ${accent}15)` }} />
+            {data.photo_url ? (
+              <img
+                src={data.photo_url.startsWith('data:') ? data.photo_url : `${API_BASE}${data.photo_url}`}
+                alt={data.name}
+                className="w-full h-full object-cover"
+              />
             ) : (
-            <>
+              <div className="w-full h-full flex items-center justify-center" style={{ background: `${accent}10` }}>
+                <User size={48} style={{ color: `${accent}30` }} />
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* ===== GUARDIAN CARD ===== */
+        <>
+          <div className="relative px-4 pt-3 pb-1 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${accent}25`, border: `1px solid ${accent}40` }}>
+                <Users size={16} style={{ color: accent }} />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: `${accent}90` }}>Semantic Vision</p>
+                <p className="text-[9px] font-medium" style={{ color: 'rgba(255,255,255,0.4)' }}>Member Card</p>
+              </div>
+            </div>
+            <CreditCard size={16} style={{ color: accent }} />
+          </div>
+          <div className="relative px-4 pb-3 pt-1">
+            <p className="text-white font-black text-lg tracking-wide truncate">{data.name}</p>
+            <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1">
               <div>
                 <p className="text-[9px] font-bold uppercase" style={{ color: `${accent}70` }}>Referral Code</p>
                 <p className="text-sm font-mono font-black text-white tracking-wider">{data.referral_code}</p>
@@ -117,41 +148,15 @@ const CardFace = ({ data, type, forPrint = false }) => {
                 <p className="text-[9px] font-bold uppercase" style={{ color: `${accent}70` }}>Invite Link</p>
                 <p className="text-[11px] font-mono font-medium truncate" style={{ color: 'rgba(255,255,255,0.6)' }}>{data.referral_url}</p>
               </div>
-            </>
-          )}
-          </div>
-        </div>
-
-        {/* Right side: photo (students only) */}
-        {isStudent && (
-          <div className="flex-shrink-0 flex items-center">
-            <div className="w-16 h-16 rounded-xl overflow-hidden" style={{ border: `2px solid ${accent}50`, background: `${accent}15` }}>
-              {data.photo_url ? (
-                <img
-                  src={data.photo_url.startsWith('data:') ? data.photo_url : `${API_BASE}${data.photo_url}`}
-                  alt={data.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <User size={28} style={{ color: `${accent}60` }} />
-                </div>
-              )}
             </div>
           </div>
-        )}
-      </div>
+        </>
+      )}
 
-      {/* Bottom bar with website */}
-      <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-4 pb-1">
-        {isStudent && (
-          <p className="text-[8px] font-mono font-medium" style={{ color: `${accent}60` }}>
-            {data.website_url || 'semanticvision.ai'}
-          </p>
-        )}
-        <div className="flex-1" />
-        <div className="h-[2px] flex-1" style={{ background: `linear-gradient(90deg, transparent, ${accent})` }} />
-      </div>
+      {/* Bottom accent line (guardian only — student card has its own footer) */}
+      {!isStudent && (
+        <div className="absolute bottom-0 left-0 right-0 h-1" style={{ background: `linear-gradient(90deg, ${accent}, transparent)` }} />
+      )}
     </div>
   );
 };
