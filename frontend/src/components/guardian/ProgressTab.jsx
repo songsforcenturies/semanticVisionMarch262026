@@ -305,11 +305,28 @@ const StudentProgressDetail = ({ studentId, onBack }) => {
                     {story.status}
                   </BrutalBadge>
                   {story.status === 'archived' ? (
-                    <button onClick={async () => { if (window.confirm('Restore this story? It will be visible to the student again.')) { await narrativeAPI.unarchive(story.id); queryClient.invalidateQueries(['student-progress']); toast.success('Story restored'); }}} className="text-xs font-bold px-3 py-1.5 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors">Restore</button>
+                    <button onClick={async () => {
+                      if (!window.confirm('Restore this story? It will be visible to the student again.')) return;
+                      await narrativeAPI.unarchive(story.id);
+                      story.status = 'active';
+                      await queryClient.refetchQueries({ queryKey: ['student-progress', studentId] });
+                      toast.success('Story restored');
+                    }} className="text-xs font-bold px-3 py-1.5 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors">Restore</button>
                   ) : (
-                    <button onClick={async () => { if (window.confirm('Archive this story? It will be hidden from the student.')) { await narrativeAPI.archive(story.id); queryClient.invalidateQueries(['student-progress']); toast.success('Story archived — hidden from student'); }}} className="text-xs font-bold px-3 py-1.5 bg-gray-700 text-white rounded hover:bg-gray-800 transition-colors">Archive</button>
+                    <button onClick={async () => {
+                      if (!window.confirm('Archive this story? It will be hidden from the student.')) return;
+                      await narrativeAPI.archive(story.id);
+                      story.status = 'archived';
+                      await queryClient.refetchQueries({ queryKey: ['student-progress', studentId] });
+                      toast.success('Story archived — hidden from student');
+                    }} className="text-xs font-bold px-3 py-1.5 bg-gray-700 text-white rounded hover:bg-gray-800 transition-colors">Archive</button>
                   )}
-                  <button onClick={async () => { if (window.confirm('PERMANENTLY delete this story and all related data? This cannot be undone.')) { await narrativeAPI.delete(story.id); queryClient.invalidateQueries(['student-progress']); toast.success('Story permanently deleted'); }}} className="text-xs font-bold px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">Delete</button>
+                  <button onClick={async () => {
+                    if (!window.confirm('PERMANENTLY delete this story and all related data? This cannot be undone.')) return;
+                    await narrativeAPI.delete(story.id);
+                    await queryClient.refetchQueries({ queryKey: ['student-progress', studentId] });
+                    toast.success('Story permanently deleted');
+                  }} className="text-xs font-bold px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">Delete</button>
                 </div>
               </div>
             ))}
