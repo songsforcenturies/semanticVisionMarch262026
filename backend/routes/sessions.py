@@ -133,7 +133,7 @@ async def get_student_time_log(
     student = await db.students.find_one({"id": student_id}, {"_id": 0, "guardian_id": 1})
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
-    if student["guardian_id"] != current_user["id"]:
+    if current_user.get("role") != "admin" and student["guardian_id"] != current_user["id"]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     now = datetime.now(timezone.utc)

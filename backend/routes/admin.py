@@ -2109,6 +2109,192 @@ async def update_integrations(data: IntegrationUpdate, current_user: dict = Depe
     return {"message": "Integration settings saved successfully"}
 
 
+# ==================== ADMIN VIEW ANY USER/STUDENT PROFILE ====================
+
+@router.get("/admin/users/{user_id}/profile")
+async def admin_view_user_profile(user_id: str, current_user: dict = Depends(get_current_user)):
+    """View comprehensive profile for any user based on their role (admin only)."""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "password_hash": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    role = user.get("role", "")
+
+    # Base profile for ALL users
+    profile = {
+        "id": user["id"],
+        "email": user.get("email", ""),
+        "full_name": user.get("full_name", ""),
+        "role": role,
+        "is_active": user.get("is_active", True),
+        "wallet_balance": user.get("wallet_balance", 0.0),
+        "referral_code": user.get("referral_code", ""),
+        "created_date": user.get("created_date", ""),
+    }
+
+    if role == "guardian":
+        # Students belonging to this guardian
+        students = await db.students.find(
+            {"guardian_id": user_id}, {"_id": 0}
+        ).to_list(100)
+        profile["students"] = students
+
+        # Subscription info
+        subscription = await db.subscriptions.find_one(
+            {"guardian_id": user_id}, {"_id": 0}
+        )
+        profile["subscription"] = subscription
+
+        # Payment history
+        payments = await db.payment_transactions.find(
+            {"user_id": user_id}, {"_id": 0}
+        ).sort("created_date", -1).to_list(100)
+        profile["payment_history"] = payments
+
+    elif role == "teacher":
+        # Classroom sessions
+        sessions = await db.classroom_sessions.find(
+            {"teacher_id": user_id}, {"_id": 0}
+        ).sort("created_date", -1).to_list(100)
+        profile["classroom_sessions"] = sessions
+
+        # Count students across all sessions
+        student_ids = set()
+        for sess in sessions:
+            for sid in sess.get("student_ids", []):
+                student_ids.add(sid)
+        profile["student_count"] = len(student_ids)
+
+    elif role == "brand_partner":
+        # Brand info linked to this user
+        brands = await db.brands.find(
+            {"$or": [{"created_by": user_id}, {"user_id": user_id}]}, {"_id": 0}
+        ).to_list(50)
+        profile["brands"] = brands
+
+        # Campaigns for those brands
+        brand_ids = [b["id"] for b in brands]
+        if brand_ids:
+            campaigns = await db.brand_campaigns.find(
+                {"brand_id": {"$in": brand_ids}}, {"_id": 0}
+            ).sort("created_date", -1).to_list(100)
+            profile["campaigns"] = campaigns
+
+            # Budget info from brands
+            profile["budget_info"] = [
+                {
+                    "brand_id": b["id"],
+                    "brand_name": b.get("name", ""),
+                    "budget_total": b.get("budget_total", 0),
+                    "budget_spent": b.get("budget_spent", 0),
+                }
+                for b in brands
+            ]
+
+            # Media uploads
+            media = await db.brand_media.find(
+                {"brand_id": {"$in": brand_ids}}, {"_id": 0}
+            ).sort("created_date", -1).to_list(100)
+            profile["media_uploads"] = media
+        else:
+            profile["campaigns"] = []
+            profile["budget_info"] = []
+            profile["media_uploads"] = []
+
+    elif role == "student":
+        # Students are not typically in the users collection the same way,
+        # but if they are, try to find matching student record
+        student = await db.students.find_one(
+            {"$or": [{"user_id": user_id}, {"id": user_id}]}, {"_id": 0}
+        )
+        if student:
+            profile["student_record"] = student
+
+    return profile
+
+
+@router.get("/admin/students/{student_id}/full-profile")
+async def admin_view_student_full_profile(student_id: str, current_user: dict = Depends(get_current_user)):
+    """View everything about a student: record, guardian, narratives, assessments, sessions, etc. (admin only)."""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    # Student record (all fields)
+    student = await db.students.find_one({"id": student_id}, {"_id": 0})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    # Guardian info
+    guardian_id = student.get("guardian_id", "")
+    guardian = None
+    if guardian_id:
+        guardian = await db.users.find_one(
+            {"id": guardian_id}, {"_id": 0, "id": 1, "full_name": 1, "email": 1, "role": 1}
+        )
+
+    # Narratives
+    narratives = await db.narratives.find(
+        {"student_id": student_id}, {"_id": 0}
+    ).sort("created_date", -1).to_list(500)
+
+    # Assessments
+    assessments = await db.assessments.find(
+        {"student_id": student_id}, {"_id": 0}
+    ).sort("started_at", -1).to_list(500)
+
+    # Session logs summary
+    sessions = await db.session_logs.find(
+        {"student_id": student_id},
+        {"_id": 0, "date": 1, "duration_seconds": 1, "started_at": 1, "ended_at": 1}
+    ).sort("started_at", -1).to_list(10000)
+
+    cumulative_seconds = sum(s.get("duration_seconds", 0) for s in sessions)
+    daily_dates = set(s.get("date", "") for s in sessions if s.get("date"))
+    last_active = sessions[0].get("started_at", "") if sessions else None
+
+    # Word banks assigned
+    assigned_bank_ids = student.get("assigned_banks", [])
+    assigned_banks = []
+    if assigned_bank_ids:
+        assigned_banks = await db.word_banks.find(
+            {"id": {"$in": assigned_bank_ids}}, {"_id": 0, "id": 1, "name": 1, "total_tokens": 1}
+        ).to_list(50)
+
+    # Recordings count
+    recordings_count = await db.recordings.count_documents({"student_id": student_id})
+
+    # Parental controls
+    parental_controls = student.get("parental_controls", {
+        "recording_mode": "none",
+        "auto_start_recording": False,
+        "require_confirmation": True,
+        "chapter_threshold": 0,
+        "can_skip_recording": True,
+    })
+
+    return {
+        "student": student,
+        "guardian": guardian,
+        "narratives": {
+            "count": len(narratives),
+            "list": narratives,
+        },
+        "assessments": assessments,
+        "session_log_summary": {
+            "total_sessions": len(sessions),
+            "total_seconds": cumulative_seconds,
+            "total_days_active": len(daily_dates),
+            "last_active": last_active,
+        },
+        "assigned_word_banks": assigned_banks,
+        "recordings_count": recordings_count,
+        "parental_controls": parental_controls,
+    }
+
+
 # ==================== ADMIN IMPERSONATION ====================
 
 @router.post("/admin/impersonate/{user_id}")
