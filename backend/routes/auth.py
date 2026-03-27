@@ -466,9 +466,9 @@ async def get_user_card(current_user: dict = Depends(get_current_user)):
 
         student_cards.append({
             "type": "student",
+            "student_id": s.get("id", ""),
             "name": s.get("full_name", ""),
             "student_code": s.get("student_code", ""),
-            "access_pin": s.get("access_pin", ""),
             "age": s.get("age", 0),
             "reading_level": s.get("reading_level", "beginner"),
             "login_url": f"{base_url}/student-login",

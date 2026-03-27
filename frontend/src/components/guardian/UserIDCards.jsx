@@ -1,8 +1,8 @@
 import React, { useRef, useState, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { userCardAPI } from '@/lib/api';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { userCardAPI, studentAPI } from '@/lib/api';
 import { BrutalCard } from '@/components/brutal';
-import { Download, CreditCard, Users, BookOpen, Copy, Check, Printer, User } from 'lucide-react';
+import { Download, CreditCard, Users, BookOpen, Copy, Check, Printer, User, Camera } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -79,16 +79,16 @@ const CardFace = ({ data, type, forPrint = false }) => {
                 <p className="text-xs font-mono font-black text-white tracking-wider">{data.student_code}</p>
               </div>
               <div>
-                <p className="text-[8px] font-bold uppercase" style={{ color: `${accent}70` }}>Student PIN</p>
-                <p className="text-xs font-mono font-black text-white tracking-wider">{data.access_pin}</p>
-              </div>
-              <div>
                 <p className="text-[8px] font-bold uppercase" style={{ color: `${accent}70` }}>Grade</p>
                 <p className="text-[10px] font-bold text-white capitalize">{data.grade_level || data.reading_level || 'N/A'}</p>
               </div>
               <div>
                 <p className="text-[8px] font-bold uppercase" style={{ color: `${accent}70` }}>Start Date</p>
                 <p className="text-[10px] font-bold text-white">{data.start_date || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-[8px] font-bold uppercase" style={{ color: `${accent}70` }}>Age</p>
+                <p className="text-[10px] font-bold text-white">{data.age || 'N/A'}</p>
               </div>
             </>
           ) : (
@@ -267,6 +267,7 @@ const PrintAllCards = ({ studentCards, guardianCard }) => {
 /* ==================== MAIN COMPONENT ==================== */
 
 const UserIDCards = () => {
+  const queryClient = useQueryClient();
   const [copied, setCopied] = useState(null);
   const cardRefs = useRef({});
 
@@ -351,6 +352,29 @@ const UserIDCards = () => {
           <div className="flex items-center justify-between mb-3">
             <h4 className="font-black text-sm uppercase">{student.name}'s Student ID</h4>
             <div className="flex gap-2">
+              <label
+                className="flex items-center gap-1 px-2 py-1 text-xs font-bold bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-all cursor-pointer"
+                data-testid={`upload-photo-${i}`}
+              >
+                <Camera size={12} /> Photo
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      await studentAPI.uploadPhoto(student.student_id || student.id, file);
+                      queryClient.refetchQueries({ queryKey: ['user-card-data'] });
+                      toast.success(`Photo uploaded for ${student.name}`);
+                    } catch (err) {
+                      toast.error('Photo upload failed: ' + (err.response?.data?.detail || err.message));
+                    }
+                    e.target.value = '';
+                  }}
+                />
+              </label>
               <button
                 onClick={() => copyCode(student.student_code, `${student.name}'s code`)}
                 className="flex items-center gap-1 px-2 py-1 text-xs font-bold bg-gray-100 rounded-lg hover:bg-gray-200 transition-all"
