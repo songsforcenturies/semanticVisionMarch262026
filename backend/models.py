@@ -219,6 +219,7 @@ class Student(MongoBaseModel):
     average_wpm: float = 0.0
     status: StudentStatus = StudentStatus.ACTIVE
     avatar_url: Optional[str] = None
+    photo_url: Optional[str] = None
     # Belief system & culture
     belief_system: str = ""  # e.g. "Christian - Methodist", "Baha'i", "Buddhist", "Hindu"
     cultural_context: Any = ""  # Array or string: heritage backgrounds
