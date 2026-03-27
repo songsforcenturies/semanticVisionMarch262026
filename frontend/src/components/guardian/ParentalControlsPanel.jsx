@@ -125,10 +125,9 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
             <p className="text-xs font-bold uppercase mb-2" style={{ color: '#6366f1' }}>Recording Requirement</p>
             <div className="grid grid-cols-2 gap-1.5">
               {[
-                { value: 'optional', label: 'Optional', desc: 'Student can choose whether to record' },
-                { value: 'audio_required', label: 'Audio Only (read aloud)', desc: 'Student must record audio of themselves reading' },
-                { value: 'video_required', label: 'Audio & Video (read aloud on camera)', desc: 'Student must record audio and video while reading' },
-                { value: 'both_required', label: 'Audio & Video Required', desc: 'Both audio and video recording are mandatory' },
+                { value: 'none', label: 'None', desc: 'No recording required' },
+                { value: 'audio_video', label: 'Audio & Video', desc: 'Student reads aloud on camera with microphone' },
+                { value: 'audio_only', label: 'Audio Only', desc: 'Student reads aloud with microphone only' },
               ].map(opt => (
                 <button key={opt.value}
                   onClick={() => setControls({ ...controls, recording_mode: opt.value })}

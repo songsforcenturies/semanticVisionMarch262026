@@ -88,8 +88,8 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
     enabled: !!student?.id,
   });
 
-  const controls = parentalControls || { recording_mode: 'optional', chapter_threshold: 0, can_skip_recording: true, auto_start_recording: false, require_confirmation: true };
-  const isRecordingRequired = controls.recording_mode !== 'optional';
+  const controls = parentalControls || { recording_mode: 'none', chapter_threshold: 0, can_skip_recording: true, auto_start_recording: false, require_confirmation: true };
+  const isRecordingRequired = controls.recording_mode !== 'none';
   const meetsThreshold = controls.chapter_threshold === 0 || currentChapter >= controls.chapter_threshold;
   const mustRecord = isRecordingRequired && meetsThreshold;
   const canProceed = !mustRecord || recordingDone || controls.can_skip_recording;
@@ -275,16 +275,14 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
               data-testid="recording-compliance-modal">
               <div className="w-full max-w-md p-6 rounded-2xl text-center" style={{ background: C.card, border: `2px solid ${C.gold}` }}>
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'rgba(99,102,241,0.15)' }}>
-                  {controls.recording_mode === 'video_required' || controls.recording_mode === 'both_required'
+                  {controls.recording_mode === 'audio_video'
                     ? <Video size={32} style={{ color: '#818CF8' }} />
                     : <Mic size={32} style={{ color: '#818CF8' }} />}
                 </div>
                 <h3 className="text-xl font-black mb-2" style={{ color: C.cream }}>Recording Required</h3>
                 <p className="text-sm mb-4" style={{ color: C.muted }}>
-                  {controls.recording_mode === 'video_required'
+                  {controls.recording_mode === 'audio_video'
                     ? 'Your parent requires you to record audio and video while reading this chapter. Please turn on your camera and microphone, then start recording before you can read.'
-                    : controls.recording_mode === 'both_required'
-                    ? 'Your parent requires both audio and video recording. Please turn on your camera and microphone, then start recording.'
                     : 'Your parent requires you to record your voice while reading this chapter. Please start recording before you can read.'}
                 </p>
                 <div className="space-y-3">
@@ -300,7 +298,7 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
                     className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
                     style={{ background: '#818CF8', color: 'white' }}
                     data-testid="comply-recording-btn">
-                    {controls.recording_mode === 'video_required' || controls.recording_mode === 'both_required'
+                    {controls.recording_mode === 'audio_video'
                       ? <><Video size={16} /> I'm Ready — Start Recording</>
                       : <><Mic size={16} /> I'm Ready — Start Recording</>}
                   </button>
@@ -318,8 +316,7 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
                 data-testid="recording-required-notice">
                 <Shield size={16} style={{ color: '#818CF8' }} />
                 <p className="text-xs font-bold" style={{ color: '#818CF8' }}>
-                  {controls.recording_mode === 'both_required' ? 'Audio & video recording required by parent' :
-                   controls.recording_mode === 'video_required' ? 'Audio & video recording required by parent' :
+                  {controls.recording_mode === 'audio_video' ? 'Audio & video recording required by parent' :
                    'Audio recording required by parent'}
                   {!controls.can_skip_recording && ' — must complete before continuing'}
                 </p>

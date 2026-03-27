@@ -476,14 +476,14 @@ async def get_diction_progress(student_id: str, current_user=Depends(get_current
 # ==================== PARENTAL CONTROLS ====================
 
 class ParentalControlsUpdate(BaseModel):
-    recording_mode: str = "optional"  # "optional", "audio_required", "video_required", "both_required"
+    recording_mode: str = "none"  # "none", "audio_video", "audio_only"
     auto_start_recording: bool = False
     require_confirmation: bool = True
     chapter_threshold: int = 0  # 0 = every chapter, N = after N chapters
     can_skip_recording: bool = True
 
 DEFAULT_PARENTAL_CONTROLS = {
-    "recording_mode": "optional",
+    "recording_mode": "none",
     "auto_start_recording": False,
     "require_confirmation": True,
     "chapter_threshold": 0,
@@ -574,7 +574,7 @@ async def get_student_reminders(student_id: str):
     
     # Check for unrecorded chapters (parental controls)
     controls = student.get("parental_controls", {})
-    if controls.get("recording_mode", "optional") != "optional":
+    if controls.get("recording_mode", "none") != "none":
         recordings = await db.audio_recordings.find(
             {"student_id": student_id}, {"_id": 0}
         ).to_list(100)

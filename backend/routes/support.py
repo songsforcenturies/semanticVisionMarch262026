@@ -194,3 +194,112 @@ async def update_ticket_status(ticket_id: str, data: TicketStatusUpdate, current
         {"$set": {"status": data.status, "updated_date": datetime.now(timezone.utc).isoformat()}}
     )
     return {"message": f"Status updated to {data.status}"}
+
+
+# ==================== FAQ SYSTEM (from resolved tickets) ====================
+
+
+class PublishFAQRequest(BaseModel):
+    faq_question: Optional[str] = None
+    faq_answer: Optional[str] = None
+    faq_category: str = "General"  # "Account", "Stories", "Recording", "Billing", "Technical"
+
+
+@router.post("/admin/support/tickets/{ticket_id}/publish-faq")
+async def publish_ticket_as_faq(ticket_id: str, data: PublishFAQRequest, current_user: dict = Depends(get_current_user)):
+    """Admin resolves a ticket and publishes it as a FAQ entry."""
+    if current_user.get("role") != "admin" and not current_user.get("is_delegated_admin"):
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    ticket = await db.support_tickets.find_one({"id": ticket_id}, {"_id": 0})
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    # Default question to ticket subject
+    faq_question = data.faq_question or ticket.get("subject", "")
+    if not faq_question:
+        raise HTTPException(status_code=400, detail="FAQ question is required (no subject on ticket)")
+
+    # Default answer to last admin reply
+    faq_answer = data.faq_answer
+    if not faq_answer:
+        admin_replies = ticket.get("admin_replies", [])
+        if admin_replies:
+            faq_answer = admin_replies[-1].get("message", "")
+        if not faq_answer:
+            raise HTTPException(status_code=400, detail="FAQ answer is required (no admin replies on ticket)")
+
+    now = datetime.now(timezone.utc).isoformat()
+    await db.support_tickets.update_one(
+        {"id": ticket_id},
+        {"$set": {
+            "is_faq": True,
+            "faq_question": faq_question,
+            "faq_answer": faq_answer,
+            "faq_category": data.faq_category,
+            "faq_published_date": now,
+            "status": "resolved",
+            "updated_date": now,
+        }}
+    )
+
+    return {
+        "message": "Ticket published as FAQ",
+        "faq": {
+            "id": ticket_id,
+            "question": faq_question,
+            "answer": faq_answer,
+            "category": data.faq_category,
+            "published_date": now,
+        }
+    }
+
+
+@router.get("/faq")
+async def list_faq():
+    """Public endpoint — returns all published FAQ entries sorted by category then date."""
+    tickets = await db.support_tickets.find(
+        {"is_faq": True},
+        {"_id": 0, "id": 1, "faq_question": 1, "faq_answer": 1, "faq_category": 1, "faq_published_date": 1}
+    ).sort([("faq_category", 1), ("faq_published_date", -1)]).to_list(500)
+
+    return [
+        {
+            "id": t["id"],
+            "question": t.get("faq_question", ""),
+            "answer": t.get("faq_answer", ""),
+            "category": t.get("faq_category", "General"),
+            "published_date": t.get("faq_published_date", ""),
+        }
+        for t in tickets
+    ]
+
+
+@router.get("/faq/search")
+async def search_faq(q: str = ""):
+    """Public search across FAQ questions and answers."""
+    if not q or not q.strip():
+        return await list_faq()
+
+    query = {
+        "is_faq": True,
+        "$or": [
+            {"faq_question": {"$regex": q.strip(), "$options": "i"}},
+            {"faq_answer": {"$regex": q.strip(), "$options": "i"}},
+        ]
+    }
+    tickets = await db.support_tickets.find(
+        query,
+        {"_id": 0, "id": 1, "faq_question": 1, "faq_answer": 1, "faq_category": 1, "faq_published_date": 1}
+    ).sort([("faq_category", 1), ("faq_published_date", -1)]).to_list(500)
+
+    return [
+        {
+            "id": t["id"],
+            "question": t.get("faq_question", ""),
+            "answer": t.get("faq_answer", ""),
+            "category": t.get("faq_category", "General"),
+            "published_date": t.get("faq_published_date", ""),
+        }
+        for t in tickets
+    ]
