@@ -236,7 +236,8 @@ class Student(MongoBaseModel):
     spellcheck_disabled: bool = False
     spelling_mode: str = "phonetic"  # "exact" or "phonetic"
     # Learning Through Songs/Media controls
-    force_media_in_stories: bool = False  # When True, media MUST be included in every story
+    digital_media_enabled: bool = True
+    force_media_in_stories: bool = True  # When True, media MUST be included in every story
     media_integration_count: int = 2  # Number of media references to include (1-5)
     preferred_media_ids: List[str] = Field(default_factory=list)  # Specific media IDs to always include
     # Story illustration controls
@@ -257,7 +258,7 @@ class StudentCreate(BaseModel):
     weaknesses: str = ""
     accessibility_needs: List[str] = Field(default_factory=list)
     assessment_mode: str = "written"
-    force_media_in_stories: bool = False
+    force_media_in_stories: bool = True
     media_integration_count: int = 2
     preferred_media_ids: List[str] = Field(default_factory=list)
     illustrations_enabled: bool = False
