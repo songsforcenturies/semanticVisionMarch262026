@@ -110,6 +110,8 @@ class StoryGenerationService:
         weaknesses: str = "",
         media_count: int = 2,
         force_media: bool = False,
+        illustrations_enabled: bool = False,
+        illustration_style: str = "storybook",
     ) -> Dict[str, Any]:
         """Generate a 5-chapter educational story"""
         
@@ -300,8 +302,13 @@ Requirements:
 3. Use each vocabulary word at least once
 4. Create a comprehension question per chapter with 4 options
 {f"5. Show protagonist learning {', '.join(virtues[:2])}" if virtues else ""}
+{"6. For each chapter, also include an 'illustration_description' field - a detailed visual description (2-3 sentences) of the key scene that could be used to generate an illustration. Describe characters, setting, colors, mood, and action in " + illustration_style + " style." if illustrations_enabled else ""}
 
 Story Theme: {prompt}"""
+
+        illustration_field = ""
+        if illustrations_enabled:
+            illustration_field = ',\n      "illustration_description": "A detailed visual description of the key scene in ' + illustration_style + ' style..."'
 
         user_prompt = f"""Generate a 5-chapter story for {student_name} about: "{prompt}"
 
@@ -319,7 +326,7 @@ Return ONLY valid JSON (no markdown):
         "question": "Comprehension question?",
         "options": ["A", "B", "C", "D"],
         "correct_index": 0
-      }}
+      }}{illustration_field}
     }}
   ]
 }}"""

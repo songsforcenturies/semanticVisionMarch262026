@@ -1,9 +1,10 @@
 """Narrative generation, reading, assessment, and read log routes."""
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi.responses import FileResponse, StreamingResponse
 from typing import Optional, List, Any
 from pydantic import BaseModel
 from datetime import datetime, timezone
-import uuid, json as json_lib, random, os
+import uuid, json as json_lib, random, os, pathlib
 
 from database import db, logger
 from models import (
@@ -156,6 +157,8 @@ async def create_narrative(narrative_data: NarrativeCreate):
             weaknesses=student.get("weaknesses", ""),
             media_count=media_count,
             force_media=force_media,
+            illustrations_enabled=student.get("illustrations_enabled", False),
+            illustration_style=student.get("illustration_style", "storybook"),
         )
         
         # Record brand impressions (after narrative creation so we have the real ID)
@@ -184,7 +187,8 @@ async def create_narrative(narrative_data: NarrativeCreate):
                 content=ch_data.get("content", ""),
                 word_count=ch_data.get("word_count", len(ch_data.get("content", "").split())),
                 embedded_tokens=tokens,
-                vision_check=VisionCheck(**vc_data)
+                vision_check=VisionCheck(**vc_data),
+                illustration_description=ch_data.get("illustration_description"),
             )
             chapters.append(chapter)
         
@@ -261,6 +265,123 @@ async def delete_narrative(narrative_id: str, current_user: dict = Depends(get_c
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Narrative not found")
     return {"message": "Narrative deleted successfully"}
+
+
+# ==================== TEXT-TO-SPEECH ROUTES ====================
+
+TTS_VOICES = {"alloy", "echo", "fable", "nova", "onyx", "shimmer"}
+TTS_CACHE_DIR = pathlib.Path("uploads/tts")
+
+
+async def _generate_tts_audio(narrative_id: str, chapter_number: int, voice: str = "nova"):
+    """Generate or return cached TTS audio for a chapter"""
+    if voice not in TTS_VOICES:
+        raise HTTPException(status_code=400, detail=f"Invalid voice. Choose from: {', '.join(sorted(TTS_VOICES))}")
+
+    # Ensure cache directory exists
+    TTS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    cache_path = TTS_CACHE_DIR / f"{narrative_id}_ch{chapter_number}_{voice}.mp3"
+
+    # Return cached version if it exists
+    if cache_path.exists():
+        return cache_path
+
+    # Fetch narrative and chapter content
+    narrative = await db.narratives.find_one({"id": narrative_id}, {"_id": 0})
+    if not narrative:
+        raise HTTPException(status_code=404, detail="Narrative not found")
+
+    chapters = narrative.get("chapters", [])
+    chapter = None
+    for ch in chapters:
+        if ch.get("number") == chapter_number:
+            chapter = ch
+            break
+    if not chapter:
+        raise HTTPException(status_code=404, detail=f"Chapter {chapter_number} not found")
+
+    chapter_text = chapter.get("content", "")
+    if not chapter_text:
+        raise HTTPException(status_code=400, detail="Chapter has no content")
+
+    # Use OpenAI TTS via OpenRouter or direct OpenAI endpoint
+    from story_service import story_service
+    story_service.set_db(db)
+    llm_config = await story_service._get_llm_config()
+    api_key = llm_config.get("openrouter_key") or os.environ.get("OPENROUTER_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="No API key configured for TTS")
+
+    try:
+        from openai import AsyncOpenAI
+
+        # OpenAI TTS endpoint (OpenRouter proxies to OpenAI for TTS)
+        client = AsyncOpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=api_key,
+            default_headers={"HTTP-Referer": "https://semanticvision.ai"},
+            max_retries=1,
+            timeout=120.0,
+        )
+
+        # Truncate text if too long (TTS limit is ~4096 chars)
+        tts_text = chapter_text[:4096]
+
+        response = await client.audio.speech.create(
+            model="openai/tts-1",
+            voice=voice,
+            input=tts_text,
+            response_format="mp3",
+        )
+
+        # Save to cache file
+        with open(cache_path, "wb") as f:
+            async for chunk in response.aiter_bytes():
+                f.write(chunk)
+
+        return cache_path
+
+    except Exception as e:
+        logger.error(f"TTS generation failed: {str(e)}")
+        # If the response object has a synchronous content attribute, try that
+        try:
+            content = response.content
+            with open(cache_path, "wb") as f:
+                f.write(content)
+            return cache_path
+        except Exception:
+            pass
+        raise HTTPException(status_code=500, detail=f"TTS generation failed: {str(e)}")
+
+
+class TTSRequest(BaseModel):
+    voice: str = "nova"
+
+
+@router.post("/narratives/{narrative_id}/chapters/{chapter_number}/tts")
+async def generate_chapter_tts(narrative_id: str, chapter_number: int, data: TTSRequest):
+    """Generate text-to-speech audio for a chapter"""
+    cache_path = await _generate_tts_audio(narrative_id, chapter_number, data.voice)
+    return FileResponse(
+        path=str(cache_path),
+        media_type="audio/mpeg",
+        filename=f"{narrative_id}_ch{chapter_number}_{data.voice}.mp3",
+    )
+
+
+@router.get("/narratives/{narrative_id}/chapters/{chapter_number}/tts")
+async def get_chapter_tts(
+    narrative_id: str,
+    chapter_number: int,
+    voice: str = Query(default="nova", description="TTS voice"),
+):
+    """Get text-to-speech audio for a chapter (GET for easy audio element embedding)"""
+    cache_path = await _generate_tts_audio(narrative_id, chapter_number, voice)
+    return FileResponse(
+        path=str(cache_path),
+        media_type="audio/mpeg",
+        filename=f"{narrative_id}_ch{chapter_number}_{voice}.mp3",
+    )
 
 
 # ==================== READ LOG ROUTES ====================

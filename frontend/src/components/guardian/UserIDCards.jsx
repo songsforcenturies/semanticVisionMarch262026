@@ -1,19 +1,25 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { userCardAPI } from '@/lib/api';
 import { BrutalCard } from '@/components/brutal';
-import { Download, CreditCard, Users, BookOpen, Copy, Check } from 'lucide-react';
+import { Download, CreditCard, Users, BookOpen, Copy, Check, Printer, User } from 'lucide-react';
 import { toast } from 'sonner';
 
-const CardFace = ({ data, type }) => {
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
+const CardFace = ({ data, type, forPrint = false }) => {
   const isStudent = type === 'student';
   const bg = isStudent ? 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%)' : 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)';
   const accent = isStudent ? '#818CF8' : '#D4A853';
 
+  const sizeClass = forPrint
+    ? 'w-[3.5in] h-[2in]'
+    : 'w-full max-w-[400px] aspect-[1.6/1]';
+
   return (
     <div
-      className="relative w-full max-w-[400px] aspect-[1.6/1] rounded-2xl overflow-hidden select-none"
-      style={{ background: bg, border: `2px solid ${accent}40`, boxShadow: `0 8px 32px ${accent}20` }}
+      className={`relative ${sizeClass} rounded-2xl overflow-hidden select-none`}
+      style={{ background: bg, border: `2px solid ${accent}40`, boxShadow: forPrint ? 'none' : `0 8px 32px ${accent}20` }}
       data-testid={`id-card-${type}-${data.name?.replace(/\s/g, '-')}`}
     >
       {/* Subtle pattern */}
@@ -23,43 +29,66 @@ const CardFace = ({ data, type }) => {
       }} />
 
       {/* Header bar */}
-      <div className="relative px-5 pt-4 pb-2 flex items-center justify-between">
+      <div className="relative px-4 pt-3 pb-1 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${accent}25`, border: `1px solid ${accent}40` }}>
-            {isStudent ? <BookOpen size={16} style={{ color: accent }} /> : <Users size={16} style={{ color: accent }} />}
-          </div>
+          {isStudent && data.photo_url ? (
+            <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0" style={{ border: `2px solid ${accent}60` }}>
+              <img
+                src={`${API_BASE}${data.photo_url}`}
+                alt={data.name}
+                className="w-full h-full object-cover"
+                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+              />
+              <div className="w-full h-full items-center justify-center hidden" style={{ background: `${accent}25` }}>
+                <User size={16} style={{ color: accent }} />
+              </div>
+            </div>
+          ) : isStudent ? (
+            <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: `${accent}25`, border: `2px solid ${accent}60` }}>
+              <User size={16} style={{ color: accent }} />
+            </div>
+          ) : (
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${accent}25`, border: `1px solid ${accent}40` }}>
+              <Users size={16} style={{ color: accent }} />
+            </div>
+          )}
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: `${accent}90` }}>Semantic Vision</p>
-            <p className="text-[9px] font-medium" style={{ color: 'rgba(255,255,255,0.4)' }}>{isStudent ? 'Student ID' : 'Member Card'}</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: `${accent}90` }}>
+              {isStudent ? (data.logo_text || 'Semantic Vision') : 'Semantic Vision'}
+            </p>
+            <p className="text-[9px] font-medium" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              {isStudent ? 'Student ID' : 'Member Card'}
+              {isStudent && data.year ? ` - ${data.year}` : ''}
+            </p>
           </div>
         </div>
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${accent}15`, border: `1px solid ${accent}30` }}>
-          <CreditCard size={18} style={{ color: accent }} />
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${accent}15`, border: `1px solid ${accent}30` }}>
+          <CreditCard size={16} style={{ color: accent }} />
         </div>
       </div>
 
       {/* Main content */}
-      <div className="relative px-5 pb-4 pt-1">
-        <p className="text-white font-black text-lg tracking-wide truncate">{data.name}</p>
+      <div className="relative px-4 pb-2 pt-0.5">
+        <p className="text-white font-black text-base tracking-wide truncate">{data.name}</p>
 
-        <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1">
+        <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5">
           {isStudent ? (
             <>
               <div>
-                <p className="text-[9px] font-bold uppercase" style={{ color: `${accent}70` }}>Student Code</p>
-                <p className="text-sm font-mono font-black text-white tracking-wider">{data.student_code}</p>
+                <p className="text-[8px] font-bold uppercase" style={{ color: `${accent}70` }}>Student Code</p>
+                <p className="text-xs font-mono font-black text-white tracking-wider">{data.student_code}</p>
               </div>
               <div>
-                <p className="text-[9px] font-bold uppercase" style={{ color: `${accent}70` }}>Student PIN</p>
-                <p className="text-sm font-mono font-black text-white tracking-wider">{data.access_pin}</p>
+                <p className="text-[8px] font-bold uppercase" style={{ color: `${accent}70` }}>Student PIN</p>
+                <p className="text-xs font-mono font-black text-white tracking-wider">{data.access_pin}</p>
               </div>
               <div>
-                <p className="text-[9px] font-bold uppercase" style={{ color: `${accent}70` }}>Reading Level</p>
-                <p className="text-[11px] font-bold text-white capitalize">{data.reading_level}</p>
+                <p className="text-[8px] font-bold uppercase" style={{ color: `${accent}70` }}>Grade</p>
+                <p className="text-[10px] font-bold text-white capitalize">{data.grade_level || data.reading_level || 'N/A'}</p>
               </div>
               <div>
-                <p className="text-[9px] font-bold uppercase" style={{ color: `${accent}70` }}>Login At</p>
-                <p className="text-[11px] font-mono font-medium truncate" style={{ color: 'rgba(255,255,255,0.6)' }}>{data.login_url}</p>
+                <p className="text-[8px] font-bold uppercase" style={{ color: `${accent}70` }}>Start Date</p>
+                <p className="text-[10px] font-bold text-white">{data.start_date || 'N/A'}</p>
               </div>
             </>
           ) : (
@@ -81,14 +110,164 @@ const CardFace = ({ data, type }) => {
         </div>
       </div>
 
-      {/* Bottom accent line */}
-      <div className="absolute bottom-0 left-0 right-0 h-1" style={{ background: `linear-gradient(90deg, ${accent}, transparent)` }} />
+      {/* Bottom bar with website */}
+      <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-4 pb-1">
+        {isStudent && (
+          <p className="text-[8px] font-mono font-medium" style={{ color: `${accent}60` }}>
+            {data.website_url || 'semanticvision.ai'}
+          </p>
+        )}
+        <div className="flex-1" />
+        <div className="h-[2px] flex-1" style={{ background: `linear-gradient(90deg, transparent, ${accent})` }} />
+      </div>
     </div>
   );
 };
 
+
+/* ==================== PRINT VIEW COMPONENT ==================== */
+
+const printStyleId = 'avery-5371-print-styles';
+
+const injectPrintStyles = () => {
+  if (document.getElementById(printStyleId)) return;
+  const style = document.createElement('style');
+  style.id = printStyleId;
+  style.textContent = `
+    @media print {
+      body > *:not(#avery-print-overlay) { display: none !important; }
+      #avery-print-overlay {
+        display: block !important;
+        position: fixed;
+        inset: 0;
+        z-index: 999999;
+        background: white;
+        overflow: visible;
+      }
+      @page {
+        size: letter;
+        margin: 0.5in 0.75in;
+      }
+      .avery-grid {
+        display: grid !important;
+        grid-template-columns: 3.5in 3.5in;
+        grid-template-rows: repeat(5, 2in);
+        gap: 0;
+        width: 7in;
+        height: 10in;
+        page-break-after: always;
+      }
+      .avery-cell {
+        width: 3.5in;
+        height: 2in;
+        overflow: hidden;
+        box-sizing: border-box;
+      }
+      .avery-cell > div {
+        width: 3.5in !important;
+        height: 2in !important;
+        max-width: 3.5in !important;
+        border-radius: 8px !important;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+};
+
+const removePrintStyles = () => {
+  const el = document.getElementById(printStyleId);
+  if (el) el.remove();
+};
+
+const PrintAllCards = ({ studentCards, guardianCard }) => {
+  const printRef = useRef(null);
+
+  const handlePrint = useCallback(() => {
+    injectPrintStyles();
+    // Create overlay
+    let overlay = document.getElementById('avery-print-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'avery-print-overlay';
+      overlay.style.display = 'none';
+      document.body.appendChild(overlay);
+    }
+
+    // Build all cards: guardian first, then students
+    const allCards = [];
+    if (guardianCard) {
+      allCards.push({ data: guardianCard, type: 'guardian' });
+    }
+    studentCards.forEach(s => {
+      allCards.push({ data: s, type: 'student' });
+    });
+
+    // We need to render cards into the overlay using the printRef container
+    // Copy the rendered HTML from our hidden container
+    if (printRef.current) {
+      overlay.innerHTML = printRef.current.innerHTML;
+      overlay.style.display = 'block';
+    }
+
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => {
+        overlay.style.display = 'none';
+        overlay.innerHTML = '';
+        removePrintStyles();
+      }, 500);
+    }, 300);
+  }, [studentCards, guardianCard]);
+
+  // Build pages of 10 cards each
+  const allCards = [];
+  if (guardianCard) {
+    allCards.push({ data: guardianCard, type: 'guardian' });
+  }
+  studentCards.forEach(s => {
+    allCards.push({ data: s, type: 'student' });
+  });
+
+  const pages = [];
+  for (let i = 0; i < allCards.length; i += 10) {
+    pages.push(allCards.slice(i, i + 10));
+  }
+
+  return (
+    <div>
+      <button
+        onClick={handlePrint}
+        className="flex items-center gap-2 px-4 py-2 text-sm font-black uppercase bg-amber-100 text-amber-800 border-3 border-black rounded-xl hover:bg-amber-200 transition-all shadow-brutal-sm"
+        data-testid="print-all-cards"
+      >
+        <Printer size={16} /> Print All Cards (Avery 5371)
+      </button>
+
+      {/* Hidden render container for print content */}
+      <div ref={printRef} style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+        {pages.map((page, pi) => (
+          <div key={pi} className="avery-grid">
+            {page.map((card, ci) => (
+              <div key={ci} className="avery-cell">
+                <CardFace data={card.data} type={card.type} forPrint={true} />
+              </div>
+            ))}
+            {/* Fill remaining cells with empty divs to maintain grid */}
+            {Array.from({ length: 10 - page.length }).map((_, ei) => (
+              <div key={`empty-${ei}`} className="avery-cell" />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+
+/* ==================== MAIN COMPONENT ==================== */
+
 const UserIDCards = () => {
-  const [copied, setCopied] = React.useState(null);
+  const [copied, setCopied] = useState(null);
   const cardRefs = useRef({});
 
   const { data, isLoading } = useQuery({
@@ -128,6 +307,16 @@ const UserIDCards = () => {
 
   return (
     <div className="space-y-6" data-testid="user-id-cards">
+      {/* Print All Cards Button */}
+      {(data.student_cards?.length > 0 || data.guardian_card) && (
+        <div className="flex justify-end">
+          <PrintAllCards
+            studentCards={data.student_cards || []}
+            guardianCard={data.guardian_card}
+          />
+        </div>
+      )}
+
       {/* Guardian Card */}
       {data.guardian_card && (
         <BrutalCard shadow="lg">

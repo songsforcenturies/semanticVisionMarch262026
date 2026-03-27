@@ -1,10 +1,11 @@
 """Student management routes: CRUD, progress, export, parental controls."""
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from fastapi.responses import HTMLResponse
 from typing import Optional, List
 from pydantic import BaseModel
 from datetime import datetime, timezone
-import uuid, random, string
+from pathlib import Path
+import uuid, random, string, shutil
 
 from database import db, logger
 from models import (
@@ -67,6 +68,50 @@ async def create_student(
     )
     
     return student
+
+
+@router.post("/students/{student_id}/photo")
+async def upload_student_photo(
+    student_id: str,
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Upload a photo for a student. Only the guardian or admin can upload."""
+    student = await db.students.find_one({"id": student_id})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    # Authorization: must be the guardian or an admin
+    is_admin = current_user.get("role") == "admin"
+    is_guardian = student["guardian_id"] == current_user["id"]
+    if not is_admin and not is_guardian:
+        raise HTTPException(status_code=403, detail="Not authorized to upload photo for this student")
+
+    # Validate file type
+    allowed_types = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Invalid file type. Allowed: JPEG, PNG, WebP, GIF")
+
+    # Save the file
+    photos_dir = Path(__file__).parent.parent / "uploads" / "photos"
+    photos_dir.mkdir(parents=True, exist_ok=True)
+    file_path = photos_dir / f"{student_id}.jpg"
+
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        logger.error(f"Failed to save photo for student {student_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save photo")
+
+    # Update student record with photo_url
+    photo_url = f"/api/uploads/photos/{student_id}.jpg"
+    await db.students.update_one(
+        {"id": student_id},
+        {"$set": {"photo_url": photo_url}}
+    )
+
+    return {"message": "Photo uploaded successfully", "photo_url": photo_url}
 
 
 @router.get("/students", response_model=List[Student])

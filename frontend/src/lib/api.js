@@ -72,6 +72,13 @@ export const studentAPI = {
   resetPin: (id) => apiClient.post(`/students/${id}/reset-pin`),
   changePin: (id, data) => apiClient.post(`/students/${id}/change-pin`, data),
   changeMyPin: (data) => apiClient.post('/student/change-my-pin', data),
+  uploadPhoto: (id, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiClient.post(`/students/${id}/photo`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
   getProgress: (id) => apiClient.get(`/students/${id}/progress`),
   getExportUrl: (id, format) => `${API}/students/${id}/export?format=${format}`,
   toggleSpellcheck: (id) => apiClient.post(`/students/${id}/spellcheck`),

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { parentalControlsAPI } from '@/lib/api';
 import api from '@/lib/api';
 import { BrutalCard, BrutalButton } from '@/components/brutal';
-import { Shield, Mic, Video, Clock, ToggleLeft, ToggleRight, ChevronDown, ChevronUp, Save, Headphones, BookOpen, Music } from 'lucide-react';
+import { Shield, Mic, Video, Clock, ToggleLeft, ToggleRight, ChevronDown, ChevronUp, Save, Headphones, BookOpen, Music, Image, Volume2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
 const LEARNING_SUPPORT_OPTIONS = [
@@ -22,6 +22,9 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
   const [accessibilityNeeds, setAccessibilityNeeds] = useState([]);
   const [forceMedia, setForceMedia] = useState(false);
   const [mediaIntegrationCount, setMediaIntegrationCount] = useState(2);
+  const [illustrationsEnabled, setIllustrationsEnabled] = useState(false);
+  const [illustrationStyle, setIllustrationStyle] = useState('storybook');
+  const [ttsEnabled, setTtsEnabled] = useState(true);
 
   const { data: savedControls } = useQuery({
     queryKey: ['parental-controls', studentId],
@@ -46,6 +49,9 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
       setAccessibilityNeeds(studentData.accessibility_needs || []);
       setForceMedia(studentData.force_media_in_stories || false);
       setMediaIntegrationCount(studentData.media_integration_count ?? 2);
+      setIllustrationsEnabled(studentData.illustrations_enabled || false);
+      setIllustrationStyle(studentData.illustration_style || 'storybook');
+      setTtsEnabled(studentData.tts_enabled !== false);
     }
   }, [studentData]);
 
@@ -74,6 +80,9 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
       accessibility_needs: accessibilityNeeds,
       force_media_in_stories: forceMedia,
       media_integration_count: mediaIntegrationCount,
+      illustrations_enabled: illustrationsEnabled,
+      illustration_style: illustrationStyle,
+      tts_enabled: ttsEnabled,
     });
   };
 
@@ -285,6 +294,86 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
                     data-testid="media-integration-count-input" />
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Story Enhancements */}
+          <div className="mt-4 mb-3">
+            <p className="text-xs font-bold uppercase mb-2" style={{ color: '#6366f1' }}>
+              <Sparkles size={14} className="inline mr-1" style={{ verticalAlign: 'middle' }} />
+              Story Enhancements
+            </p>
+
+            {/* Enable AI Illustrations */}
+            <div className="flex items-start justify-between gap-3 py-3" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+              <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                <Image size={16} className="mt-0.5 flex-shrink-0" style={{ color: '#6366f1' }} />
+                <div>
+                  <p className="text-sm font-bold" style={{ color: '#2d2a26' }}>Enable AI Illustrations</p>
+                  <p className="text-xs mt-0.5" style={{ color: '#8c8780' }}>Generate visual scene descriptions for each chapter</p>
+                </div>
+              </div>
+              <button onClick={() => setIllustrationsEnabled(!illustrationsEnabled)} className="flex-shrink-0 mt-0.5"
+                data-testid="toggle-illustrations">
+                {illustrationsEnabled ? (
+                  <ToggleRight size={28} style={{ color: '#6366f1' }} />
+                ) : (
+                  <ToggleLeft size={28} style={{ color: '#b0aba4' }} />
+                )}
+              </button>
+            </div>
+
+            {/* Illustration Style */}
+            {illustrationsEnabled && (
+              <div className="py-3" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                <div className="flex items-start gap-2.5">
+                  <Image size={16} className="mt-0.5 flex-shrink-0" style={{ color: '#6366f1' }} />
+                  <div className="flex-1">
+                    <p className="text-sm font-bold" style={{ color: '#2d2a26' }}>Illustration Style</p>
+                    <p className="text-xs mt-0.5" style={{ color: '#8c8780' }}>Choose the visual style for story illustrations</p>
+                    <div className="grid grid-cols-3 gap-1.5 mt-2">
+                      {[
+                        { value: 'watercolor', label: 'Watercolor' },
+                        { value: 'cartoon', label: 'Cartoon' },
+                        { value: 'realistic', label: 'Realistic' },
+                        { value: 'storybook', label: 'Storybook' },
+                        { value: 'anime', label: 'Anime' },
+                      ].map(opt => (
+                        <button key={opt.value}
+                          onClick={() => setIllustrationStyle(opt.value)}
+                          className="px-3 py-2 rounded-md text-xs font-bold transition-all text-center"
+                          style={{
+                            background: illustrationStyle === opt.value ? '#6366f1' : '#eae6f2',
+                            color: illustrationStyle === opt.value ? '#fff' : '#4338ca',
+                            border: `1px solid ${illustrationStyle === opt.value ? '#6366f1' : 'rgba(99,102,241,0.2)'}`,
+                          }}
+                          data-testid={`illustration-style-${opt.value}`}>
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Enable Read-Aloud (TTS) */}
+            <div className="flex items-start justify-between gap-3 py-3" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+              <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                <Volume2 size={16} className="mt-0.5 flex-shrink-0" style={{ color: '#6366f1' }} />
+                <div>
+                  <p className="text-sm font-bold" style={{ color: '#2d2a26' }}>Enable Read-Aloud (Text-to-Speech)</p>
+                  <p className="text-xs mt-0.5" style={{ color: '#8c8780' }}>Show the TTS audio player by default in the story reader</p>
+                </div>
+              </div>
+              <button onClick={() => setTtsEnabled(!ttsEnabled)} className="flex-shrink-0 mt-0.5"
+                data-testid="toggle-tts">
+                {ttsEnabled ? (
+                  <ToggleRight size={28} style={{ color: '#6366f1' }} />
+                ) : (
+                  <ToggleLeft size={28} style={{ color: '#b0aba4' }} />
+                )}
+              </button>
             </div>
           </div>
 

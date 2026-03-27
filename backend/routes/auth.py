@@ -428,7 +428,14 @@ async def get_user_card(current_user: dict = Depends(get_current_user)):
 
     # Student cards
     student_cards = []
+    current_year = str(datetime.now(timezone.utc).year)
     for s in students:
+        created = s.get("created_date", "")
+        if isinstance(created, datetime):
+            start_date = created.strftime("%B %d, %Y")
+        else:
+            start_date = str(created)[:10] if created else ""
+
         student_cards.append({
             "type": "student",
             "name": s.get("full_name", ""),
@@ -437,6 +444,12 @@ async def get_user_card(current_user: dict = Depends(get_current_user)):
             "age": s.get("age", 0),
             "reading_level": s.get("reading_level", "beginner"),
             "login_url": f"{base_url}/student-login",
+            "photo_url": s.get("photo_url", ""),
+            "grade_level": s.get("grade_level", ""),
+            "start_date": start_date,
+            "year": current_year,
+            "website_url": "semanticvision.ai",
+            "logo_text": "Semantic Vision",
         })
 
     return {"guardian_card": guardian_card, "student_cards": student_cards}

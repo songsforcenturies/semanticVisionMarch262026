@@ -238,6 +238,11 @@ class Student(MongoBaseModel):
     force_media_in_stories: bool = False  # When True, media MUST be included in every story
     media_integration_count: int = 2  # Number of media references to include (1-5)
     preferred_media_ids: List[str] = Field(default_factory=list)  # Specific media IDs to always include
+    # Story illustration controls
+    illustrations_enabled: bool = False  # When True, AI generates illustration descriptions per chapter
+    illustration_style: str = "storybook"  # "watercolor", "cartoon", "realistic", "storybook", "anime"
+    # Text-to-speech default behavior
+    tts_enabled: bool = True  # Controls whether TTS player is shown by default
     created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -254,6 +259,9 @@ class StudentCreate(BaseModel):
     force_media_in_stories: bool = False
     media_integration_count: int = 2
     preferred_media_ids: List[str] = Field(default_factory=list)
+    illustrations_enabled: bool = False
+    illustration_style: str = "storybook"
+    tts_enabled: bool = True
 
 
 class StudentUpdate(BaseModel):
@@ -276,6 +284,9 @@ class StudentUpdate(BaseModel):
     force_media_in_stories: Optional[bool] = None
     media_integration_count: Optional[int] = None
     preferred_media_ids: Optional[List[str]] = None
+    illustrations_enabled: Optional[bool] = None
+    illustration_style: Optional[str] = None
+    tts_enabled: Optional[bool] = None
 
 
 # Subscription Entity
@@ -361,6 +372,7 @@ class Chapter(BaseModel):
     word_count: int
     embedded_tokens: List[EmbeddedToken] = Field(default_factory=list)
     vision_check: VisionCheck
+    illustration_description: Optional[str] = None  # AI-generated visual description for illustration
 
 
 class Narrative(MongoBaseModel):
