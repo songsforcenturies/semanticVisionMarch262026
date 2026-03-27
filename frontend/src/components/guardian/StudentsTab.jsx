@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { studentAPI, subscriptionAPI, adPreferencesAPI } from '@/lib/api';
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalProgress } from '@/components/brutal';
-import { Plus, Edit, Trash2, Copy, Check, BookOpen, RefreshCw, Type, SpellCheck, Megaphone } from 'lucide-react';
+import { Plus, Edit, Trash2, Copy, Check, BookOpen, RefreshCw, Type, SpellCheck, Megaphone, User, Camera } from 'lucide-react';
 import { toast } from 'sonner';
 import StudentFormDialog from './StudentFormDialog';
 import DeleteConfirmDialog from './DeleteConfirmDialog';
@@ -236,7 +236,33 @@ const StudentsTab = () => {
             >
               {/* Student Info */}
               <div className="mb-4">
-                <h3 className="text-2xl font-black uppercase mb-2">{student.full_name}</h3>
+                <div className="flex items-center gap-4 mb-3">
+                  <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center border-4 border-indigo-200" style={{ background: '#e8e5ff' }}>
+                    {student.photo_url ? (
+                      <img src={student.photo_url} alt={student.full_name} className="w-full h-full object-cover" />
+                    ) : (
+                      <User size={28} className="text-indigo-400" />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-black uppercase">{student.full_name}</h3>
+                    {!student.photo_url && (
+                      <label className="inline-flex items-center gap-1 text-[10px] font-bold text-purple-600 cursor-pointer hover:text-purple-800">
+                        <Camera size={10} /> Add photo
+                        <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          try {
+                            await studentAPI.uploadPhoto(student.id, file);
+                            queryClient.invalidateQueries(['students']);
+                            toast.success('Photo uploaded!');
+                          } catch (err) { toast.error('Upload failed'); }
+                          e.target.value = '';
+                        }} />
+                      </label>
+                    )}
+                  </div>
+                </div>
                 
                 {/* Student Code & PIN Display */}
                 <div className="space-y-2 mb-3">

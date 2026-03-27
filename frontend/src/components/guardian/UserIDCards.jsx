@@ -63,69 +63,47 @@ const CardFace = ({ data, type, forPrint = false }) => {
       }} />
 
       {/* Header bar */}
-      <div className="relative px-4 pt-3 pb-1 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {isStudent && data.photo_url ? (
-            <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0" style={{ border: `2px solid ${accent}60` }}>
-              <img
-                src={data.photo_url.startsWith('data:') ? data.photo_url : `${API_BASE}${data.photo_url}`}
-                alt={data.name}
-                className="w-full h-full object-cover"
-                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-              />
-              <div className="w-full h-full items-center justify-center hidden" style={{ background: `${accent}25` }}>
-                <User size={16} style={{ color: accent }} />
-              </div>
-            </div>
-          ) : isStudent ? (
-            <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: `${accent}25`, border: `2px solid ${accent}60` }}>
-              <User size={16} style={{ color: accent }} />
-            </div>
-          ) : (
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${accent}25`, border: `1px solid ${accent}40` }}>
-              <Users size={16} style={{ color: accent }} />
-            </div>
-          )}
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: `${accent}90` }}>
-              {isStudent ? (data.logo_text || 'Semantic Vision') : 'Semantic Vision'}
-            </p>
-            <p className="text-[9px] font-medium" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              {isStudent ? 'Student ID' : 'Member Card'}
-              {isStudent && data.year ? ` - ${data.year}` : ''}
-            </p>
-          </div>
+      <div className="relative px-4 pt-2 pb-0 flex items-center justify-between">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: `${accent}90` }}>
+            {isStudent ? (data.logo_text || 'Semantic Vision') : 'Semantic Vision'}
+          </p>
+          <p className="text-[9px] font-medium" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            {isStudent ? 'Student ID' : 'Member Card'}
+            {isStudent && data.year ? ` - ${data.year}` : ''}
+          </p>
         </div>
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${accent}15`, border: `1px solid ${accent}30` }}>
-          <CreditCard size={16} style={{ color: accent }} />
+        <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: `${accent}15`, border: `1px solid ${accent}30` }}>
+          <CreditCard size={14} style={{ color: accent }} />
         </div>
       </div>
 
-      {/* Main content */}
-      <div className="relative px-4 pb-2 pt-0.5">
-        <p className="text-white font-black text-base tracking-wide truncate">{data.name}</p>
-
-        <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5">
-          {isStudent ? (
-            <>
-              <div>
-                <p className="text-[8px] font-bold uppercase" style={{ color: `${accent}70` }}>Student Code</p>
-                <p className="text-xs font-mono font-black text-white tracking-wider">{data.student_code}</p>
-              </div>
-              <div>
-                <p className="text-[8px] font-bold uppercase" style={{ color: `${accent}70` }}>Grade</p>
-                <p className="text-[10px] font-bold text-white capitalize">{data.grade_level || data.reading_level || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="text-[8px] font-bold uppercase" style={{ color: `${accent}70` }}>Start Date</p>
-                <p className="text-[10px] font-bold text-white">{data.start_date || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="text-[8px] font-bold uppercase" style={{ color: `${accent}70` }}>Age</p>
-                <p className="text-[10px] font-bold text-white">{data.age || 'N/A'}</p>
-              </div>
-            </>
-          ) : (
+      {/* Main content — two-column layout for students */}
+      <div className="relative px-4 pb-2 pt-1 flex gap-3">
+        {/* Left side: info */}
+        <div className="flex-1 min-w-0">
+          <p className="text-white font-black text-base tracking-wide truncate">{data.name}</p>
+          <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5">
+            {isStudent ? (
+              <>
+                <div>
+                  <p className="text-[8px] font-bold uppercase" style={{ color: `${accent}70` }}>Student Code</p>
+                  <p className="text-xs font-mono font-black text-white tracking-wider">{data.student_code}</p>
+                </div>
+                <div>
+                  <p className="text-[8px] font-bold uppercase" style={{ color: `${accent}70` }}>Grade</p>
+                  <p className="text-[10px] font-bold text-white capitalize">{data.grade_level || data.reading_level || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-[8px] font-bold uppercase" style={{ color: `${accent}70` }}>Start Date</p>
+                  <p className="text-[10px] font-bold text-white">{data.start_date || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-[8px] font-bold uppercase" style={{ color: `${accent}70` }}>Age</p>
+                  <p className="text-[10px] font-bold text-white">{data.age || 'N/A'}</p>
+                </div>
+              </>
+            ) : (
             <>
               <div>
                 <p className="text-[9px] font-bold uppercase" style={{ color: `${accent}70` }}>Referral Code</p>
@@ -141,7 +119,27 @@ const CardFace = ({ data, type, forPrint = false }) => {
               </div>
             </>
           )}
+          </div>
         </div>
+
+        {/* Right side: photo (students only) */}
+        {isStudent && (
+          <div className="flex-shrink-0 flex items-center">
+            <div className="w-16 h-16 rounded-xl overflow-hidden" style={{ border: `2px solid ${accent}50`, background: `${accent}15` }}>
+              {data.photo_url ? (
+                <img
+                  src={data.photo_url.startsWith('data:') ? data.photo_url : `${API_BASE}${data.photo_url}`}
+                  alt={data.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <User size={28} style={{ color: `${accent}60` }} />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Bottom bar with website */}
