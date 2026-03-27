@@ -48,6 +48,7 @@ class UserRole(str, Enum):
 class GradeLevel(str, Enum):
     PRE_K = "pre-k"
     K = "k"
+    GRADE_1_12 = "1-12"
     GRADE_1 = "1"
     GRADE_2 = "2"
     GRADE_3 = "3"
