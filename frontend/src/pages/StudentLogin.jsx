@@ -96,15 +96,14 @@ const StudentLogin = () => {
                 placeholder="Enter your PIN"
                 className="w-full px-4 py-3 rounded-xl outline-none transition-all focus:ring-2 text-center"
                 style={{
-                  background: 'rgba(212,168,83,0.12)',
+                  background: 'rgba(212,168,83,0.15)',
                   border: '2px solid rgba(212,168,83,0.4)',
-                  color: '#ffffff',
+                  color: '#D4A853',
                   fontFamily: "'Sora', monospace",
                   fontSize: '1.5rem',
                   letterSpacing: '0.5em',
                   fontWeight: 700,
-                  WebkitTextFillColor: '#ffffff',
-                  textShadow: '0 0 4px rgba(212,168,83,0.3)',
+                  WebkitTextFillColor: '#D4A853',
                 }}
                 data-testid="student-pin-input" />
               <p className="text-xs mt-2" style={{ color: 'rgba(148,163,184,0.5)' }}>{t('auth.pinHint')}</p>
