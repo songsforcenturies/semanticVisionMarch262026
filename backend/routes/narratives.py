@@ -239,12 +239,14 @@ async def create_narrative(narrative_data: NarrativeCreate):
 
 
 @router.get("/narratives")
-async def get_narratives(student_id: Optional[str] = None):
-    """Get narratives, optionally filtered by student"""
+async def get_narratives(student_id: Optional[str] = None, include_archived: bool = False):
+    """Get narratives, optionally filtered by student. Archived stories hidden by default."""
     query = {}
     if student_id:
         query["student_id"] = student_id
-    
+    if not include_archived:
+        query["status"] = {"$ne": "archived"}
+
     narratives = await db.narratives.find(query, {"_id": 0}).to_list(1000)
     return narratives
 

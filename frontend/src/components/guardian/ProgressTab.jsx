@@ -284,9 +284,14 @@ const StudentProgressDetail = ({ studentId, onBack }) => {
         {narratives.stories.length > 0 ? (
           <div className="space-y-3">
             {narratives.stories.filter(s => s.status !== 'archived' || showArchived).map((story) => (
-              <div key={story.id} className={`flex items-center justify-between border-4 border-black p-4 ${story.status === 'archived' ? 'bg-gray-100 opacity-60' : 'bg-white'}`} data-testid={`story-${story.id}`}>
-                <div>
-                  <p className="font-black text-lg">{story.title}</p>
+              <div key={story.id} className={`flex items-center justify-between border-4 p-4 ${story.status === 'archived' ? 'bg-gray-200 border-gray-400 opacity-50' : 'bg-white border-black'}`} data-testid={`story-${story.id}`}>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className={`font-black text-lg ${story.status === 'archived' ? 'line-through text-gray-500' : ''}`}>{story.title}</p>
+                    {story.status === 'archived' && (
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 bg-gray-500 text-white rounded">ARCHIVED</span>
+                    )}
+                  </div>
                   <p className="text-sm text-gray-500 font-medium">
                     {story.total_word_count} words · {story.chapters_completed}/{story.chapters_total} chapters
                   </p>
@@ -295,16 +300,16 @@ const StudentProgressDetail = ({ studentId, onBack }) => {
                     {story.last_read_date ? ` · Last read: ${new Date(story.last_read_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ' · Not read yet'}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0 ml-3">
                   <BrutalBadge variant={story.status === 'completed' ? 'emerald' : story.status === 'archived' ? 'gray' : 'amber'} size="sm">
                     {story.status}
                   </BrutalBadge>
                   {story.status === 'archived' ? (
-                    <button onClick={async () => { if (window.confirm('Restore this story?')) { await narrativeAPI.unarchive(story.id); queryClient.invalidateQueries(['student-progress']); toast.success('Story restored'); }}} className="text-xs font-bold px-2 py-1 bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200">Restore</button>
+                    <button onClick={async () => { if (window.confirm('Restore this story? It will be visible to the student again.')) { await narrativeAPI.unarchive(story.id); queryClient.invalidateQueries(['student-progress']); toast.success('Story restored'); }}} className="text-xs font-bold px-3 py-1.5 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors">Restore</button>
                   ) : (
-                    <button onClick={async () => { if (window.confirm('Archive this story? It will be hidden from the student.')) { await narrativeAPI.archive(story.id); queryClient.invalidateQueries(['student-progress']); toast.success('Story archived'); }}} className="text-xs font-bold px-2 py-1 bg-amber-100 text-amber-700 rounded hover:bg-amber-200">Archive</button>
+                    <button onClick={async () => { if (window.confirm('Archive this story? It will be hidden from the student.')) { await narrativeAPI.archive(story.id); queryClient.invalidateQueries(['student-progress']); toast.success('Story archived — hidden from student'); }}} className="text-xs font-bold px-3 py-1.5 bg-gray-700 text-white rounded hover:bg-gray-800 transition-colors">Archive</button>
                   )}
-                  <button onClick={async () => { if (window.confirm('PERMANENTLY delete this story? This cannot be undone.')) { await narrativeAPI.delete(story.id); queryClient.invalidateQueries(['student-progress']); toast.success('Story deleted'); }}} className="text-xs font-bold px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200">Delete</button>
+                  <button onClick={async () => { if (window.confirm('PERMANENTLY delete this story and all related data? This cannot be undone.')) { await narrativeAPI.delete(story.id); queryClient.invalidateQueries(['student-progress']); toast.success('Story permanently deleted'); }}} className="text-xs font-bold px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">Delete</button>
                 </div>
               </div>
             ))}
