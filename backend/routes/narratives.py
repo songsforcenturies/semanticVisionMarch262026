@@ -19,6 +19,7 @@ router = APIRouter()
 # ==================== NARRATIVE ROUTES ====================
 
 @router.post("/narratives")
+@router.post("/narratives/generate")
 async def create_narrative(narrative_data: NarrativeCreate):
     """Generate a new AI story for a student"""
     # Get student

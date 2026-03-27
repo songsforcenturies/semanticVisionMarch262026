@@ -23,6 +23,10 @@ async def create_student(
     current_user: dict = Depends(get_current_guardian)
 ):
     """Create a new student"""
+    # Auto-set guardian_id to current user if not provided
+    if not student_data.guardian_id:
+        student_data.guardian_id = current_user["id"]
+
     # Check subscription limits
     subscription = await db.subscriptions.find_one({"guardian_id": student_data.guardian_id})
     if not subscription:
@@ -218,7 +222,7 @@ async def get_student_progress(
     student = await db.students.find_one({"id": student_id}, {"_id": 0})
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
-    if student["guardian_id"] != current_user["id"]:
+    if current_user.get("role") != "admin" and student["guardian_id"] != current_user["id"]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     # Narratives

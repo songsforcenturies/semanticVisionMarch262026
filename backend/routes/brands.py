@@ -62,6 +62,7 @@ async def create_brand(data: BrandCreate, current_user: dict = Depends(get_curre
 
 
 @router.get("/admin/brands")
+@router.get("/brands")
 async def list_brands(current_user: dict = Depends(get_current_user)):
     """List all brands"""
     if current_user.get("role") != "admin":

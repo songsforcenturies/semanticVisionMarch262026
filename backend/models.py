@@ -236,7 +236,7 @@ class Student(MongoBaseModel):
 
 class StudentCreate(BaseModel):
     full_name: str
-    guardian_id: str
+    guardian_id: Optional[str] = None
     age: Optional[int] = None
     grade_level: Optional[GradeLevel] = None
     interests: List[str] = Field(default_factory=list)

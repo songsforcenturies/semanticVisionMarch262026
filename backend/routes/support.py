@@ -22,6 +22,7 @@ class SupportTicketCreate(BaseModel):
 
 
 @router.post("/support/tickets")
+@router.post("/support/ticket")
 async def create_support_ticket(data: SupportTicketCreate, current_user: dict = Depends(get_current_user)):
     """Create a new support ticket from any user"""
     ticket = {

@@ -254,6 +254,37 @@ async def delete_brand_media(media_id: str, current_user: dict = Depends(get_cur
     return {"message": "Media deleted"}
 
 
+# ==================== PUBLIC MEDIA ENDPOINTS ====================
+
+@router.get("/media")
+async def list_all_media(current_user: dict = Depends(get_current_user)):
+    """List all approved media items"""
+    media = await db.brand_media.find({"status": "approved"}, {"_id": 0}).sort("created_date", -1).to_list(500)
+    return media
+
+
+@router.get("/media/student")
+async def list_student_media(current_user: dict = Depends(get_current_user)):
+    """List media accessible to students (approved, with student-safe filtering)"""
+    media = await db.brand_media.find({"status": "approved"}, {"_id": 0}).sort("created_date", -1).to_list(500)
+    # Return student-safe fields only
+    return [
+        {
+            "id": m["id"],
+            "title": m["title"],
+            "artist": m.get("artist", ""),
+            "media_type": m.get("media_type", "audio"),
+            "source": m.get("source", ""),
+            "file_url": m.get("file_url", ""),
+            "youtube_url": m.get("youtube_url", ""),
+            "brand_id": m.get("brand_id", ""),
+            "price_per_stream": m.get("price_per_stream", 0.00),
+            "price_per_download": m.get("price_per_download", 0.99),
+        }
+        for m in media
+    ]
+
+
 # ==================== MEDIA STREAMING ====================
 
 from fastapi.responses import FileResponse
