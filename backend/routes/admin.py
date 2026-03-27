@@ -500,6 +500,80 @@ async def delete_coupon(coupon_id: str, current_user: dict = Depends(get_current
     return {"message": "Coupon deleted"}
 
 
+@router.get("/admin/coupons/stats")
+async def get_coupon_stats(current_user: dict = Depends(get_current_user)):
+    """Get comprehensive coupon value tracking stats"""
+    if current_user.get("role") != "admin":
+        user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+        if not user or not user.get("is_delegated_admin"):
+            raise HTTPException(status_code=403, detail="Admin access required")
+
+    # Get all coupons
+    all_coupons = await db.coupons.find({}, {"_id": 0}).to_list(5000)
+    total_coupons_created = len(all_coupons)
+    total_coupons_active = len([c for c in all_coupons if c.get("is_active", False)])
+
+    # Get all redemptions
+    all_redemptions = await db.coupon_redemptions.find({}, {"_id": 0}).to_list(10000)
+    total_redemptions = len(all_redemptions)
+
+    # Get all users for name/email lookup
+    all_users = await db.users.find({}, {"_id": 0, "id": 1, "email": 1, "full_name": 1}).to_list(10000)
+    user_lookup = {u["id"]: u for u in all_users}
+
+    # Aggregate by type
+    by_type = {}
+    for r in all_redemptions:
+        ct = r.get("coupon_type", "unknown")
+        if ct not in by_type:
+            by_type[ct] = {"count": 0, "total_value": 0.0}
+        by_type[ct]["count"] += 1
+        by_type[ct]["total_value"] += r.get("value", 0)
+
+    # Total value given out (sum of all redemption values, grouped by type)
+    total_value_given_out = {}
+    for ct, data in by_type.items():
+        total_value_given_out[ct] = data["total_value"]
+
+    # Aggregate by user
+    user_redemptions_map: Dict[str, list] = {}
+    for r in all_redemptions:
+        uid = r.get("user_id", "unknown")
+        if uid not in user_redemptions_map:
+            user_redemptions_map[uid] = []
+        user_redemptions_map[uid].append(r)
+
+    by_user = []
+    for uid, redemptions in user_redemptions_map.items():
+        user_info = user_lookup.get(uid, {})
+        total_value = sum(r.get("value", 0) for r in redemptions)
+        by_user.append({
+            "user_id": uid,
+            "user_email": user_info.get("email", ""),
+            "user_name": user_info.get("full_name", ""),
+            "total_redeemed": len(redemptions),
+            "total_value": total_value,
+            "redemptions": [
+                {
+                    "coupon_code": r.get("coupon_code", ""),
+                    "value": r.get("value", 0),
+                    "type": r.get("coupon_type", ""),
+                    "date": str(r.get("created_date", "")),
+                }
+                for r in redemptions
+            ],
+        })
+
+    return {
+        "total_coupons_created": total_coupons_created,
+        "total_coupons_active": total_coupons_active,
+        "total_value_given_out": total_value_given_out,
+        "total_redemptions": total_redemptions,
+        "by_user": by_user,
+        "by_type": by_type,
+    }
+
+
 class RedeemCouponRequest(BaseModel):
     code: str
 
@@ -1751,6 +1825,33 @@ async def get_donation_stats():
     ).sort("created_date", -1).to_list(10)
     
     return {"total_donated": round(total, 2), "total_stories_funded": stories, "total_donors": count, "recent": recent}
+
+
+# ==================== SYSTEM UPDATE / MAINTENANCE MODE ====================
+
+class SystemStatusUpdate(BaseModel):
+    maintenance: bool = False
+    message: str = ""
+    allow_access: bool = True  # False = block all access, True = show banner only
+
+@router.post("/admin/system-status")
+async def set_system_status(data: SystemStatusUpdate, current_user: dict = Depends(get_current_admin)):
+    """Toggle maintenance mode / system update banner. Users see the message in real-time."""
+    value = {"maintenance": data.maintenance, "message": data.message, "allow_access": data.allow_access}
+    await db.system_config.update_one(
+        {"key": "system_status"},
+        {"$set": {"key": "system_status", "value": value, "updated_date": datetime.now(timezone.utc).isoformat()}},
+        upsert=True,
+    )
+    return {"status": "ok", "system_status": value}
+
+@router.get("/admin/system-status")
+async def get_system_status(current_user: dict = Depends(get_current_admin)):
+    """Get current system status (admin view)."""
+    config = await db.system_config.find_one({"key": "system_status"}, {"_id": 0})
+    if config and config.get("value"):
+        return config["value"]
+    return {"maintenance": False, "message": "", "allow_access": True}
 
 
 # ==================== ADMIN BILLING/ROI CONFIG ====================

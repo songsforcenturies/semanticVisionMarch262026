@@ -282,7 +282,7 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
                 <h3 className="text-xl font-black mb-2" style={{ color: C.cream }}>Recording Required</h3>
                 <p className="text-sm mb-4" style={{ color: C.muted }}>
                   {controls.recording_mode === 'video_required'
-                    ? 'Your parent requires you to record video while reading this chapter. Please turn on your camera and start recording before you can read.'
+                    ? 'Your parent requires you to record audio and video while reading this chapter. Please turn on your camera and microphone, then start recording before you can read.'
                     : controls.recording_mode === 'both_required'
                     ? 'Your parent requires both audio and video recording. Please turn on your camera and microphone, then start recording.'
                     : 'Your parent requires you to record your voice while reading this chapter. Please start recording before you can read.'}
@@ -319,7 +319,7 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
                 <Shield size={16} style={{ color: '#818CF8' }} />
                 <p className="text-xs font-bold" style={{ color: '#818CF8' }}>
                   {controls.recording_mode === 'both_required' ? 'Audio & video recording required by parent' :
-                   controls.recording_mode === 'video_required' ? 'Video recording required by parent' :
+                   controls.recording_mode === 'video_required' ? 'Audio & video recording required by parent' :
                    'Audio recording required by parent'}
                   {!controls.can_skip_recording && ' — must complete before continuing'}
                 </p>

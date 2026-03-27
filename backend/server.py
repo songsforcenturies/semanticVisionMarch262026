@@ -78,6 +78,15 @@ app.include_router(backup_router, prefix="/api")
 # ==================== LIFECYCLE EVENTS ====================
 from database import db, client
 
+# ===== SYSTEM UPDATE BANNER (checked by frontend) =====
+@app.get("/api/system-status")
+async def system_status():
+    """Returns maintenance/update status. Frontend polls this to show banners."""
+    config = await db.system_config.find_one({"key": "system_status"}, {"_id": 0})
+    if config and config.get("value"):
+        return config["value"]
+    return {"maintenance": False, "message": "", "allow_access": True}
+
 # ===== PING (no DB, no auth - for deployment verification) =====
 @app.get("/api/ping")
 async def ping():

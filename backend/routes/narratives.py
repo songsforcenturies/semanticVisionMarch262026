@@ -531,6 +531,110 @@ Return ONLY valid JSON:
         }
 
 
+class OralAnswerEval(BaseModel):
+    student_id: str
+    chapter_number: int
+    question: str
+    audio_transcription: str
+    chapter_summary: str = ""
+
+
+@router.post("/assessments/evaluate-oral")
+async def evaluate_oral_answer(data: OralAnswerEval):
+    """Evaluate an oral/spoken comprehension answer using AI (more lenient, no spelling checks)"""
+    from story_service import story_service
+    story_service.set_db(db)
+    llm_config = await story_service._get_llm_config()
+    provider = llm_config.get("provider", "openrouter")
+    model = llm_config.get("model", "gpt-5.2")
+
+    prompt = f"""Evaluate this student's ORAL (spoken) answer to a reading comprehension question.
+The answer was transcribed from speech, so ignore any spelling errors, grammatical mistakes,
+or informal language. Focus ONLY on whether the student demonstrates comprehension of the content.
+
+Question: {data.question}
+Student's Spoken Answer (transcribed): {data.audio_transcription}
+Chapter Context (first 500 chars): {data.chapter_summary}
+
+Evaluation criteria (lenient — this is a spoken answer):
+1. Does the answer demonstrate understanding of the chapter content?
+2. Is the answer relevant to the question?
+3. Do NOT check spelling — this was transcribed from speech.
+4. Accept informal language, incomplete sentences, and filler words.
+5. Be encouraging — oral answers are harder for some students.
+
+Return ONLY valid JSON:
+{{
+  "passed": true/false,
+  "feedback": "brief encouraging feedback",
+  "comprehension_score": 0-100
+}}"""
+
+    try:
+        from openai import AsyncOpenAI
+        api_key = llm_config.get("openrouter_key") or os.environ.get("OPENROUTER_API_KEY")
+        client = AsyncOpenAI(
+            base_url="https://openrouter.ai/api/v1", api_key=api_key,
+            default_headers={"HTTP-Referer": "https://semanticvision.ai"},
+            max_retries=1, timeout=30.0,
+        )
+        response = await client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3, max_tokens=500,
+        )
+        text = response.choices[0].message.content or ""
+
+        text = text.strip()
+        if "```" in text:
+            import re
+            json_match = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', text, re.DOTALL)
+            if json_match:
+                text = json_match.group(1).strip()
+            else:
+                text = text.replace("```json", "").replace("```", "").strip()
+
+        try:
+            result = json_lib.loads(text)
+        except json_lib.JSONDecodeError:
+            import re
+            json_match = re.search(r'\{[\s\S]*\}', text)
+            if json_match:
+                cleaned = json_match.group(0)
+                cleaned = re.sub(r',\s*}', '}', cleaned)
+                cleaned = re.sub(r',\s*]', ']', cleaned)
+                result = json_lib.loads(cleaned)
+            else:
+                raise ValueError(f"No valid JSON in response: {text[:200]}")
+
+        # Ensure no spelling_errors key in oral responses
+        result.pop("spelling_errors", None)
+
+        # Save oral answer for analytics
+        await db.oral_answers.insert_one({
+            "student_id": data.student_id,
+            "chapter_number": data.chapter_number,
+            "question": data.question,
+            "audio_transcription": data.audio_transcription,
+            "passed": result.get("passed", False),
+            "comprehension_score": result.get("comprehension_score", 0),
+            "feedback": result.get("feedback", ""),
+            "created_date": datetime.now(timezone.utc).isoformat(),
+        })
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Oral answer evaluation failed: {str(e)}")
+        # Lenient fallback — pass if transcription has enough words
+        word_count = len(data.audio_transcription.split())
+        return {
+            "passed": word_count >= 3,
+            "feedback": "Great job speaking your answer! Keep reading!" if word_count >= 3 else "Try to say a bit more about what you read.",
+            "comprehension_score": 65 if word_count >= 3 else 30,
+        }
+
+
 # ==================== ADMIN SPELLING & LIMITS CONFIG ====================
 
 @router.get("/admin/settings")

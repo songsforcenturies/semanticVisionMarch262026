@@ -186,7 +186,7 @@ const ReadAloudRecorder = ({ studentId, narrativeId, chapterNumber, onRecordingC
       {requiredMode === 'video_required' && (
         <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg" style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)' }}>
           <Video size={16} style={{ color: '#818CF8' }} />
-          <span className="text-xs font-bold" style={{ color: '#818CF8' }}>Video recording required by parent</span>
+          <span className="text-xs font-bold" style={{ color: '#818CF8' }}>Audio & Video recording required by parent</span>
         </div>
       )}
       {requiredMode === 'audio_required' && (

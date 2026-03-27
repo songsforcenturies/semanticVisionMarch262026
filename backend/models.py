@@ -106,6 +106,7 @@ class AssessmentType(str, Enum):
     TEST_OUT = "test_out"
     CONTRACT = "contract"
     CLASSROOM_SESSION = "classroom_session"
+    ORAL = "oral"
 
 
 class QuestionType(str, Enum):
@@ -229,6 +230,8 @@ class Student(MongoBaseModel):
         "preferred_categories": [],
         "blocked_categories": [],
     })
+    accessibility_needs: List[str] = Field(default_factory=list)  # e.g. "dyslexia", "visual_impairment", "hearing_impairment", "adhd", "esl_ell"
+    assessment_mode: str = "written"  # "written", "oral", or "both"
     spellcheck_disabled: bool = False
     spelling_mode: str = "phonetic"  # "exact" or "phonetic"
     created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -242,6 +245,8 @@ class StudentCreate(BaseModel):
     interests: List[str] = Field(default_factory=list)
     strengths: str = ""
     weaknesses: str = ""
+    accessibility_needs: List[str] = Field(default_factory=list)
+    assessment_mode: str = "written"
 
 
 class StudentUpdate(BaseModel):
@@ -259,6 +264,8 @@ class StudentUpdate(BaseModel):
     custom_heritage: Optional[str] = None
     culture_learning: Optional[List[str]] = None
     language: Optional[str] = None
+    accessibility_needs: Optional[List[str]] = None
+    assessment_mode: Optional[str] = None
 
 
 # Subscription Entity

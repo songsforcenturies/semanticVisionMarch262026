@@ -1,14 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { parentalControlsAPI } from '@/lib/api';
+import api from '@/lib/api';
 import { BrutalCard, BrutalButton } from '@/components/brutal';
-import { Shield, Mic, Video, Clock, ToggleLeft, ToggleRight, ChevronDown, ChevronUp, Save } from 'lucide-react';
+import { Shield, Mic, Video, Clock, ToggleLeft, ToggleRight, ChevronDown, ChevronUp, Save, Headphones, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
+
+const LEARNING_SUPPORT_OPTIONS = [
+  { value: 'dyslexia', label: 'Dyslexia' },
+  { value: 'visual_processing', label: 'Visual Processing' },
+  { value: 'adhd', label: 'ADHD' },
+  { value: 'esl_ell', label: 'ESL/ELL' },
+  { value: 'other', label: 'Other' },
+];
 
 const ParentalControlsPanel = ({ studentId, studentName }) => {
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
   const [controls, setControls] = useState(null);
+  const [assessmentMode, setAssessmentMode] = useState('written');
+  const [accessibilityNeeds, setAccessibilityNeeds] = useState([]);
 
   const { data: savedControls } = useQuery({
     queryKey: ['parental-controls', studentId],
@@ -16,9 +27,23 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
     enabled: !!studentId,
   });
 
+  // Fetch student data for assessment_mode and accessibility_needs
+  const { data: studentData } = useQuery({
+    queryKey: ['student', studentId],
+    queryFn: async () => (await api.get(`/students/${studentId}`)).data,
+    enabled: !!studentId,
+  });
+
   useEffect(() => {
     if (savedControls) setControls(savedControls);
   }, [savedControls]);
+
+  useEffect(() => {
+    if (studentData) {
+      setAssessmentMode(studentData.assessment_mode || 'written');
+      setAccessibilityNeeds(studentData.accessibility_needs || []);
+    }
+  }, [studentData]);
 
   const saveMutation = useMutation({
     mutationFn: (data) => parentalControlsAPI.update(studentId, data),
@@ -29,8 +54,27 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
     onError: () => toast.error('Failed to save rules'),
   });
 
+  const saveStudentMutation = useMutation({
+    mutationFn: (data) => api.patch(`/students/${studentId}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['student', studentId]);
+    },
+    onError: () => toast.error('Failed to save assessment settings'),
+  });
+
   const handleSave = () => {
     if (controls) saveMutation.mutate(controls);
+    // Also save assessment mode and accessibility needs to the student record
+    saveStudentMutation.mutate({
+      assessment_mode: assessmentMode,
+      accessibility_needs: accessibilityNeeds,
+    });
+  };
+
+  const toggleAccessibilityNeed = (need) => {
+    setAccessibilityNeeds((prev) =>
+      prev.includes(need) ? prev.filter((n) => n !== need) : [...prev, need]
+    );
   };
 
   if (!controls) return null;
@@ -75,14 +119,14 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
             <p className="text-xs font-bold uppercase mb-2" style={{ color: '#6366f1' }}>Recording Requirement</p>
             <div className="grid grid-cols-2 gap-1.5">
               {[
-                { value: 'optional', label: 'Optional' },
-                { value: 'audio_required', label: 'Audio Required' },
-                { value: 'video_required', label: 'Video Required' },
-                { value: 'both_required', label: 'Both Required' },
+                { value: 'optional', label: 'Optional', desc: 'Student can choose whether to record' },
+                { value: 'audio_required', label: 'Audio Only (read aloud)', desc: 'Student must record audio of themselves reading' },
+                { value: 'video_required', label: 'Audio & Video (read aloud on camera)', desc: 'Student must record audio and video while reading' },
+                { value: 'both_required', label: 'Audio & Video Required', desc: 'Both audio and video recording are mandatory' },
               ].map(opt => (
                 <button key={opt.value}
                   onClick={() => setControls({ ...controls, recording_mode: opt.value })}
-                  className="px-3 py-2 rounded-md text-xs font-bold transition-all"
+                  className="px-3 py-2 rounded-md text-xs font-bold transition-all text-left"
                   style={{
                     background: controls.recording_mode === opt.value ? '#6366f1' : '#eae6f2',
                     color: controls.recording_mode === opt.value ? '#fff' : '#4338ca',
@@ -90,6 +134,9 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
                   }}
                   data-testid={`recording-mode-${opt.value}`}>
                   {opt.label}
+                  <span className="block text-[10px] font-normal mt-0.5" style={{
+                    color: controls.recording_mode === opt.value ? 'rgba(255,255,255,0.7)' : '#8c8780',
+                  }}>{opt.desc}</span>
                 </button>
               ))}
             </div>
@@ -137,13 +184,71 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
             icon={Video}
           />
 
+          {/* Assessment Mode */}
+          <div className="mt-4 mb-3">
+            <p className="text-xs font-bold uppercase mb-2" style={{ color: '#6366f1' }}>
+              <Headphones size={14} className="inline mr-1" style={{ verticalAlign: 'middle' }} />
+              Assessment Mode
+            </p>
+            <div className="grid grid-cols-3 gap-1.5">
+              {[
+                { value: 'written', label: 'Written (default)', desc: 'Type answers' },
+                { value: 'oral', label: 'Oral (speak answers)', desc: 'Speak answers aloud' },
+                { value: 'both', label: 'Both (written + oral)', desc: 'Written and spoken' },
+              ].map(opt => (
+                <button key={opt.value}
+                  onClick={() => setAssessmentMode(opt.value)}
+                  className="px-3 py-2 rounded-md text-xs font-bold transition-all text-left"
+                  style={{
+                    background: assessmentMode === opt.value ? '#6366f1' : '#eae6f2',
+                    color: assessmentMode === opt.value ? '#fff' : '#4338ca',
+                    border: `1px solid ${assessmentMode === opt.value ? '#6366f1' : 'rgba(99,102,241,0.2)'}`,
+                  }}
+                  data-testid={`assessment-mode-${opt.value}`}>
+                  {opt.label}
+                  <span className="block text-[10px] font-normal mt-0.5" style={{
+                    color: assessmentMode === opt.value ? 'rgba(255,255,255,0.7)' : '#8c8780',
+                  }}>{opt.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Learning Support */}
+          <div className="mb-3">
+            <p className="text-xs font-bold uppercase mb-2" style={{ color: '#6366f1' }}>
+              <BookOpen size={14} className="inline mr-1" style={{ verticalAlign: 'middle' }} />
+              Learning Support
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {LEARNING_SUPPORT_OPTIONS.map(opt => (
+                <label key={opt.value}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold cursor-pointer transition-all"
+                  style={{
+                    background: accessibilityNeeds.includes(opt.value) ? '#6366f1' : '#eae6f2',
+                    color: accessibilityNeeds.includes(opt.value) ? '#fff' : '#4338ca',
+                    border: `1px solid ${accessibilityNeeds.includes(opt.value) ? '#6366f1' : 'rgba(99,102,241,0.2)'}`,
+                  }}
+                  data-testid={`accessibility-${opt.value}`}>
+                  <input
+                    type="checkbox"
+                    checked={accessibilityNeeds.includes(opt.value)}
+                    onChange={() => toggleAccessibilityNeed(opt.value)}
+                    className="sr-only"
+                  />
+                  {opt.label}
+                </label>
+              ))}
+            </div>
+          </div>
+
           <div className="mt-4">
             <BrutalButton variant="indigo" size="sm" fullWidth onClick={handleSave}
-              disabled={saveMutation.isPending}
+              disabled={saveMutation.isPending || saveStudentMutation.isPending}
               className="flex items-center justify-center gap-2"
               data-testid={`save-controls-${studentId}`}>
               <Save size={14} />
-              {saveMutation.isPending ? 'Saving...' : 'Save Reading Rules'}
+              {(saveMutation.isPending || saveStudentMutation.isPending) ? 'Saving...' : 'Save Reading Rules'}
             </BrutalButton>
           </div>
         </div>

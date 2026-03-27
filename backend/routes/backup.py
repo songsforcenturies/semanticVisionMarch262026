@@ -1,9 +1,9 @@
 """Backup & Restore routes: Full database export/import for admin."""
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Query
 from fastapi.responses import StreamingResponse
 from datetime import datetime, timezone
 from bson import ObjectId
-import json, io
+import json, io, re
 
 from database import db, logger
 from auth import get_current_admin
@@ -38,8 +38,27 @@ class MongoJSONEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
+def _default_backup_filename() -> str:
+    """Generate the default backup filename with current UTC timestamp."""
+    date_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    return f"semantic_vision_backup_{date_str}"
+
+
+def _sanitize_filename(name: str) -> str:
+    """Sanitize a user-provided filename (strip extension, remove unsafe chars)."""
+    # Remove .json extension if user included it
+    if name.lower().endswith(".json"):
+        name = name[:-5]
+    # Allow only alphanumeric, dashes, underscores, and dots
+    name = re.sub(r"[^a-zA-Z0-9._-]", "_", name)
+    return name or _default_backup_filename()
+
+
 @router.get("/admin/backup")
-async def download_backup(current_user: dict = Depends(get_current_admin)):
+async def download_backup(
+    current_user: dict = Depends(get_current_admin),
+    filename: str = Query(None, description="Custom filename for the backup (without .json extension)"),
+):
     """Download a full database backup as JSON."""
     logger.info(f"Backup requested by {current_user.get('email')}")
 
@@ -76,14 +95,53 @@ async def download_backup(current_user: dict = Depends(get_current_admin)):
 
     # Stream as JSON download
     json_bytes = json.dumps(backup_data, cls=MongoJSONEncoder, indent=2).encode("utf-8")
-    date_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    filename = f"semantic_vision_backup_{date_str}.json"
+
+    if filename:
+        safe_name = _sanitize_filename(filename)
+    else:
+        safe_name = _default_backup_filename()
+    download_filename = f"{safe_name}.json"
 
     return StreamingResponse(
         io.BytesIO(json_bytes),
         media_type="application/json",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers={"Content-Disposition": f"attachment; filename={download_filename}"},
     )
+
+
+@router.get("/admin/backup/info")
+async def backup_info(current_user: dict = Depends(get_current_admin)):
+    """Get the default backup filename and estimated file size so the frontend can preview before downloading."""
+    default_name = _default_backup_filename()
+
+    # Estimate size by counting documents and approximating bytes per doc
+    total_docs = 0
+    collection_counts = {}
+    for collection_name in BACKUP_COLLECTIONS:
+        try:
+            count = await db[collection_name].count_documents({})
+            if count > 0:
+                collection_counts[collection_name] = count
+                total_docs += count
+        except Exception:
+            pass
+
+    # Rough estimate: ~500 bytes per document on average (JSON with indent)
+    estimated_bytes = total_docs * 500
+    if estimated_bytes < 1024:
+        size_display = f"{estimated_bytes} B"
+    elif estimated_bytes < 1024 * 1024:
+        size_display = f"{estimated_bytes / 1024:.1f} KB"
+    else:
+        size_display = f"{estimated_bytes / (1024 * 1024):.1f} MB"
+
+    return {
+        "default_filename": f"{default_name}.json",
+        "estimated_size_bytes": estimated_bytes,
+        "estimated_size_display": size_display,
+        "total_documents": total_docs,
+        "total_collections": len(collection_counts),
+    }
 
 
 @router.get("/admin/backup/status")
