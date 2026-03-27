@@ -3,7 +3,7 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { studentAPI, subscriptionAPI, wordBankAPI } from '@/lib/api';
 import { Dialog } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { X, Check, ChevronRight, ChevronLeft, User, Heart, Sparkles, BookOpen, Globe } from 'lucide-react';
+import { X, Check, ChevronRight, ChevronLeft, User, Heart, Sparkles, BookOpen, Globe, Camera } from 'lucide-react';
 
 const GRADE_LEVELS = [
   { value: 'pre-k', label: 'Pre-K' },
@@ -343,6 +343,38 @@ const StudentFormDialog = ({ isOpen, onClose, student, guardianId, focusOnBanks 
           {/* STEP 0: Basic Info */}
           {step === 0 && (
             <>
+              {/* Student Photo */}
+              <div className="flex items-center gap-4">
+                <div className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center"
+                  style={{ background: 'rgba(255,255,255,0.08)', border: '2px solid rgba(212,168,83,0.4)' }}>
+                  {student?.photo_url ? (
+                    <img src={`${process.env.REACT_APP_BACKEND_URL}${student.photo_url}`} alt={student.full_name}
+                      className="w-full h-full object-cover" />
+                  ) : (
+                    <User size={32} className="text-slate-500" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-200 mb-1">Student Photo</p>
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-purple-600 text-white rounded-lg hover:bg-purple-700 cursor-pointer transition-colors">
+                    <Camera size={14} /> {student?.photo_url ? 'Change Photo' : 'Upload Photo'}
+                    <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file || !student) return;
+                      try {
+                        await studentAPI.uploadPhoto(student.id, file);
+                        queryClient.invalidateQueries(['students']);
+                        toast.success('Photo uploaded!');
+                      } catch (err) {
+                        toast.error('Upload failed: ' + (err.response?.data?.detail || err.message));
+                      }
+                      e.target.value = '';
+                    }} />
+                  </label>
+                  {!student && <p className="text-xs text-slate-500 mt-1">Save student first, then add photo</p>}
+                </div>
+              </div>
+
               <DarkInput label="Full Name *" type="text" required value={formData.full_name}
                 onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} placeholder="John Doe" data-testid="student-name" />
               <div className="grid grid-cols-2 gap-4">
