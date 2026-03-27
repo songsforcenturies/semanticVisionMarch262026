@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { studentAPI, subscriptionAPI, adPreferencesAPI } from '@/lib/api';
+import { studentAPI, subscriptionAPI, adPreferencesAPI, narrativeAPI } from '@/lib/api';
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalProgress } from '@/components/brutal';
-import { Plus, Edit, Trash2, Copy, Check, BookOpen, RefreshCw, Type, SpellCheck, Megaphone, User, Camera } from 'lucide-react';
+import { Plus, Edit, Trash2, Copy, Check, BookOpen, RefreshCw, Type, SpellCheck, Megaphone, User, Camera, Sparkles, X } from 'lucide-react';
 import { toast } from 'sonner';
 import StudentFormDialog from './StudentFormDialog';
 import DeleteConfirmDialog from './DeleteConfirmDialog';
@@ -20,6 +20,11 @@ const StudentsTab = () => {
   const [resettingPin, setResettingPin] = useState(null);
   const [changingPin, setChangingPin] = useState(null);
   const [pinForm, setPinForm] = useState({ current_pin: '', new_pin: '', confirm_pin: '' });
+  const [storyDialogOpen, setStoryDialogOpen] = useState(false);
+  const [selectedStudentIds, setSelectedStudentIds] = useState([]);
+  const [storyPrompt, setStoryPrompt] = useState('');
+  const [storyGenerating, setStoryGenerating] = useState(false);
+  const [storyProgress, setStoryProgress] = useState('');
 
   // Fetch students
   const { data: students = [], isLoading: studentsLoading } = useQuery({
@@ -145,6 +150,78 @@ const StudentsTab = () => {
     setIsFormOpen(true);
   };
 
+  const quickIdeas = [
+    'An adventure in space',
+    'A mystery at the beach',
+    'A trip to the rainforest',
+    'A day as a superhero',
+    'A magical cooking contest',
+    'An underwater treasure hunt',
+  ];
+
+  const handleOpenStoryDialog = (preselectedStudentId = null) => {
+    if (preselectedStudentId) {
+      setSelectedStudentIds([preselectedStudentId]);
+    } else {
+      setSelectedStudentIds([]);
+    }
+    setStoryPrompt('');
+    setStoryProgress('');
+    setStoryDialogOpen(true);
+  };
+
+  const handleToggleStudent = (studentId) => {
+    setSelectedStudentIds((prev) =>
+      prev.includes(studentId) ? prev.filter((id) => id !== studentId) : [...prev, studentId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedStudentIds.length === students.length) {
+      setSelectedStudentIds([]);
+    } else {
+      setSelectedStudentIds(students.map((s) => s.id));
+    }
+  };
+
+  const handleGenerateStories = async () => {
+    if (selectedStudentIds.length === 0) {
+      toast.error('Please select at least one student');
+      return;
+    }
+    if (!storyPrompt.trim()) {
+      toast.error('Please enter a story prompt');
+      return;
+    }
+    setStoryGenerating(true);
+    try {
+      // Show progress for each student
+      for (let i = 0; i < selectedStudentIds.length; i++) {
+        const s = students.find((st) => st.id === selectedStudentIds[i]);
+        setStoryProgress(`Generating for ${s?.full_name || 'student'}... (${i + 1}/${selectedStudentIds.length})`);
+      }
+      const response = await narrativeAPI.createBatch({
+        student_ids: selectedStudentIds,
+        prompt: storyPrompt.trim(),
+        bank_ids: [],
+      });
+      const data = response.data;
+      if (data.generated > 0) {
+        toast.success(`Stories generated for ${data.generated} student${data.generated > 1 ? 's' : ''}!`);
+      }
+      if (data.failed > 0) {
+        const failedNames = data.results.filter((r) => r.status === 'failed').map((r) => r.student_name).join(', ');
+        toast.error(`Failed for: ${failedNames}`);
+      }
+      setStoryDialogOpen(false);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Story generation failed');
+    } finally {
+      setStoryGenerating(false);
+      setStoryProgress('');
+    }
+  };
+
   const canAddMore = subscription && subscription.active_students < subscription.student_seats;
 
   if (studentsLoading) {
@@ -188,16 +265,29 @@ const StudentsTab = () => {
       {/* Add Student Button */}
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-black uppercase">Your Students</h2>
-        <BrutalButton
-          variant="emerald"
-          size="lg"
-          onClick={handleAddStudent}
-          disabled={!canAddMore}
-          className="flex items-center gap-2"
-        >
-          <Plus size={24} />
-          Add Student
-        </BrutalButton>
+        <div className="flex items-center gap-3">
+          {students.length > 0 && (
+            <BrutalButton
+              variant="indigo"
+              size="lg"
+              onClick={() => handleOpenStoryDialog()}
+              className="flex items-center gap-2"
+            >
+              <Sparkles size={24} />
+              Generate Story for Students
+            </BrutalButton>
+          )}
+          <BrutalButton
+            variant="emerald"
+            size="lg"
+            onClick={handleAddStudent}
+            disabled={!canAddMore}
+            className="flex items-center gap-2"
+          >
+            <Plus size={24} />
+            Add Student
+          </BrutalButton>
+        </div>
       </div>
 
       {!canAddMore && subscription && (
@@ -425,6 +515,18 @@ const StudentsTab = () => {
                 </BrutalButton>
 
                 <BrutalButton
+                  variant="emerald"
+                  size="sm"
+                  fullWidth
+                  onClick={() => handleOpenStoryDialog(student.id)}
+                  className="flex items-center justify-center gap-1"
+                  style={{ background: '#14b8a6', borderColor: '#0d9488' }}
+                >
+                  <Sparkles size={16} />
+                  Generate Story
+                </BrutalButton>
+
+                <BrutalButton
                   variant="amber"
                   size="sm"
                   fullWidth
@@ -488,6 +590,97 @@ const StudentsTab = () => {
               </div>
             </BrutalCard>
           ))}
+        </div>
+      )}
+
+      {/* Story Generation Dialog */}
+      {storyDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white border-4 border-black p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto shadow-[8px_8px_0_0_rgba(0,0,0,1)]">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-2xl font-black uppercase">Generate Story</h3>
+              <button onClick={() => setStoryDialogOpen(false)} className="p-1 hover:bg-gray-100 border-2 border-black">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Student Selection */}
+            <div className="mb-4">
+              <p className="font-bold uppercase text-sm mb-2">Select Students</p>
+              <label className="flex items-center gap-2 mb-2 cursor-pointer font-bold text-sm">
+                <input
+                  type="checkbox"
+                  checked={selectedStudentIds.length === students.length}
+                  onChange={handleSelectAll}
+                  className="w-5 h-5 accent-indigo-600"
+                />
+                Select All
+              </label>
+              <div className="space-y-1 max-h-40 overflow-y-auto border-2 border-black p-2">
+                {students.map((s) => (
+                  <label key={s.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-indigo-50">
+                    <input
+                      type="checkbox"
+                      checked={selectedStudentIds.includes(s.id)}
+                      onChange={() => handleToggleStudent(s.id)}
+                      className="w-5 h-5 accent-indigo-600"
+                    />
+                    <span className="font-bold">{s.full_name}</span>
+                    {s.grade_level && <span className="text-xs text-gray-500">(Grade {s.grade_level})</span>}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Story Prompt */}
+            <div className="mb-4">
+              <p className="font-bold uppercase text-sm mb-2">Story Prompt</p>
+              <textarea
+                value={storyPrompt}
+                onChange={(e) => setStoryPrompt(e.target.value)}
+                placeholder="Describe the story theme or idea..."
+                className="w-full border-4 border-black p-3 font-medium text-sm min-h-[80px] resize-y"
+              />
+            </div>
+
+            {/* Quick Ideas */}
+            <div className="mb-4">
+              <p className="font-bold uppercase text-xs mb-2 text-gray-600">Quick Ideas</p>
+              <div className="flex flex-wrap gap-2">
+                {quickIdeas.map((idea) => (
+                  <button
+                    key={idea}
+                    onClick={() => setStoryPrompt(idea)}
+                    className="text-xs font-bold px-3 py-1 border-2 border-black bg-indigo-50 hover:bg-indigo-100 transition-colors"
+                  >
+                    {idea}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Progress */}
+            {storyGenerating && storyProgress && (
+              <div className="mb-4 p-3 bg-indigo-50 border-2 border-indigo-300 font-bold text-sm text-indigo-800">
+                {storyProgress}
+              </div>
+            )}
+
+            {/* Generate Button */}
+            <BrutalButton
+              variant="indigo"
+              size="lg"
+              fullWidth
+              onClick={handleGenerateStories}
+              disabled={storyGenerating || selectedStudentIds.length === 0 || !storyPrompt.trim()}
+              className="flex items-center justify-center gap-2"
+            >
+              <Sparkles size={20} className={storyGenerating ? 'animate-spin' : ''} />
+              {storyGenerating
+                ? storyProgress || 'Generating...'
+                : `Generate Story for ${selectedStudentIds.length} Student${selectedStudentIds.length !== 1 ? 's' : ''}`}
+            </BrutalButton>
+          </div>
         </div>
       )}
 

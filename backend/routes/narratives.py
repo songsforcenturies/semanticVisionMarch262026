@@ -238,6 +238,57 @@ async def create_narrative(narrative_data: NarrativeCreate):
         raise HTTPException(status_code=500, detail=f"Story generation failed: {str(e)}")
 
 
+class NarrativeBatchCreate(BaseModel):
+    student_ids: List[str]
+    prompt: str
+    bank_ids: List[str] = []
+
+
+@router.post("/narratives/batch")
+async def create_narratives_batch(batch_data: NarrativeBatchCreate, current_user: dict = Depends(get_current_user)):
+    """Generate stories for one or multiple students at once."""
+    results = []
+    generated = 0
+    failed = 0
+
+    # Verify guardian owns all students (or user is admin)
+    is_admin = current_user.get("role") == "admin"
+    for sid in batch_data.student_ids:
+        student = await db.students.find_one({"id": sid}, {"_id": 0, "guardian_id": 1, "full_name": 1})
+        if not student:
+            raise HTTPException(status_code=404, detail=f"Student {sid} not found")
+        if not is_admin and student.get("guardian_id") != current_user["id"]:
+            raise HTTPException(status_code=403, detail=f"Not authorized for student {student.get('full_name', sid)}")
+
+    # Generate stories sequentially to avoid rate limits
+    for sid in batch_data.student_ids:
+        student = await db.students.find_one({"id": sid}, {"_id": 0})
+        student_name = student.get("full_name", sid) if student else sid
+        try:
+            # Determine bank_ids: use provided ones, or fall back to student's assigned banks
+            bank_ids = batch_data.bank_ids if batch_data.bank_ids else (student.get("assigned_banks") or [])
+            if not bank_ids:
+                results.append({"student_id": sid, "student_name": student_name, "narrative_id": None, "status": "failed", "error": "No word banks assigned"})
+                failed += 1
+                continue
+
+            narrative_create = NarrativeCreate(
+                student_id=sid,
+                prompt=batch_data.prompt,
+                bank_ids=bank_ids,
+            )
+            narrative = await create_narrative(narrative_create)
+            narrative_id = narrative.id if hasattr(narrative, "id") else (narrative.get("id") if isinstance(narrative, dict) else None)
+            results.append({"student_id": sid, "student_name": student_name, "narrative_id": narrative_id, "status": "success"})
+            generated += 1
+        except Exception as e:
+            logger.error(f"Batch story generation failed for student {sid}: {str(e)}")
+            results.append({"student_id": sid, "student_name": student_name, "narrative_id": None, "status": "failed", "error": str(e)})
+            failed += 1
+
+    return {"generated": generated, "failed": failed, "results": results}
+
+
 @router.get("/narratives")
 async def get_narratives(student_id: Optional[str] = None, include_archived: bool = False):
     """Get narratives, optionally filtered by student. Archived stories hidden by default."""

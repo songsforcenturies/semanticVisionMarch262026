@@ -120,6 +120,7 @@ export const wordBankAPI = {
 
 export const narrativeAPI = {
   create: (data) => apiClient.post('/narratives', data),
+  createBatch: (data) => apiClient.post('/narratives/batch', data),
   getAll: (studentId) => apiClient.get('/narratives', { params: { student_id: studentId } }),
   getById: (id) => apiClient.get(`/narratives/${id}`),
   delete: (id) => apiClient.delete(`/narratives/${id}`),
