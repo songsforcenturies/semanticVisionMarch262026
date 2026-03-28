@@ -9,7 +9,7 @@ import uuid, os, json as json_lib
 from database import db, logger, fs_bucket
 from bson import ObjectId
 from io import BytesIO
-from models import UserRole
+from models import UserRole, generate_uuid
 from auth import get_current_user, get_current_admin, get_current_guardian
 from services import send_email
 
