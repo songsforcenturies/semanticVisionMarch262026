@@ -122,18 +122,28 @@ const ReadAloudRecorder = ({ studentId, narrativeId, chapterNumber, onRecordingC
 
       const uploadRes = await recordingsAPI.upload(formData);
       const recordingId = uploadRes.data.id;
-      toast.success('Recording uploaded! Analyzing diction...');
+      toast.success('Recording saved!');
 
-      const analysisRes = await recordingsAPI.analyze(recordingId);
-      setResult(analysisRes.data);
-      toast.success('Diction analysis complete!');
-      if (onRecordingComplete) onRecordingComplete(analysisRes.data);
+      // Complete the recording requirement immediately after upload
+      // Analysis is optional — runs in background
+      setResult({ uploaded: true, recording_id: recordingId });
+      if (onRecordingComplete) onRecordingComplete({ uploaded: true, recording_id: recordingId, blob_url: mediaBlobUrl });
+
+      // Try diction analysis in background (non-blocking)
+      try {
+        const analysisRes = await recordingsAPI.analyze(recordingId);
+        setResult(analysisRes.data);
+        toast.success('Diction scores ready!');
+      } catch (analysisErr) {
+        // Analysis failed but recording is saved — that's OK
+        console.warn('Diction analysis unavailable:', analysisErr);
+      }
     } catch (err) {
-      toast.error('Upload or analysis failed. Please try again.');
+      toast.error('Upload failed. Please try again.');
     } finally {
       setAnalyzing(false);
     }
-  }, [mediaBlob, studentId, narrativeId, chapterNumber, mode, onRecordingComplete]);
+  }, [mediaBlob, studentId, narrativeId, chapterNumber, mode, onRecordingComplete, mediaBlobUrl]);
 
   const handleReRecord = () => {
     if (mediaBlobUrl) URL.revokeObjectURL(mediaBlobUrl);

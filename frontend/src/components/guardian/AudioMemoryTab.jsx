@@ -129,7 +129,7 @@ const AudioMemoryTab = () => {
                       {rec.diction_scores.overall}%
                     </BrutalBadge>
                   )}
-                  {rec.analysis_status === 'pending' && <BrutalBadge variant="amber" size="sm">Pending</BrutalBadge>}
+                  {rec.analysis_status === 'pending' && <BrutalBadge variant="indigo" size="sm">Saved</BrutalBadge>}
                   {!rec.shared_to_audiobooks && rec.analysis_status === 'completed' && (
                     <button onClick={() => contributeMut.mutate({ recording_id: rec.id, display_name: rec.student_name })}
                       className="flex items-center gap-1 px-2 py-1 text-xs font-bold rounded-lg transition-all bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
