@@ -205,8 +205,40 @@ const TTSPlayer = ({ chapterText, onWordChange, onPlayStateChange }) => {
 };
 
 const IllustrationPanel = ({ description }) => {
-  // Hidden until actual image generation is implemented
-  return null;
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  if (!description) return null;
+
+  // Use Pollinations.ai — free, no API key needed
+  const prompt = encodeURIComponent(description.slice(0, 300) + ', children book illustration, colorful, safe for kids, no text');
+  const imageUrl = `https://image.pollinations.ai/prompt/${prompt}?width=768&height=432&nologo=true`;
+
+  return (
+    <div className="rounded-xl mb-4 overflow-hidden" style={{ border: '1px solid rgba(212,168,83,0.2)' }}
+      data-testid="illustration-panel">
+      {!imageError ? (
+        <div className="relative">
+          {!imageLoaded && (
+            <div className="flex items-center justify-center py-8" style={{ background: 'rgba(212,168,83,0.05)' }}>
+              <div className="flex items-center gap-2">
+                <Loader2 size={16} className="animate-spin" style={{ color: C.gold }} />
+                <p className="text-xs font-bold" style={{ color: C.gold }}>Generating illustration...</p>
+              </div>
+            </div>
+          )}
+          <img
+            src={imageUrl}
+            alt="Story illustration"
+            className={`w-full rounded-xl ${imageLoaded ? 'block' : 'hidden'}`}
+            style={{ maxHeight: '300px', objectFit: 'cover' }}
+            onLoad={() => setImageLoaded(true)}
+            onError={() => setImageError(true)}
+          />
+        </div>
+      ) : null}
+    </div>
+  );
 };
 
 const NarrativeReader = ({ narrative, student, onClose }) => {
