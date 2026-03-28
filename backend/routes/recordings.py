@@ -52,7 +52,7 @@ async def upload_recording(
     # Save to GridFS instead of ephemeral filesystem
     gridfs_id = await fs_bucket.upload_from_stream(
         filename,
-        content,
+        BytesIO(content),
         metadata={"content_type": file.content_type, "recording_id": recording_id}
     )
 

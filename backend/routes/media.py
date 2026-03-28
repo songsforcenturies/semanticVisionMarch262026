@@ -120,9 +120,10 @@ async def upload_brand_media(
     filename = f"{media_id}.{ext}"
 
     # Save to GridFS instead of ephemeral filesystem
+    from io import BytesIO
     gridfs_id = await fs_bucket.upload_from_stream(
         filename,
-        contents,
+        BytesIO(contents),
         metadata={"content_type": file.content_type, "media_id": media_id}
     )
 
