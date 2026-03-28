@@ -93,8 +93,9 @@ async def upload_recording(
     }
     
     try:
-        await db.reading_recordings.insert_one({**recording, "_id": None})
-        await db.reading_recordings.update_one({"id": recording_id}, {"$unset": {"_id": ""}})
+        doc = {k: v for k, v in recording.items()}
+        doc.pop("_id", None)
+        await db.reading_recordings.insert_one(doc)
     except Exception as insert_err:
         logger.error(f"Failed to insert recording doc: {insert_err}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to save recording metadata: {str(insert_err)}")
@@ -111,8 +112,9 @@ async def upload_recording(
             "data": {"recording_id": recording_id, "student_id": student_id, "narrative_id": narrative_id},
             "created_date": datetime.now(timezone.utc).isoformat(),
         }
-        await db.messages.insert_one({**notification, "_id": None})
-        await db.messages.update_one({"id": notification["id"]}, {"$unset": {"_id": ""}})
+        notif_doc = {k: v for k, v in notification.items()}
+        notif_doc.pop("_id", None)
+        await db.messages.insert_one(notif_doc)
     except Exception as notify_err:
         logger.warning(f"Notification failed (non-fatal): {notify_err}")
     
