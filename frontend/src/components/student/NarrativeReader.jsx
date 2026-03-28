@@ -68,49 +68,71 @@ const InlineMediaPlayer = ({ mediaId, title, mediaPlacements = [], studentId }) 
   );
 };
 
-const TTS_VOICES = [
-  { value: 'alloy', label: 'Alex (neutral)' },
-  { value: 'echo', label: 'Eric (male)' },
-  { value: 'fable', label: 'Fiona (British)' },
-  { value: 'nova', label: 'Nova (female)' },
-  { value: 'onyx', label: 'Oscar (deep male)' },
-  { value: 'shimmer', label: 'Shana (soft female)' },
-];
 
-const TTSPlayer = ({ narrativeId, chapterNumber }) => {
-  const [voice, setVoice] = useState('nova');
+const TTSPlayer = ({ chapterText }) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [audioSrc, setAudioSrc] = useState(null);
-  const audioRef = React.useRef(null);
+  const [selectedVoice, setSelectedVoice] = useState('');
+  const [availableVoices, setAvailableVoices] = useState([]);
+  const [rate, setRate] = useState(0.9);
+  const utteranceRef = React.useRef(null);
 
-  const ttsUrl = `${API_BASE}/narratives/${narrativeId}/chapters/${chapterNumber}/tts?voice=${voice}`;
+  // Load browser voices
+  React.useEffect(() => {
+    const loadVoices = () => {
+      const voices = window.speechSynthesis?.getVoices() || [];
+      // Filter to English voices and prioritize good ones
+      const english = voices.filter(v => v.lang.startsWith('en'));
+      setAvailableVoices(english.length > 0 ? english : voices.slice(0, 10));
+      if (english.length > 0 && !selectedVoice) {
+        // Prefer Google or Microsoft voices
+        const preferred = english.find(v => v.name.includes('Google') || v.name.includes('Microsoft') || v.name.includes('Samantha'));
+        setSelectedVoice(preferred?.name || english[0]?.name || '');
+      }
+    };
+    loadVoices();
+    window.speechSynthesis?.addEventListener('voiceschanged', loadVoices);
+    return () => window.speechSynthesis?.removeEventListener('voiceschanged', loadVoices);
+  }, [selectedVoice]);
+
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => window.speechSynthesis?.cancel();
+  }, []);
+
+  // Stop when chapter changes
+  React.useEffect(() => {
+    window.speechSynthesis?.cancel();
+    setIsPlaying(false);
+  }, [chapterText]);
 
   const handlePlayPause = () => {
-    if (!audioRef.current) return;
+    if (!window.speechSynthesis) { toast.error('Text-to-speech not supported in this browser'); return; }
+
     if (isPlaying) {
-      audioRef.current.pause();
+      window.speechSynthesis.cancel();
       setIsPlaying(false);
-    } else {
-      setIsLoading(true);
-      setAudioSrc(ttsUrl);
-      audioRef.current.load();
-      audioRef.current.play()
-        .then(() => { setIsPlaying(true); setIsLoading(false); })
-        .catch(() => { setIsLoading(false); });
+      return;
     }
+
+    // Clean text: remove [MEDIA:...] tags
+    const cleanText = (chapterText || '').replace(/\[MEDIA:[^\]]+\]/g, '');
+    if (!cleanText.trim()) return;
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    const voice = availableVoices.find(v => v.name === selectedVoice);
+    if (voice) utterance.voice = voice;
+    utterance.rate = rate;
+    utterance.pitch = 1;
+    utterance.onend = () => setIsPlaying(false);
+    utterance.onerror = () => setIsPlaying(false);
+
+    utteranceRef.current = utterance;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+    setIsPlaying(true);
   };
 
-  // Reset when voice or chapter changes
-  React.useEffect(() => {
-    setIsPlaying(false);
-    setIsLoading(false);
-    setAudioSrc(null);
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
-  }, [voice, chapterNumber]);
+  if (!window.speechSynthesis) return null;
 
   return (
     <div className="p-3 rounded-xl mb-4" style={{ background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(56,189,248,0.2)' }}
@@ -121,25 +143,31 @@ const TTSPlayer = ({ narrativeId, chapterNumber }) => {
       </div>
       <div className="flex items-center gap-2 flex-wrap">
         <button onClick={handlePlayPause}
-          disabled={isLoading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-105 disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-105"
           style={{ background: isPlaying ? 'rgba(56,189,248,0.25)' : 'rgba(56,189,248,0.15)', color: C.teal, border: '1px solid rgba(56,189,248,0.3)' }}
           data-testid="tts-play-btn">
-          {isLoading ? <Loader2 size={14} className="animate-spin" /> : isPlaying ? <Pause size={14} /> : <Play size={14} />}
-          {isLoading ? 'Loading...' : isPlaying ? 'Pause' : 'Play'}
+          {isPlaying ? <Pause size={14} /> : <Play size={14} />}
+          {isPlaying ? 'Stop' : 'Read Aloud'}
         </button>
-        <select value={voice} onChange={(e) => setVoice(e.target.value)}
-          className="px-2 py-1.5 rounded-lg text-xs font-semibold"
-          style={{ background: 'rgba(255,255,255,0.06)', color: C.cream, border: '1px solid rgba(255,255,255,0.12)' }}
-          data-testid="tts-voice-select">
-          {TTS_VOICES.map(v => (
-            <option key={v.value} value={v.value} style={{ background: C.surface, color: C.cream }}>{v.label}</option>
-          ))}
-        </select>
+        {availableVoices.length > 0 && (
+          <select value={selectedVoice} onChange={(e) => { setSelectedVoice(e.target.value); window.speechSynthesis.cancel(); setIsPlaying(false); }}
+            className="px-2 py-1.5 rounded-lg text-xs font-semibold max-w-[160px]"
+            style={{ background: 'rgba(255,255,255,0.06)', color: C.cream, border: '1px solid rgba(255,255,255,0.12)' }}
+            data-testid="tts-voice-select">
+            {availableVoices.map(v => (
+              <option key={v.name} value={v.name} style={{ background: C.surface, color: C.cream }}>{v.name.replace(/Microsoft |Google /, '')}</option>
+            ))}
+          </select>
+        )}
+        <div className="flex items-center gap-1">
+          <span className="text-[10px] font-semibold" style={{ color: C.muted }}>Speed</span>
+          <input type="range" min="0.5" max="1.5" step="0.1" value={rate}
+            onChange={(e) => setRate(parseFloat(e.target.value))}
+            className="w-16 h-1 accent-cyan-400"
+            data-testid="tts-speed" />
+          <span className="text-[10px] font-mono" style={{ color: C.muted }}>{rate}x</span>
+        </div>
       </div>
-      <audio ref={audioRef} src={audioSrc} preload="none"
-        onEnded={() => setIsPlaying(false)}
-        onError={() => { setIsLoading(false); setIsPlaying(false); }} />
     </div>
   );
 };
@@ -363,7 +391,7 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
           </div>
 
           {/* Listen to Story - TTS Player */}
-          <TTSPlayer narrativeId={narrative.id} chapterNumber={currentChapter} />
+          <TTSPlayer narrativeId={narrative.id} chapterNumber={currentChapter} chapterText={chapter.content} />
 
           {/* Illustration Description */}
           <IllustrationPanel description={chapter.illustration_description} />
