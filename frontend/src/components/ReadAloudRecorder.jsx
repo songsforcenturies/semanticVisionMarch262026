@@ -96,54 +96,59 @@ const ReadAloudRecorder = ({ studentId, narrativeId, chapterNumber, onRecordingC
     }
   }, [mode, mediaBlobUrl, saveChunkLocally]);
 
+  // Background upload function — runs after recording stops
+  const uploadInBackground = useCallback((blob, blobUrl) => {
+    if (!blob) return;
+    setAnalyzing(true);
+
+    const ext = 'webm';
+    const file = new File([blob], `recording.${ext}`, { type: blob.type });
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('student_id', studentId);
+    formData.append('narrative_id', narrativeId);
+    formData.append('chapter_number', String(chapterNumber));
+    formData.append('recording_type', mode);
+
+    // Upload in background — don't block the student
+    recordingsAPI.upload(formData)
+      .then((uploadRes) => {
+        const recordingId = uploadRes.data.id;
+        setResult({ uploaded: true, recording_id: recordingId });
+        toast.success('Recording saved!', { duration: 2000 });
+
+        // Try diction analysis (optional, non-blocking)
+        recordingsAPI.analyze(recordingId).then((res) => {
+          setResult(res.data);
+        }).catch(() => {});
+      })
+      .catch(() => {
+        toast.error('Recording upload failed. It was saved locally — try again later.');
+      })
+      .finally(() => setAnalyzing(false));
+
+    // Unlock chapter IMMEDIATELY — don't wait for upload
+    if (onRecordingComplete) onRecordingComplete({ uploaded: true, blob_url: blobUrl });
+  }, [studentId, narrativeId, chapterNumber, mode, onRecordingComplete]);
+
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && recording) {
       mediaRecorderRef.current.stop();
       setRecording(false);
       if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
       if (autoSaveRef.current) { clearInterval(autoSaveRef.current); autoSaveRef.current = null; }
-      // Final save
       saveChunkLocally();
+
+      // Auto-upload in background after a short delay (let blob finalize)
+      setTimeout(() => {
+        const blob = new Blob(chunksRef.current, { type: mode === 'video' ? 'video/webm' : 'audio/webm' });
+        const url = URL.createObjectURL(blob);
+        setMediaBlob(blob);
+        setMediaBlobUrl(url);
+        uploadInBackground(blob, url);
+      }, 500);
     }
-  }, [recording, saveChunkLocally]);
-
-  const uploadAndAnalyze = useCallback(async () => {
-    if (!mediaBlob) return;
-    setAnalyzing(true);
-    try {
-      const ext = 'webm';
-      const file = new File([mediaBlob], `recording.${ext}`, { type: mediaBlob.type });
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('student_id', studentId);
-      formData.append('narrative_id', narrativeId);
-      formData.append('chapter_number', String(chapterNumber));
-      formData.append('recording_type', mode);
-
-      const uploadRes = await recordingsAPI.upload(formData);
-      const recordingId = uploadRes.data.id;
-      toast.success('Recording saved!');
-
-      // Complete the recording requirement immediately after upload
-      // Analysis is optional — runs in background
-      setResult({ uploaded: true, recording_id: recordingId });
-      if (onRecordingComplete) onRecordingComplete({ uploaded: true, recording_id: recordingId, blob_url: mediaBlobUrl });
-
-      // Try diction analysis in background (non-blocking)
-      try {
-        const analysisRes = await recordingsAPI.analyze(recordingId);
-        setResult(analysisRes.data);
-        toast.success('Diction scores ready!');
-      } catch (analysisErr) {
-        // Analysis failed but recording is saved — that's OK
-        console.warn('Diction analysis unavailable:', analysisErr);
-      }
-    } catch (err) {
-      toast.error('Upload failed. Please try again.');
-    } finally {
-      setAnalyzing(false);
-    }
-  }, [mediaBlob, studentId, narrativeId, chapterNumber, mode, onRecordingComplete, mediaBlobUrl]);
+  }, [recording, saveChunkLocally, mode, uploadInBackground]);
 
   const handleReRecord = () => {
     if (mediaBlobUrl) URL.revokeObjectURL(mediaBlobUrl);
@@ -235,20 +240,28 @@ const ReadAloudRecorder = ({ studentId, narrativeId, chapterNumber, onRecordingC
             </div>
           </>
         )}
-        {mediaBlob && !result && (
+        {mediaBlob && !recording && (
           <div className="flex items-center gap-2 flex-wrap">
-            <button onClick={uploadAndAnalyze} disabled={analyzing}
-              className="flex items-center gap-2 px-4 py-2.5 font-bold rounded-xl text-sm transition-all disabled:opacity-50"
-              style={{ background: 'rgba(52,211,153,0.15)', color: '#34D399', border: '1px solid rgba(52,211,153,0.3)' }}
-              data-testid="analyze-btn">
-              {analyzing ? <><Loader2 size={16} className="animate-spin" /> Analyzing...</> : <><CheckCircle size={16} /> Analyze Diction</>}
-            </button>
-            <button onClick={handleReRecord}
-              className="px-3 py-2.5 text-xs font-bold transition-all"
-              style={{ color: C.muted }}
-              data-testid="re-record-btn">
-              Re-record
-            </button>
+            {analyzing && (
+              <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg"
+                style={{ background: 'rgba(99,102,241,0.1)', color: '#818CF8' }}>
+                <Loader2 size={14} className="animate-spin" /> Uploading in background...
+              </span>
+            )}
+            {result && (
+              <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg"
+                style={{ background: 'rgba(52,211,153,0.15)', color: '#34D399' }}>
+                <CheckCircle size={14} /> Saved to Audio Memories
+              </span>
+            )}
+            {!analyzing && !result && (
+              <button onClick={handleReRecord}
+                className="px-3 py-2.5 text-xs font-bold transition-all"
+                style={{ color: C.muted }}
+                data-testid="re-record-btn">
+                Re-record
+              </button>
+            )}
           </div>
         )}
       </div>
