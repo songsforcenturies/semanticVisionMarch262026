@@ -6,7 +6,9 @@ from pydantic import BaseModel
 from datetime import datetime, timezone
 import uuid, os, json as json_lib
 
-from database import db, logger
+from database import db, logger, fs_bucket
+from bson import ObjectId
+from io import BytesIO
 from models import UserRole
 from auth import get_current_user, get_current_admin, get_current_guardian
 from services import send_email
@@ -25,41 +27,42 @@ async def upload_recording(
     current_user=Depends(get_current_user)
 ):
     """Upload a read-aloud audio or video recording"""
-    import aiofiles
-    
     allowed_audio = {"audio/webm", "audio/mp3", "audio/mpeg", "audio/wav", "audio/ogg", "audio/mp4", "audio/x-m4a"}
     allowed_video = {"video/webm", "video/mp4"}
     allowed = allowed_audio | allowed_video
-    
+
     if file.content_type not in allowed:
         raise HTTPException(status_code=400, detail=f"Unsupported file type: {file.content_type}")
-    
+
     student = await db.students.find_one({"id": student_id}, {"_id": 0})
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
-    
+
     narrative = await db.narratives.find_one({"id": narrative_id}, {"_id": 0})
     if not narrative:
         raise HTTPException(status_code=404, detail="Narrative not found")
-    
+
     ext = file.filename.split(".")[-1] if file.filename and "." in file.filename else "webm"
     recording_id = generate_uuid()
     filename = f"{recording_id}.{ext}"
-    filepath = f"/app/backend/uploads/recordings/{filename}"
-    
+
     content = await file.read()
     file_size = len(content)
-    
-    async with aiofiles.open(filepath, "wb") as f:
-        await f.write(content)
-    
+
+    # Save to GridFS instead of ephemeral filesystem
+    gridfs_id = await fs_bucket.upload_from_stream(
+        filename,
+        content,
+        metadata={"content_type": file.content_type, "recording_id": recording_id}
+    )
+
     chapter_text = ""
     if narrative and narrative.get("chapters"):
         for ch in narrative["chapters"]:
             if ch.get("number") == chapter_number:
                 chapter_text = ch.get("content", "")
                 break
-    
+
     recording = {
         "id": recording_id,
         "student_id": student_id,
@@ -70,7 +73,8 @@ async def upload_recording(
         "chapter_number": chapter_number,
         "chapter_text": chapter_text,
         "recording_type": recording_type,
-        "file_path": filepath,
+        "file_path": "",
+        "gridfs_id": str(gridfs_id),
         "file_name": filename,
         "file_size": file_size,
         "content_type": file.content_type,
@@ -111,16 +115,26 @@ async def analyze_recording(recording_id: str, current_user=Depends(get_current_
     if not recording:
         raise HTTPException(status_code=404, detail="Recording not found")
 
-    filepath = recording["file_path"]
     chapter_text = recording.get("chapter_text", "")
 
     try:
+        # Read file from GridFS (or fall back to filesystem for legacy recordings)
+        gridfs_id = recording.get("gridfs_id")
+        if gridfs_id:
+            grid_out = await fs_bucket.open_download_stream(ObjectId(gridfs_id))
+            file_bytes = await grid_out.read()
+            audio_file = BytesIO(file_bytes)
+            audio_file.name = recording.get("file_name", "recording.webm")
+        else:
+            filepath = recording["file_path"]
+            audio_file = open(filepath, "rb")
+
         client = OpenAI(
             base_url="https://openrouter.ai/api/v1",
             api_key=os.environ.get("OPENROUTER_API_KEY"),
         )
 
-        with open(filepath, "rb") as audio_file:
+        try:
             response = client.audio.transcriptions.create(
                 file=audio_file,
                 model="openai/whisper-1",
@@ -128,6 +142,8 @@ async def analyze_recording(recording_id: str, current_user=Depends(get_current_
                 language="en",
                 temperature=0.0,
             )
+        finally:
+            audio_file.close()
 
         transcribed_text = ""
         if hasattr(response, 'text'):
@@ -232,16 +248,33 @@ async def get_student_recordings(student_id: str, current_user=Depends(get_curre
 @router.get("/recordings/{recording_id}/stream")
 async def stream_recording(recording_id: str):
     """Stream a recording file"""
+    from starlette.responses import StreamingResponse
     from fastapi.responses import FileResponse
     recording = await db.reading_recordings.find_one({"id": recording_id}, {"_id": 0})
     if not recording:
         raise HTTPException(status_code=404, detail="Recording not found")
-    
-    filepath = recording["file_path"]
-    if not Path(filepath).exists():
-        raise HTTPException(status_code=404, detail="Recording file not found")
-    
-    return FileResponse(filepath, media_type=recording.get("content_type", "audio/webm"))
+
+    content_type = recording.get("content_type", "audio/webm")
+    gridfs_id = recording.get("gridfs_id")
+
+    if gridfs_id:
+        # Stream from GridFS
+        grid_out = await fs_bucket.open_download_stream(ObjectId(gridfs_id))
+
+        async def gridfs_iterator():
+            while True:
+                chunk = await grid_out.readchunk()
+                if not chunk:
+                    break
+                yield chunk
+
+        return StreamingResponse(gridfs_iterator(), media_type=content_type)
+    else:
+        # Legacy: stream from filesystem
+        filepath = recording.get("file_path", "")
+        if not filepath or not Path(filepath).exists():
+            raise HTTPException(status_code=404, detail="Recording file not found")
+        return FileResponse(filepath, media_type=content_type)
 
 
 @router.get("/recordings/guardian/all")
@@ -270,10 +303,19 @@ async def delete_recording(recording_id: str, current_user=Depends(get_current_u
     if recording["guardian_id"] != current_user["id"] and current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    filepath = recording.get("file_path", "")
-    if filepath and Path(filepath).exists():
-        Path(filepath).unlink()
-    
+    # Delete from GridFS if stored there
+    gridfs_id = recording.get("gridfs_id")
+    if gridfs_id:
+        try:
+            await fs_bucket.delete(ObjectId(gridfs_id))
+        except Exception as e:
+            logger.warning(f"Failed to delete GridFS file {gridfs_id}: {e}")
+    else:
+        # Legacy: delete from filesystem
+        filepath = recording.get("file_path", "")
+        if filepath and Path(filepath).exists():
+            Path(filepath).unlink()
+
     await db.reading_recordings.delete_one({"id": recording_id})
     await db.audio_books.delete_many({"recording_id": recording_id})
     return {"deleted": True}
@@ -357,9 +399,28 @@ async def stream_audio_book(book_id: str):
         raise HTTPException(status_code=404, detail="Recording not found")
     
     await db.audio_books.update_one({"id": book_id}, {"$inc": {"listens": 1}})
-    
-    from fastapi.responses import FileResponse
-    return FileResponse(recording["file_path"], media_type=recording.get("content_type", "audio/webm"))
+
+    content_type = recording.get("content_type", "audio/webm")
+    gridfs_id = recording.get("gridfs_id")
+
+    if gridfs_id:
+        from starlette.responses import StreamingResponse
+        grid_out = await fs_bucket.open_download_stream(ObjectId(gridfs_id))
+
+        async def gridfs_iterator():
+            while True:
+                chunk = await grid_out.readchunk()
+                if not chunk:
+                    break
+                yield chunk
+
+        return StreamingResponse(gridfs_iterator(), media_type=content_type)
+    else:
+        from fastapi.responses import FileResponse
+        filepath = recording.get("file_path", "")
+        if not filepath or not Path(filepath).exists():
+            raise HTTPException(status_code=404, detail="Recording file not found")
+        return FileResponse(filepath, media_type=content_type)
 
 
 @router.post("/audio-books/{book_id}/like")

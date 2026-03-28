@@ -1,5 +1,5 @@
 """Shared database connection and dependencies for all route modules."""
-from motor.motor_asyncio import AsyncIOMotorClient
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorGridFSBucket
 from pathlib import Path
 from dotenv import load_dotenv
 import os
@@ -19,5 +19,8 @@ client = AsyncIOMotorClient(
     tlsCAFile=certifi.where(),
 )
 db = client[os.environ['DB_NAME']]
+
+# GridFS for file storage (recordings, media)
+fs_bucket = AsyncIOMotorGridFSBucket(db, bucket_name="media_files")
 
 logger = logging.getLogger(__name__)

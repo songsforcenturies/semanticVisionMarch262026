@@ -6,7 +6,8 @@ from pydantic import BaseModel
 from datetime import datetime, timezone
 import uuid, os
 
-from database import db, logger
+from database import db, logger, fs_bucket
+from bson import ObjectId
 from auth import get_current_user, get_current_admin, get_current_guardian
 
 router = APIRouter()
@@ -73,34 +74,20 @@ async def get_storage_stats(current_user: dict = Depends(get_current_user)):
         if not user or not user.get("is_delegated_admin"):
             raise HTTPException(status_code=403, detail="Admin access required")
 
-    # Calculate total storage from recordings and media uploads
-    import os
-    recordings_dir = Path(__file__).parent / "uploads" / "recordings"
-    media_dir = MEDIA_UPLOAD_DIR
-    support_dir = Path(__file__).parent / "uploads" / "support"
-
-    def dir_size(path):
-        total = 0
-        if path.exists():
-            for f in path.rglob("*"):
-                if f.is_file():
-                    total += f.stat().st_size
-        return total
-
-    recordings_bytes = dir_size(recordings_dir)
-    media_bytes = dir_size(media_dir)
-    support_bytes = dir_size(support_dir)
-    total_bytes = recordings_bytes + media_bytes + support_bytes
-
-    # Count files
-    recordings_count = await db.recordings.count_documents({})
+    # Calculate storage from GridFS and MongoDB documents
+    recordings_count = await db.reading_recordings.count_documents({})
     media_count = await db.brand_media.count_documents({})
+
+    # Sum file sizes from GridFS metadata
+    pipeline = [{"$group": {"_id": None, "total": {"$sum": "$length"}}}]
+    gridfs_stats = await db["media_files.files"].aggregate(pipeline).to_list(1)
+    gridfs_bytes = gridfs_stats[0]["total"] if gridfs_stats else 0
+
+    total_bytes = gridfs_bytes
 
     return {
         "total_storage_mb": round(total_bytes / (1024 * 1024), 2),
-        "recordings_storage_mb": round(recordings_bytes / (1024 * 1024), 2),
-        "media_storage_mb": round(media_bytes / (1024 * 1024), 2),
-        "support_storage_mb": round(support_bytes / (1024 * 1024), 2),
+        "gridfs_storage_mb": round(gridfs_bytes / (1024 * 1024), 2),
         "recordings_count": recordings_count,
         "media_count": media_count,
     }
@@ -131,13 +118,16 @@ async def upload_brand_media(
     ext = file.filename.split(".")[-1] if "." in file.filename else "mp3"
     media_id = str(uuid.uuid4())
     filename = f"{media_id}.{ext}"
-    file_path = MEDIA_UPLOAD_DIR / filename
 
-    with open(file_path, "wb") as f:
-        f.write(contents)
+    # Save to GridFS instead of ephemeral filesystem
+    gridfs_id = await fs_bucket.upload_from_stream(
+        filename,
+        contents,
+        metadata={"content_type": file.content_type, "media_id": media_id}
+    )
 
     is_video = file.content_type.startswith("video/")
-    file_url = f"/api/media/stream/{filename}"
+    file_url = f"/api/media/gridfs/{media_id}"
 
     doc = {
         "id": media_id,
@@ -149,7 +139,9 @@ async def upload_brand_media(
         "file_url": file_url,
         "youtube_url": "",
         "filename": filename,
+        "gridfs_id": str(gridfs_id),
         "file_size": len(contents),
+        "content_type": file.content_type,
         "status": "approved",
         "price_per_stream": 0.00,
         "price_per_download": 0.99,
@@ -245,11 +237,19 @@ async def delete_brand_media(media_id: str, current_user: dict = Depends(get_cur
     media = await db.brand_media.find_one({"id": media_id}, {"_id": 0})
     if not media:
         raise HTTPException(status_code=404, detail="Media not found")
-    # Delete file if uploaded
-    if media.get("filename"):
-        file_path = MEDIA_UPLOAD_DIR / media["filename"]
-        if file_path.exists():
-            file_path.unlink()
+    # Delete from GridFS if stored there
+    gridfs_id = media.get("gridfs_id")
+    if gridfs_id:
+        try:
+            await fs_bucket.delete(ObjectId(gridfs_id))
+        except Exception as e:
+            logger.warning(f"Failed to delete GridFS file {gridfs_id}: {e}")
+    else:
+        # Legacy: delete from filesystem
+        if media.get("filename"):
+            file_path = MEDIA_UPLOAD_DIR / media["filename"]
+            if file_path.exists():
+                file_path.unlink()
     await db.brand_media.delete_one({"id": media_id})
     return {"message": "Media deleted"}
 
@@ -288,10 +288,11 @@ async def list_student_media(current_user: dict = Depends(get_current_user)):
 # ==================== MEDIA STREAMING ====================
 
 from fastapi.responses import FileResponse
+from starlette.responses import StreamingResponse
 
 @router.get("/media/stream/{filename}")
 async def stream_media(filename: str):
-    """Stream uploaded media file"""
+    """Stream uploaded media file (legacy filesystem fallback)"""
     file_path = MEDIA_UPLOAD_DIR / filename
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="Media file not found")
@@ -299,6 +300,30 @@ async def stream_media(filename: str):
     content_types = {"mp3": "audio/mpeg", "wav": "audio/wav", "ogg": "audio/ogg", "aac": "audio/aac",
                      "m4a": "audio/mp4", "mp4": "video/mp4", "webm": "video/webm"}
     return FileResponse(file_path, media_type=content_types.get(ext, "application/octet-stream"))
+
+
+@router.get("/media/gridfs/{media_id}")
+async def stream_media_gridfs(media_id: str):
+    """Stream media file from GridFS"""
+    media = await db.brand_media.find_one({"id": media_id}, {"_id": 0})
+    if not media:
+        raise HTTPException(status_code=404, detail="Media not found")
+
+    gridfs_id = media.get("gridfs_id")
+    if not gridfs_id:
+        raise HTTPException(status_code=404, detail="Media file not found in storage")
+
+    content_type = media.get("content_type", "application/octet-stream")
+    grid_out = await fs_bucket.open_download_stream(ObjectId(gridfs_id))
+
+    async def gridfs_iterator():
+        while True:
+            chunk = await grid_out.readchunk()
+            if not chunk:
+                break
+            yield chunk
+
+    return StreamingResponse(gridfs_iterator(), media_type=content_type)
 
 
 # ==================== STUDENT MEDIA LIBRARY ====================
