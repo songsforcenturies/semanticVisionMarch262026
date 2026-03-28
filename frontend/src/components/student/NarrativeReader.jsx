@@ -69,7 +69,7 @@ const InlineMediaPlayer = ({ mediaId, title, mediaPlacements = [], studentId }) 
 };
 
 
-const TTSPlayer = ({ chapterText }) => {
+const TTSPlayer = ({ chapterText, onWordChange, onPlayStateChange }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState('');
   const [availableVoices, setAvailableVoices] = useState([]);
@@ -103,7 +103,11 @@ const TTSPlayer = ({ chapterText }) => {
   React.useEffect(() => {
     window.speechSynthesis?.cancel();
     setIsPlaying(false);
+    onPlayStateChange?.(false);
+    onWordChange?.(-1);
   }, [chapterText]);
+
+  const wordIndexRef = React.useRef(0);
 
   const handlePlayPause = () => {
     if (!window.speechSynthesis) { toast.error('Text-to-speech not supported in this browser'); return; }
@@ -111,6 +115,8 @@ const TTSPlayer = ({ chapterText }) => {
     if (isPlaying) {
       window.speechSynthesis.cancel();
       setIsPlaying(false);
+      onPlayStateChange?.(false);
+      onWordChange?.(-1);
       return;
     }
 
@@ -118,18 +124,44 @@ const TTSPlayer = ({ chapterText }) => {
     const cleanText = (chapterText || '').replace(/\[MEDIA:[^\]]+\]/g, '');
     if (!cleanText.trim()) return;
 
+    // Build word offset map for boundary events
+    const words = cleanText.split(/\s+/);
+    let charOffset = 0;
+    const wordOffsets = words.map((w) => {
+      const idx = cleanText.indexOf(w, charOffset);
+      charOffset = idx + w.length;
+      return idx;
+    });
+
+    wordIndexRef.current = 0;
+
     const utterance = new SpeechSynthesisUtterance(cleanText);
     const voice = availableVoices.find(v => v.name === selectedVoice);
     if (voice) utterance.voice = voice;
     utterance.rate = rate;
     utterance.pitch = 1;
-    utterance.onend = () => setIsPlaying(false);
-    utterance.onerror = () => setIsPlaying(false);
+    utterance.onend = () => { setIsPlaying(false); onPlayStateChange?.(false); onWordChange?.(-1); };
+    utterance.onerror = () => { setIsPlaying(false); onPlayStateChange?.(false); onWordChange?.(-1); };
+
+    utterance.onboundary = (event) => {
+      if (event.name === 'word') {
+        // Find the word index based on char offset
+        const charPos = event.charIndex;
+        let idx = wordOffsets.findIndex((offset, i) => {
+          const nextOffset = i + 1 < wordOffsets.length ? wordOffsets[i + 1] : cleanText.length;
+          return charPos >= offset && charPos < nextOffset;
+        });
+        if (idx === -1) idx = wordIndexRef.current;
+        wordIndexRef.current = idx;
+        onWordChange?.(idx);
+      }
+    };
 
     utteranceRef.current = utterance;
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
     setIsPlaying(true);
+    onPlayStateChange?.(true);
   };
 
   if (!window.speechSynthesis) return null;
@@ -201,6 +233,10 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
   const [wordContext, setWordContext] = useState('');
   const [showRecorder, setShowRecorder] = useState(false);
   const [recordingDone, setRecordingDone] = useState(false);
+  const [recordingBlobUrl, setRecordingBlobUrl] = useState(null);
+  const [highlightedWordIndex, setHighlightedWordIndex] = useState(-1);
+  const readingPausedSecondsRef = React.useRef(0);
+  const ttsPauseStartRef = React.useRef(null);
 
   // Fetch parental controls
   const { data: parentalControls } = useQuery({
@@ -237,6 +273,8 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
   useEffect(() => {
     setRecordingDone(false);
     setRecordingStarted(false);
+    setRecordingBlobUrl(null);
+    setHighlightedWordIndex(-1);
   }, [currentChapter]);
 
   // Auto-save progress when chapter changes
@@ -285,10 +323,16 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
   });
 
   const handleFinishChapter = () => {
+    // If TTS is still playing when finishing, stop the pause timer
+    if (ttsPauseStartRef.current) {
+      readingPausedSecondsRef.current += (Date.now() - ttsPauseStartRef.current) / 1000;
+      ttsPauseStartRef.current = null;
+    }
     createReadLogMutation.mutate({
       student_id: student.id, narrative_id: narrative.id,
       chapter_number: currentChapter, session_start: sessionStart.toISOString(),
       session_end: new Date().toISOString(), words_read: chapter.word_count,
+      adjusted_reading_seconds: getAdjustedSeconds(),
     });
     setShowWrittenCheck(true);
   };
@@ -316,7 +360,17 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
     }
   };
 
-  const calculateWPM = () => (elapsedSeconds === 0 ? 0 : Math.round(chapter.word_count / (elapsedSeconds / 60)));
+  const getAdjustedSeconds = () => Math.max(1, elapsedSeconds - readingPausedSecondsRef.current);
+  const calculateWPM = () => (elapsedSeconds === 0 ? 0 : Math.round(chapter.word_count / (getAdjustedSeconds() / 60)));
+
+  const handleTTSPlayStateChange = (isNowPlaying) => {
+    if (isNowPlaying) {
+      ttsPauseStartRef.current = Date.now();
+    } else if (ttsPauseStartRef.current) {
+      readingPausedSecondsRef.current += (Date.now() - ttsPauseStartRef.current) / 1000;
+      ttsPauseStartRef.current = null;
+    }
+  };
   const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
   if (showAssessment) {
@@ -391,7 +445,8 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
           </div>
 
           {/* Listen to Story - TTS Player */}
-          <TTSPlayer narrativeId={narrative.id} chapterNumber={currentChapter} chapterText={chapter.content} />
+          <TTSPlayer narrativeId={narrative.id} chapterNumber={currentChapter} chapterText={chapter.content}
+            onWordChange={setHighlightedWordIndex} onPlayStateChange={handleTTSPlayStateChange} />
 
           {/* Illustration Description */}
           <IllustrationPanel description={chapter.illustration_description} />
@@ -479,9 +534,19 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
                   requiredMode={mustRecord ? controls.recording_mode : null}
                   onRecordingComplete={(result) => {
                     setRecordingDone(true);
+                    if (result.blob_url) setRecordingBlobUrl(result.blob_url);
                     toast.success(`Diction score: ${result.diction_scores?.overall}%`);
                   }}
                 />
+              </div>
+            )}
+
+            {/* Recording playback after completion */}
+            {recordingDone && recordingBlobUrl && (
+              <div className="mt-3 p-3 rounded-xl" style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.25)' }}
+                data-testid="recording-playback">
+                <p className="text-xs font-bold mb-2" style={{ color: '#34D399' }}>Your Recording</p>
+                <audio controls src={recordingBlobUrl} className="w-full h-8" style={{ filter: 'invert(0.85)' }} />
               </div>
             )}
           </div>
@@ -493,37 +558,51 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
             pointerEvents: mustRecord && !controls.can_skip_recording && !recordingStarted ? 'none' : 'auto',
           }}>
             <div className="text-base sm:text-lg leading-[1.8] sm:leading-[1.9] font-medium" style={{ color: C.reading }}>
-              {chapter.content.split(/(\[MEDIA:[^\]]+\])/).map((part, pIdx) => {
-                // Check for media tag [MEDIA:id:title]
-                const mediaMatch = part.match(/^\[MEDIA:([^:]+):([^\]]+)\]$/);
-                if (mediaMatch) {
-                  return <InlineMediaPlayer key={`media-${pIdx}`} mediaId={mediaMatch[1]} title={mediaMatch[2]}
-                    mediaPlacements={narrative.media_placements || []} studentId={student?.id} />;
-                }
-                // Regular text — render words with click-to-define
-                return <React.Fragment key={`part-${pIdx}`}>{part.split(/(\s+)/).map((segment, idx) => {
-                  const cleanWord = segment.replace(/[^a-zA-Z'-]/g, '');
-                  if (!cleanWord || cleanWord.length < 2) return <span key={idx}>{segment}</span>;
-                  return (
-                    <span key={idx}
-                      className="cursor-pointer transition-colors rounded px-[1px]"
-                      style={{ borderBottom: '1px solid transparent' }}
-                      onMouseEnter={(e) => { e.target.style.borderBottomColor = C.gold; e.target.style.color = C.gold; }}
-                      onMouseLeave={(e) => { e.target.style.borderBottomColor = 'transparent'; e.target.style.color = C.reading; }}
-                      onClick={() => {
-                        setSelectedWord(cleanWord);
-                        const words = chapter.content.split(/\s+/);
-                        const wIdx = words.findIndex((w) => w.includes(cleanWord));
-                        const start = Math.max(0, wIdx - 5);
-                        const end = Math.min(words.length, wIdx + 6);
-                        setWordContext(words.slice(start, end).join(' '));
-                      }}
-                      data-testid={`word-${idx}`}>
-                      {segment}
-                    </span>
-                  );
-                })}</React.Fragment>;
-              })}
+              {(() => {
+                // Build a global word index counter for TTS highlighting
+                // Clean text words (same as TTS uses) for matching
+                const cleanTextForTTS = (chapter.content || '').replace(/\[MEDIA:[^\]]+\]/g, '');
+                const ttsWords = cleanTextForTTS.split(/\s+/).filter(Boolean);
+                let globalWordIdx = 0;
+
+                return chapter.content.split(/(\[MEDIA:[^\]]+\])/).map((part, pIdx) => {
+                  // Check for media tag [MEDIA:id:title]
+                  const mediaMatch = part.match(/^\[MEDIA:([^:]+):([^\]]+)\]$/);
+                  if (mediaMatch) {
+                    return <InlineMediaPlayer key={`media-${pIdx}`} mediaId={mediaMatch[1]} title={mediaMatch[2]}
+                      mediaPlacements={narrative.media_placements || []} studentId={student?.id} />;
+                  }
+                  // Regular text — render words with click-to-define and TTS highlighting
+                  return <React.Fragment key={`part-${pIdx}`}>{part.split(/(\s+)/).map((segment, idx) => {
+                    const cleanWord = segment.replace(/[^a-zA-Z'-]/g, '');
+                    if (!cleanWord || cleanWord.length < 2) return <span key={idx}>{segment}</span>;
+                    const thisWordIdx = globalWordIdx++;
+                    const isHighlighted = highlightedWordIndex >= 0 && thisWordIdx === highlightedWordIndex;
+                    return (
+                      <span key={idx}
+                        className="cursor-pointer transition-colors rounded px-[1px]"
+                        style={{
+                          borderBottom: '1px solid transparent',
+                          background: isHighlighted ? 'rgba(212,168,83,0.35)' : 'transparent',
+                          borderRadius: isHighlighted ? '3px' : undefined,
+                        }}
+                        onMouseEnter={(e) => { e.target.style.borderBottomColor = C.gold; e.target.style.color = C.gold; }}
+                        onMouseLeave={(e) => { e.target.style.borderBottomColor = 'transparent'; e.target.style.color = isHighlighted ? C.gold : C.reading; }}
+                        onClick={() => {
+                          setSelectedWord(cleanWord);
+                          const words = chapter.content.split(/\s+/);
+                          const wIdx = words.findIndex((w) => w.includes(cleanWord));
+                          const start = Math.max(0, wIdx - 5);
+                          const end = Math.min(words.length, wIdx + 6);
+                          setWordContext(words.slice(start, end).join(' '));
+                        }}
+                        data-testid={`word-${idx}`}>
+                        {segment}
+                      </span>
+                    );
+                  })}</React.Fragment>;
+                });
+              })()}
             </div>
             <p className="text-xs mt-3 italic" style={{ color: C.muted }}>Tap any word to see its definition</p>
           </div>
@@ -561,8 +640,8 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
               <button onClick={handleFinishChapter}
                 disabled={mustRecord && !recordingDone && !controls.can_skip_recording}
                 className="w-full py-3 sm:py-3.5 rounded-xl text-sm sm:text-base font-bold text-black transition-all hover:scale-[1.01] disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` }} data-testid="finish-chapter-btn">
-                <CheckCircle size={16} className="inline mr-2" /> Finish Chapter & Answer Question
+                style={{ background: recordingDone ? 'linear-gradient(135deg, #34D399, #6EE7B7)' : `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`, fontWeight: recordingDone ? 900 : 700 }} data-testid="finish-chapter-btn">
+                <CheckCircle size={16} className="inline mr-2" /> {recordingDone ? 'Continue to Next Chapter' : 'Finish Chapter & Answer Question'}
               </button>
             )}
             {isChapterCompleted && (

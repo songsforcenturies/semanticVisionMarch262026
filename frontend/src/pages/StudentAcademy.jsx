@@ -268,7 +268,12 @@ const StudentAcademy = () => {
                     style={{ background: C.card, border: '1px solid rgba(255,255,255,0.08)' }}
                     onClick={() => setSelectedNarrative(narrative)}>
                     <h3 className="text-sm sm:text-base font-bold mb-1" style={{ color: C.cream }}>{narrative.title}</h3>
-                    <p className="text-xs mb-3 sm:mb-4 line-clamp-2" style={{ color: C.muted }}>{narrative.theme}</p>
+                    <p className="text-xs mb-1 line-clamp-2" style={{ color: C.muted }}>{narrative.theme}</p>
+                    {narrative.created_date && (
+                      <p className="text-xs mb-3 sm:mb-4" style={{ color: C.muted }}>
+                        Created: {new Date(narrative.created_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </p>
+                    )}
                     <div className="mb-3">
                       <div className="flex justify-between text-xs mb-1" style={{ color: C.muted }}>
                         <span>Progress</span>

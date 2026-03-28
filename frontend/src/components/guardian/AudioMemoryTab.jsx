@@ -46,8 +46,15 @@ const AudioMemoryTab = () => {
     }
     if (audioEl) audioEl.pause();
     const audio = new Audio(`${API_BASE}/api/recordings/${id}/stream`);
-    audio.play();
+    audio.onerror = () => {
+      setPlaying(null);
+      toast.error('Recording not available — it may need to be re-recorded');
+    };
     audio.onended = () => setPlaying(null);
+    audio.play().catch(() => {
+      setPlaying(null);
+      toast.error('Recording not available — it may need to be re-recorded');
+    });
     setAudioEl(audio);
     setPlaying(id);
   };
