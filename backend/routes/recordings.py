@@ -27,34 +27,40 @@ async def upload_recording(
     current_user=Depends(get_current_user)
 ):
     """Upload a read-aloud audio or video recording"""
-    allowed_audio = {"audio/webm", "audio/mp3", "audio/mpeg", "audio/wav", "audio/ogg", "audio/mp4", "audio/x-m4a"}
-    allowed_video = {"video/webm", "video/mp4"}
-    allowed = allowed_audio | allowed_video
+    try:
+        allowed_audio = {"audio/webm", "audio/mp3", "audio/mpeg", "audio/wav", "audio/ogg", "audio/mp4", "audio/x-m4a"}
+        allowed_video = {"video/webm", "video/mp4"}
+        allowed = allowed_audio | allowed_video
 
-    if file.content_type not in allowed:
-        raise HTTPException(status_code=400, detail=f"Unsupported file type: {file.content_type}")
+        if file.content_type not in allowed:
+            raise HTTPException(status_code=400, detail=f"Unsupported file type: {file.content_type}")
 
-    student = await db.students.find_one({"id": student_id}, {"_id": 0})
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
+        student = await db.students.find_one({"id": student_id}, {"_id": 0})
+        if not student:
+            raise HTTPException(status_code=404, detail="Student not found")
 
-    narrative = await db.narratives.find_one({"id": narrative_id}, {"_id": 0})
-    if not narrative:
-        raise HTTPException(status_code=404, detail="Narrative not found")
+        narrative = await db.narratives.find_one({"id": narrative_id}, {"_id": 0})
+        if not narrative:
+            raise HTTPException(status_code=404, detail="Narrative not found")
 
-    ext = file.filename.split(".")[-1] if file.filename and "." in file.filename else "webm"
-    recording_id = generate_uuid()
-    filename = f"{recording_id}.{ext}"
+        ext = file.filename.split(".")[-1] if file.filename and "." in file.filename else "webm"
+        recording_id = str(uuid.uuid4())
+        filename = f"{recording_id}.{ext}"
 
-    content = await file.read()
-    file_size = len(content)
+        content = await file.read()
+        file_size = len(content)
 
-    # Save to GridFS instead of ephemeral filesystem
-    gridfs_id = await fs_bucket.upload_from_stream(
-        filename,
-        BytesIO(content),
-        metadata={"content_type": file.content_type, "recording_id": recording_id}
-    )
+        # Save to GridFS instead of ephemeral filesystem
+        gridfs_id = await fs_bucket.upload_from_stream(
+            filename,
+            BytesIO(content),
+            metadata={"content_type": file.content_type, "recording_id": recording_id}
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Recording upload failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
     chapter_text = ""
     if narrative and narrative.get("chapters"):
@@ -91,7 +97,7 @@ async def upload_recording(
     
     # Notify parent that a new audio memory was created
     notification = {
-        "id": generate_uuid(),
+        "id": str(uuid.uuid4()),
         "user_id": current_user["id"],
         "type": "audio_memory",
         "title": "New Audio Memory",
@@ -339,7 +345,7 @@ async def contribute_to_audiobooks(data: dict = Body(...), current_user=Depends(
     auto_approve = settings.get("value", {}).get("auto_approve", False) if settings else False
     
     audio_book = {
-        "id": generate_uuid(),
+        "id": str(uuid.uuid4()),
         "recording_id": recording_id,
         "narrative_id": recording["narrative_id"],
         "narrative_title": recording.get("narrative_title", ""),
