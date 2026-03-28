@@ -205,20 +205,8 @@ const TTSPlayer = ({ chapterText, onWordChange, onPlayStateChange }) => {
 };
 
 const IllustrationPanel = ({ description }) => {
-  if (!description) return null;
-  return (
-    <div className="p-3 rounded-xl mb-4" style={{ background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(212,168,83,0.2)' }}
-      data-testid="illustration-panel">
-      <div className="flex items-center gap-2 mb-2">
-        <Image size={16} style={{ color: C.gold }} />
-        <p className="text-xs font-bold uppercase" style={{ color: C.gold }}>Scene Illustration</p>
-      </div>
-      <div className="p-3 rounded-lg" style={{ background: 'rgba(212,168,83,0.05)', border: '1px dashed rgba(212,168,83,0.3)' }}>
-        <p className="text-sm italic leading-relaxed" style={{ color: C.goldLight }}>{description}</p>
-        <p className="text-[10px] mt-2" style={{ color: C.muted }}>AI-generated scene description — illustration coming soon</p>
-      </div>
-    </div>
-  );
+  // Hidden until actual image generation is implemented
+  return null;
 };
 
 const NarrativeReader = ({ narrative, student, onClose }) => {
