@@ -465,9 +465,9 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
               <div key={char.id || idx} className="p-3 rounded-lg mb-2" style={{ background: '#f5f3ee', border: '1px solid #e8e5de' }}>
                 <div className="flex gap-2 mb-2">
                   <input value={char.name} onChange={(e) => { const c = [...lifeCharacters]; c[idx].name = e.target.value; setLifeCharacters(c); }}
-                    placeholder="Name" className="flex-1 px-2 py-1.5 rounded text-sm border border-gray-300 font-bold" />
+                    placeholder="Name" className="flex-1 px-2 py-1.5 rounded text-sm border border-gray-300 font-bold text-gray-900" />
                   <select value={char.relationship} onChange={(e) => { const c = [...lifeCharacters]; c[idx].relationship = e.target.value; setLifeCharacters(c); }}
-                    className="px-2 py-1.5 rounded text-xs border border-gray-300">
+                    className="px-2 py-1.5 rounded text-xs border border-gray-300 text-gray-900">
                     <option value="brother_sister">Brother/Sister</option>
                     <option value="best_friend">Best Friend</option>
                     <option value="classmate">Classmate</option>
@@ -490,7 +490,7 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
                     </button>
                   ))}
                   <select value={char.influence_level} onChange={(e) => { const c = [...lifeCharacters]; c[idx].influence_level = e.target.value; setLifeCharacters(c); }}
-                    className="px-2 py-1 rounded text-[10px] border border-gray-300 ml-auto">
+                    className="px-2 py-1 rounded text-[10px] border border-gray-300 ml-auto text-gray-900">
                     <option value="low">Low influence</option>
                     <option value="medium">Medium influence</option>
                     <option value="high">High influence</option>
@@ -498,7 +498,7 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
                 </div>
                 <textarea value={char.description} onChange={(e) => { const c = [...lifeCharacters]; c[idx].description = e.target.value; setLifeCharacters(c); }}
                   placeholder="Brief description (e.g., 'A boy in SJ's class who teases him about reading')"
-                  className="w-full px-2 py-1.5 rounded text-xs border border-gray-300 resize-none" rows={2} />
+                  className="w-full px-2 py-1.5 rounded text-xs border border-gray-300 resize-none text-gray-900" rows={2} />
               </div>
             ))}
             {lifeCharacters.length === 0 && <p className="text-xs italic" style={{ color: '#b0aba4' }}>No characters added yet</p>}
@@ -517,9 +517,9 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
               <div key={lesson.id || idx} className="p-3 rounded-lg mb-2" style={{ background: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.2)' }}>
                 <div className="flex gap-2 mb-2">
                   <input value={lesson.topic} onChange={(e) => { const l = [...lifeLessons]; l[idx].topic = e.target.value; setLifeLessons(l); }}
-                    placeholder="Topic (e.g., Dealing with bullies)" className="flex-1 px-2 py-1.5 rounded text-sm border border-gray-300 font-bold" />
+                    placeholder="Topic (e.g., Dealing with bullies)" className="flex-1 px-2 py-1.5 rounded text-sm border border-gray-300 font-bold text-gray-900" />
                   <select value={lesson.character_name} onChange={(e) => { const l = [...lifeLessons]; l[idx].character_name = e.target.value; setLifeLessons(l); }}
-                    className="px-2 py-1.5 rounded text-xs border border-gray-300">
+                    className="px-2 py-1.5 rounded text-xs border border-gray-300 text-gray-900">
                     <option value="">Related to...</option>
                     {lifeCharacters.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                     <option value="general">General life lesson</option>
@@ -529,14 +529,14 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
                 </div>
                 <textarea value={lesson.problem} onChange={(e) => { const l = [...lifeLessons]; l[idx].problem = e.target.value; setLifeLessons(l); }}
                   placeholder="The problem (e.g., Marcus teases SJ about reading and calls him a nerd)"
-                  className="w-full px-2 py-1.5 rounded text-xs border border-gray-300 resize-none mb-2" rows={2} />
+                  className="w-full px-2 py-1.5 rounded text-xs border border-gray-300 resize-none mb-2 text-gray-900" rows={2} />
                 <textarea value={lesson.parent_solution} onChange={(e) => { const l = [...lifeLessons]; l[idx].parent_solution = e.target.value; setLifeLessons(l); }}
                   placeholder="Your solution — what you want your child to learn (e.g., Stand tall, look them in the eye, and say 'I'm proud of being smart.' Then walk away.)"
-                  className="w-full px-2 py-1.5 rounded text-xs border border-gray-300 resize-none mb-2" rows={3}
+                  className="w-full px-2 py-1.5 rounded text-xs border border-gray-300 resize-none mb-2 text-gray-900" rows={3}
                   style={{ background: 'rgba(212,168,83,0.08)' }} />
                 <div className="flex items-center gap-2">
                   <select value={lesson.delivery_method} onChange={(e) => { const l = [...lifeLessons]; l[idx].delivery_method = e.target.value; setLifeLessons(l); }}
-                    className="px-2 py-1.5 rounded text-[10px] border border-gray-300 flex-1">
+                    className="px-2 py-1.5 rounded text-[10px] border border-gray-300 flex-1 text-gray-900">
                     <option value="mentor_character">Through a wise mentor character</option>
                     <option value="friend_advice">Through a friend's advice</option>
                     <option value="story_moral">Through the story's events</option>
