@@ -11,21 +11,7 @@ from auth import get_current_admin
 router = APIRouter()
 
 # Collections to always back up (all app data)
-BACKUP_COLLECTIONS = [
-    "users", "students", "subscriptions", "subscription_plans",
-    "word_banks", "narratives", "assessments", "read_logs",
-    "brands", "brand_campaigns", "brand_impressions", "brand_media", "brand_offers", "brandoffers",
-    "affiliates", "affiliate_referrals", "affiliate_payouts",
-    "coupons", "coupon_redemptions",
-    "payment_transactions", "wallet_transactions", "donations",
-    "cost_logs", "system_config",
-    "classroom_sessions", "classroom_sponsorships",
-    "admin_messages", "support_tickets", "support_sessions",
-    "referrals", "referral_contests",
-    "spelling_contests", "spelling_submissions",
-    "session_logs", "user_offer_preferences",
-    "email_verifications", "password_resets",
-]
+BACKUP_COLLECTIONS = None  # None = backup ALL collections dynamically
 
 
 class MongoJSONEncoder(json.JSONEncoder):
@@ -72,8 +58,12 @@ async def download_backup(
         "collections": {},
     }
 
+    # Dynamically get ALL collections (skip GridFS chunks — those are binary data)
+    all_collections = await db.list_collection_names()
+    collections_to_backup = sorted([c for c in all_collections if not c.endswith('.chunks')])
+
     total_docs = 0
-    for collection_name in BACKUP_COLLECTIONS:
+    for collection_name in collections_to_backup:
         try:
             collection = db[collection_name]
             docs = await collection.find({}).to_list(100000)
@@ -115,9 +105,12 @@ async def backup_info(current_user: dict = Depends(get_current_admin)):
     default_name = _default_backup_filename()
 
     # Estimate size by counting documents and approximating bytes per doc
+    all_collections = await db.list_collection_names()
+    collections_to_check = sorted([c for c in all_collections if not c.endswith('.chunks')])
+
     total_docs = 0
     collection_counts = {}
-    for collection_name in BACKUP_COLLECTIONS:
+    for collection_name in collections_to_check:
         try:
             count = await db[collection_name].count_documents({})
             if count > 0:
@@ -126,7 +119,6 @@ async def backup_info(current_user: dict = Depends(get_current_admin)):
         except Exception:
             pass
 
-    # Rough estimate: ~500 bytes per document on average (JSON with indent)
     estimated_bytes = total_docs * 500
     if estimated_bytes < 1024:
         size_display = f"{estimated_bytes} B"
@@ -141,15 +133,19 @@ async def backup_info(current_user: dict = Depends(get_current_admin)):
         "estimated_size_display": size_display,
         "total_documents": total_docs,
         "total_collections": len(collection_counts),
+        "collections": collection_counts,
     }
 
 
 @router.get("/admin/backup/status")
 async def backup_status(current_user: dict = Depends(get_current_admin)):
     """Get current database stats for backup preview."""
+    all_collections = await db.list_collection_names()
+    collections_to_check = sorted([c for c in all_collections if not c.endswith('.chunks')])
+
     stats = {}
     total = 0
-    for collection_name in BACKUP_COLLECTIONS:
+    for collection_name in collections_to_check:
         try:
             count = await db[collection_name].count_documents({})
             if count > 0:
