@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { parentalControlsAPI } from '@/lib/api';
 import api from '@/lib/api';
-import { BrutalCard, BrutalButton } from '@/components/brutal';
+import { BrutalButton } from '@/components/brutal';
 import { Shield, Mic, Video, Clock, ToggleLeft, ToggleRight, ChevronDown, ChevronUp, Save, Headphones, BookOpen, Music, Image, Volume2, Sparkles, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -31,7 +31,6 @@ const LEARNING_SUPPORT_OPTIONS = [
 const ParentalControlsPanel = ({ studentId, studentName }) => {
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
-  const [tdjakesExpanded, setTdjakesExpanded] = useState(false);
   const [controls, setControls] = useState(null);
   const [assessmentMode, setAssessmentMode] = useState('written');
   const [accessibilityNeeds, setAccessibilityNeeds] = useState([]);
@@ -41,8 +40,6 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
   const [illustrationStyle, setIllustrationStyle] = useState('storybook');
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const [storyLanguage, setStoryLanguage] = useState('en');
-  const [lifeCharacters, setLifeCharacters] = useState([]);
-  const [lifeLessons, setLifeLessons] = useState([]);
 
   const { data: savedControls } = useQuery({
     queryKey: ['parental-controls', studentId],
@@ -71,8 +68,6 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
       setIllustrationStyle(studentData.illustration_style || 'storybook');
       setTtsEnabled(studentData.tts_enabled !== false);
       setStoryLanguage(studentData.language || 'en');
-      setLifeCharacters(studentData.life_characters || []);
-      setLifeLessons(studentData.life_lessons || []);
     }
   }, [studentData]);
 
@@ -105,8 +100,6 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
       illustration_style: illustrationStyle,
       tts_enabled: ttsEnabled,
       language: storyLanguage,
-      life_characters: lifeCharacters,
-      life_lessons: lifeLessons,
     });
   };
 
@@ -435,131 +428,6 @@ const ParentalControlsPanel = ({ studentId, studentName }) => {
         </div>
       )}
 
-      {/* ===== TDJAKES OPTION — Separate expandable section ===== */}
-      <button onClick={() => setTdjakesExpanded(!tdjakesExpanded)}
-        className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm font-bold transition-all mt-2"
-        style={{ background: 'rgba(212,168,83,0.15)', color: '#92700C', border: '1px solid rgba(212,168,83,0.3)' }}>
-        <div className="flex items-center gap-2">
-          <Sparkles size={14} />
-          Life Characters & Lessons (TDJakes Option)
-        </div>
-        {tdjakesExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-      </button>
-
-      {tdjakesExpanded && (
-        <div className="mt-2 p-4 rounded-lg" style={{ background: '#faf8f3', border: '1px solid rgba(212,168,83,0.2)' }}>
-          <p className="text-xs mb-4" style={{ color: '#8c8780' }}>
-            Add real people in your child's life and life lessons you want woven into stories. The AI will deliver your wisdom through trusted story characters — so your child absorbs the lesson naturally.
-          </p>
-
-          {/* Characters */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-bold uppercase" style={{ color: '#6366f1' }}>People in {studentName}'s Life</p>
-              <button onClick={() => setLifeCharacters([...lifeCharacters, { id: Date.now().toString(), name: '', relationship: 'classmate', relationship_type: 'neutral', description: '', influence_level: 'medium' }])}
-                className="text-[10px] font-bold px-2 py-1 rounded bg-indigo-100 text-indigo-700 hover:bg-indigo-200">
-                + Add Person
-              </button>
-            </div>
-            {lifeCharacters.map((char, idx) => (
-              <div key={char.id || idx} className="p-3 rounded-lg mb-2" style={{ background: '#f5f3ee', border: '1px solid #e8e5de' }}>
-                <div className="flex gap-2 mb-2">
-                  <input value={char.name} onChange={(e) => { const c = [...lifeCharacters]; c[idx].name = e.target.value; setLifeCharacters(c); }}
-                    placeholder="Name" className="flex-1 px-2 py-1.5 rounded text-sm border border-gray-300 font-bold text-gray-900" />
-                  <select value={char.relationship} onChange={(e) => { const c = [...lifeCharacters]; c[idx].relationship = e.target.value; setLifeCharacters(c); }}
-                    className="px-2 py-1.5 rounded text-xs border border-gray-300 text-gray-900">
-                    <option value="brother_sister">Brother/Sister</option>
-                    <option value="best_friend">Best Friend</option>
-                    <option value="classmate">Classmate</option>
-                    <option value="bully">Bully</option>
-                    <option value="teacher">Teacher</option>
-                    <option value="coach">Coach</option>
-                    <option value="neighbor">Neighbor</option>
-                    <option value="cousin">Cousin</option>
-                    <option value="online_friend">Online Friend</option>
-                    <option value="other">Other</option>
-                  </select>
-                  <button onClick={() => setLifeCharacters(lifeCharacters.filter((_, i) => i !== idx))}
-                    className="text-red-500 text-xs font-bold hover:text-red-700">✕</button>
-                </div>
-                <div className="flex gap-2 mb-2">
-                  {['positive', 'neutral', 'negative'].map(t => (
-                    <button key={t} onClick={() => { const c = [...lifeCharacters]; c[idx].relationship_type = t; setLifeCharacters(c); }}
-                      className={`px-2 py-1 rounded text-[10px] font-bold ${char.relationship_type === t ? (t === 'positive' ? 'bg-emerald-500 text-white' : t === 'negative' ? 'bg-red-500 text-white' : 'bg-gray-500 text-white') : 'bg-gray-100 text-gray-500'}`}>
-                      {t === 'positive' ? '😊 Positive' : t === 'negative' ? '😟 Challenge' : '😐 Neutral'}
-                    </button>
-                  ))}
-                  <select value={char.influence_level} onChange={(e) => { const c = [...lifeCharacters]; c[idx].influence_level = e.target.value; setLifeCharacters(c); }}
-                    className="px-2 py-1 rounded text-[10px] border border-gray-300 ml-auto text-gray-900">
-                    <option value="low">Low influence</option>
-                    <option value="medium">Medium influence</option>
-                    <option value="high">High influence</option>
-                  </select>
-                </div>
-                <textarea value={char.description} onChange={(e) => { const c = [...lifeCharacters]; c[idx].description = e.target.value; setLifeCharacters(c); }}
-                  placeholder="Brief description (e.g., 'A boy in SJ's class who teases him about reading')"
-                  className="w-full px-2 py-1.5 rounded text-xs border border-gray-300 resize-none text-gray-900" rows={2} />
-              </div>
-            ))}
-            {lifeCharacters.length === 0 && <p className="text-xs italic" style={{ color: '#b0aba4' }}>No characters added yet</p>}
-          </div>
-
-          {/* Life Lessons */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-bold uppercase" style={{ color: '#D4A853' }}>Life Lessons to Embed in Stories</p>
-              <button onClick={() => setLifeLessons([...lifeLessons, { id: Date.now().toString(), topic: '', character_name: '', problem: '', parent_solution: '', delivery_method: 'story_moral', active: true }])}
-                className="text-[10px] font-bold px-2 py-1 rounded bg-amber-100 text-amber-700 hover:bg-amber-200">
-                + Add Lesson
-              </button>
-            </div>
-            {lifeLessons.map((lesson, idx) => (
-              <div key={lesson.id || idx} className="p-3 rounded-lg mb-2" style={{ background: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.2)' }}>
-                <div className="flex gap-2 mb-2">
-                  <input value={lesson.topic} onChange={(e) => { const l = [...lifeLessons]; l[idx].topic = e.target.value; setLifeLessons(l); }}
-                    placeholder="Topic (e.g., Dealing with bullies)" className="flex-1 px-2 py-1.5 rounded text-sm border border-gray-300 font-bold text-gray-900" />
-                  <select value={lesson.character_name} onChange={(e) => { const l = [...lifeLessons]; l[idx].character_name = e.target.value; setLifeLessons(l); }}
-                    className="px-2 py-1.5 rounded text-xs border border-gray-300 text-gray-900">
-                    <option value="">Related to...</option>
-                    {lifeCharacters.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                    <option value="general">General life lesson</option>
-                  </select>
-                  <button onClick={() => setLifeLessons(lifeLessons.filter((_, i) => i !== idx))}
-                    className="text-red-500 text-xs font-bold hover:text-red-700">✕</button>
-                </div>
-                <textarea value={lesson.problem} onChange={(e) => { const l = [...lifeLessons]; l[idx].problem = e.target.value; setLifeLessons(l); }}
-                  placeholder="The problem (e.g., Marcus teases SJ about reading and calls him a nerd)"
-                  className="w-full px-2 py-1.5 rounded text-xs border border-gray-300 resize-none mb-2 text-gray-900" rows={2} />
-                <textarea value={lesson.parent_solution} onChange={(e) => { const l = [...lifeLessons]; l[idx].parent_solution = e.target.value; setLifeLessons(l); }}
-                  placeholder="Your solution — what you want your child to learn (e.g., Stand tall, look them in the eye, and say 'I'm proud of being smart.' Then walk away.)"
-                  className="w-full px-2 py-1.5 rounded text-xs border border-gray-300 resize-none mb-2 text-gray-900" rows={3}
-                  style={{ background: 'rgba(212,168,83,0.08)' }} />
-                <div className="flex items-center gap-2">
-                  <select value={lesson.delivery_method} onChange={(e) => { const l = [...lifeLessons]; l[idx].delivery_method = e.target.value; setLifeLessons(l); }}
-                    className="px-2 py-1.5 rounded text-[10px] border border-gray-300 flex-1 text-gray-900">
-                    <option value="mentor_character">Through a wise mentor character</option>
-                    <option value="friend_advice">Through a friend's advice</option>
-                    <option value="story_moral">Through the story's events</option>
-                    <option value="inner_voice">As an inner realization</option>
-                  </select>
-                  <button onClick={() => { const l = [...lifeLessons]; l[idx].active = !l[idx].active; setLifeLessons(l); }}
-                    className={`px-2 py-1 rounded text-[10px] font-bold ${lesson.active ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-500'}`}>
-                    {lesson.active ? '✓ Active' : 'Inactive'}
-                  </button>
-                </div>
-              </div>
-            ))}
-            {lifeLessons.length === 0 && <p className="text-xs italic" style={{ color: '#b0aba4' }}>No lessons added yet. Add a life lesson and it will be woven into every story.</p>}
-          </div>
-
-          <BrutalButton variant="amber" size="sm" fullWidth onClick={handleSave}
-            disabled={saveMutation.isPending || saveStudentMutation.isPending}
-            className="flex items-center justify-center gap-2">
-            <Save size={14} />
-            {(saveMutation.isPending || saveStudentMutation.isPending) ? 'Saving...' : 'Save Characters & Lessons'}
-          </BrutalButton>
-        </div>
-      )}
     </div>
   );
 };
