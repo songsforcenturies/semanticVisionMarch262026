@@ -204,15 +204,17 @@ const TTSPlayer = ({ chapterText, onWordChange, onPlayStateChange }) => {
   );
 };
 
-const IllustrationPanel = ({ description }) => {
+const IllustrationPanel = ({ description, preGeneratedUrl }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  if (!description) return null;
+  if (!description && !preGeneratedUrl) return null;
 
-  // Use Pollinations.ai — free, no API key needed
-  const prompt = encodeURIComponent(description.slice(0, 300) + ', children book illustration, colorful, safe for kids, no text');
-  const imageUrl = `https://image.pollinations.ai/prompt/${prompt}?width=768&height=432&nologo=true`;
+  // Use pre-generated URL if available (stored when story was created), otherwise generate on-the-fly
+  const imageUrl = preGeneratedUrl || (() => {
+    const prompt = encodeURIComponent((description || '').slice(0, 300) + ', children book illustration, colorful, safe for kids, no text');
+    return `https://image.pollinations.ai/prompt/${prompt}?width=768&height=432&nologo=true`;
+  })();
 
   return (
     <div className="rounded-xl mb-4 overflow-hidden" style={{ border: '1px solid rgba(212,168,83,0.2)' }}
@@ -469,7 +471,7 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
             onWordChange={setHighlightedWordIndex} onPlayStateChange={handleTTSPlayStateChange} />
 
           {/* Illustration Description */}
-          <IllustrationPanel description={chapter.illustration_description} />
+          <IllustrationPanel description={chapter.illustration_description} preGeneratedUrl={chapter.illustration_url} />
 
           {/* Recording Compliance Modal */}
           {showComplianceModal && (

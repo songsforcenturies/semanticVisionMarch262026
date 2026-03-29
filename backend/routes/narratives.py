@@ -213,6 +213,15 @@ async def create_narrative(narrative_data: NarrativeCreate):
         )
         
         narrative_dict = narrative.model_dump()
+
+        # Pre-generate illustration URLs so images are ready when student reads
+        import urllib.parse
+        for ch in narrative_dict.get("chapters", []):
+            desc = ch.get("illustration_description")
+            if desc:
+                prompt = urllib.parse.quote(desc[:300] + ', children book illustration, colorful, safe for kids, no text')
+                ch["illustration_url"] = f"https://image.pollinations.ai/prompt/{prompt}?width=768&height=432&nologo=true&seed={abs(hash(desc)) % 100000}"
+
         # Store brand placements on the narrative for brand portal story snippets
         if brand_placements:
             narrative_dict["brand_placements"] = brand_placements
