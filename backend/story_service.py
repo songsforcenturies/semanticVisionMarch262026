@@ -112,6 +112,8 @@ class StoryGenerationService:
         force_media: bool = False,
         illustrations_enabled: bool = False,
         illustration_style: str = "storybook",
+        life_characters: List[Dict[str, Any]] = [],
+        life_lessons: List[Dict[str, Any]] = [],
     ) -> Dict[str, Any]:
         """Generate a 5-chapter educational story"""
         
@@ -239,6 +241,42 @@ The protagonist should exhibit and celebrate these strengths. Show the character
 CHILD'S GROWTH AREAS: {weaknesses}
 The protagonist should face challenges related to these areas. Show the character struggling with but GROWING through these challenges. Weave in practical strategies and small victories. The story should model how to improve in these areas through perseverance, support from others, and positive mindset — never shame or deficit framing. Show that growth is possible and celebrate progress over perfection."""
 
+        # TDJakes Option — Life characters and parental lessons woven into story
+        tdjakes_section = ""
+        if life_characters or life_lessons:
+            delivery_descriptions = {
+                "mentor_character": "A wise mentor character in the story teaches this lesson through their own experience and stories. The mentor should feel trustworthy and relatable.",
+                "friend_advice": "A friend character in the story faces a similar problem and discovers this solution. Show the friend modeling the behavior naturally.",
+                "story_moral": "The main character discovers this truth through the story's events. The lesson emerges from consequences and experiences, not lectures.",
+                "inner_voice": "The main character has an internal realization — a quiet moment of clarity where they understand this truth on their own.",
+            }
+
+            tdjakes_section = "\nLIFE LESSONS (TDJakes Option) — CRITICAL:"
+            tdjakes_section += "\nThe parent has specific real-life lessons they want their child to absorb through this story."
+            tdjakes_section += "\nDo NOT lecture. Do NOT be preachy. Weave lessons NATURALLY through characters and events."
+
+            if life_characters:
+                tdjakes_section += "\n\nPEOPLE IN THE CHILD'S REAL LIFE (use as inspiration for story characters):"
+                for lc in life_characters:
+                    rel_type = lc.get("relationship_type", "neutral")
+                    emoji = {"positive": "(positive influence)", "negative": "(challenge)", "neutral": "(neutral)"}.get(rel_type, "")
+                    tdjakes_section += f"\n- {lc.get('name', 'Unknown')} — {lc.get('relationship', 'person')} {emoji}: {lc.get('description', '')}"
+
+            active_lessons = [ll for ll in life_lessons if ll.get("active", True)]
+            if active_lessons:
+                tdjakes_section += "\n\nPARENT'S LESSONS TO EMBED IN THE STORY:"
+                for i, ll in enumerate(active_lessons, 1):
+                    method = ll.get("delivery_method", "story_moral")
+                    method_desc = delivery_descriptions.get(method, delivery_descriptions["story_moral"])
+                    tdjakes_section += f"""
+LESSON {i}: {ll.get('topic', 'Life lesson')}
+THE PROBLEM: {ll.get('problem', '')}
+THE PARENT'S SOLUTION: {ll.get('parent_solution', '')}
+RELATED TO: {ll.get('character_name', 'general')}
+HOW TO DELIVER: {method_desc}
+"""
+                tdjakes_section += "\nIMPORTANT: The child should feel like they DISCOVERED the solution themselves through the story, not that they were told what to do. This is the power of storytelling as teaching."
+
         # Create the story generation prompt
         # Grade-level complexity mapping for age-appropriate language
         grade_complexity = {
@@ -295,6 +333,7 @@ Vocabulary Distribution:
 {brand_question_section}
 {media_section}
 {strengths_section}
+{tdjakes_section}
 
 Requirements:
 1. Create exactly 5 chapters, each 300-500 words

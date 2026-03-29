@@ -245,6 +245,23 @@ class Student(MongoBaseModel):
     illustration_style: str = "storybook"  # "watercolor", "cartoon", "realistic", "storybook", "anime"
     # Text-to-speech default behavior
     tts_enabled: bool = True  # Controls whether TTS player is shown by default
+    # TDJakes Option — Life characters and parental lessons
+    life_characters: List[Dict[str, Any]] = Field(default_factory=list)
+    # Each character: {
+    #   "id": uuid, "name": "Marcus", "relationship": "classmate_bully",
+    #   "relationship_type": "negative",  # "positive", "negative", "neutral"
+    #   "description": "A boy in SJ's class who teases him about reading",
+    #   "influence_level": "high",  # "low", "medium", "high"
+    # }
+    life_lessons: List[Dict[str, Any]] = Field(default_factory=list)
+    # Each lesson: {
+    #   "id": uuid, "topic": "dealing_with_bullies",
+    #   "character_name": "Marcus",  # which life character this relates to
+    #   "problem": "Marcus teases SJ about reading and calls him a nerd",
+    #   "parent_solution": "Stand tall, look them in the eye, and say 'I'm proud of being smart.' Then walk away.",
+    #   "delivery_method": "mentor_character",  # "mentor_character", "friend_advice", "story_moral", "inner_voice"
+    #   "active": true
+    # }
     created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -264,6 +281,8 @@ class StudentCreate(BaseModel):
     illustrations_enabled: bool = False
     illustration_style: str = "storybook"
     tts_enabled: bool = True
+    life_characters: List[Dict[str, Any]] = Field(default_factory=list)
+    life_lessons: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class StudentUpdate(BaseModel):
@@ -289,6 +308,8 @@ class StudentUpdate(BaseModel):
     illustrations_enabled: Optional[bool] = None
     illustration_style: Optional[str] = None
     tts_enabled: Optional[bool] = None
+    life_characters: Optional[List[Dict[str, Any]]] = None
+    life_lessons: Optional[List[Dict[str, Any]]] = None
 
 
 # Subscription Entity
