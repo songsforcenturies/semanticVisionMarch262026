@@ -126,6 +126,8 @@ export const narrativeAPI = {
   delete: (id) => apiClient.delete(`/narratives/${id}`),
   archive: (id) => apiClient.post(`/narratives/${id}/archive`),
   unarchive: (id) => apiClient.post(`/narratives/${id}/unarchive`),
+  reportTooHard: (id) => apiClient.post(`/narratives/${id}/too-hard`),
+  difficultyFeedback: (id, feedback) => apiClient.post(`/narratives/${id}/difficulty-feedback`, { feedback }),
 };
 
 // ==================== READ LOG API ====================

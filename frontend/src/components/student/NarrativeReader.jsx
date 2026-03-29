@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { readLogAPI, parentalControlsAPI, mediaAPI, narrativeProgressAPI } from '@/lib/api';
+import { readLogAPI, parentalControlsAPI, mediaAPI, narrativeProgressAPI, narrativeAPI } from '@/lib/api';
 import { ArrowLeft, ArrowRight, Clock, BookOpen, CheckCircle, AlertTriangle, Eye, Mic, Lock, Video, Shield, Music, Play, Pause, Volume2, Loader2, Image } from 'lucide-react';
 import { toast } from 'sonner';
 import WrittenAnswerModal from './WrittenAnswerModal';
@@ -257,6 +257,9 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
   const [recordingDone, setRecordingDone] = useState(false);
   const [recordingBlobUrl, setRecordingBlobUrl] = useState(null);
   const [highlightedWordIndex, setHighlightedWordIndex] = useState(-1);
+  const [difficultyLoading, setDifficultyLoading] = useState(false);
+  const [difficultySubmitted, setDifficultySubmitted] = useState(null);
+  const [currentNarrative, setCurrentNarrative] = useState(narrative);
   const readingPausedSecondsRef = React.useRef(0);
   const ttsPauseStartRef = React.useRef(null);
 
@@ -301,19 +304,19 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
 
   // Auto-save progress when chapter changes
   useEffect(() => {
-    if (narrative?.id && student?.id) {
+    if (currentNarrative?.id && student?.id) {
       narrativeProgressAPI.save({
-        narrative_id: narrative.id,
+        narrative_id: currentNarrative.id,
         student_id: student.id,
         current_chapter: currentChapter,
       }).catch(() => {});
     }
-  }, [currentChapter, narrative?.id, student?.id]);
+  }, [currentChapter, currentNarrative?.id, student?.id]);
 
   const handleSaveAndExit = () => {
-    if (narrative?.id && student?.id) {
+    if (currentNarrative?.id && student?.id) {
       narrativeProgressAPI.save({
-        narrative_id: narrative.id,
+        narrative_id: currentNarrative.id,
         student_id: student.id,
         current_chapter: currentChapter,
       }).then(() => {
@@ -324,7 +327,41 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
     }
   };
 
-  const chapter = narrative.chapters[currentChapter - 1];
+  const handleTooHard = async () => {
+    setDifficultyLoading(true);
+    try {
+      const res = await narrativeAPI.reportTooHard(currentNarrative.id);
+      const data = res.data;
+      if (data.already_easiest) {
+        toast("You're already at the easiest level. Keep trying \u2014 you've got this!", { icon: '\uD83D\uDCAA' });
+        setDifficultySubmitted('too_hard_easiest');
+      } else if (data.new_narrative_id) {
+        toast.success("We've created an easier version of this story for you!");
+        // Fetch the new narrative and switch to it
+        const newRes = await narrativeAPI.getById(data.new_narrative_id);
+        setCurrentNarrative(newRes.data);
+        setCurrentChapter(1);
+        setCompletedChapters([]);
+        setDifficultySubmitted('too_hard_switched');
+      }
+    } catch (err) {
+      toast.error('Something went wrong. Please try again.');
+    } finally {
+      setDifficultyLoading(false);
+    }
+  };
+
+  const handleDifficultyFeedback = async (feedback) => {
+    try {
+      await narrativeAPI.difficultyFeedback(currentNarrative.id, feedback);
+      setDifficultySubmitted(feedback);
+      toast.success(feedback === 'just_right' ? 'Thanks for the feedback!' : 'Feedback recorded!');
+    } catch {
+      toast.error('Could not save feedback.');
+    }
+  };
+
+  const chapter = currentNarrative.chapters[currentChapter - 1];
   const isLastChapter = currentChapter === 5;
   const isChapterCompleted = completedChapters.includes(currentChapter);
   const allChaptersCompleted = completedChapters.length === 5;
@@ -351,7 +388,7 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
       ttsPauseStartRef.current = null;
     }
     createReadLogMutation.mutate({
-      student_id: student.id, narrative_id: narrative.id,
+      student_id: student.id, narrative_id: currentNarrative.id,
       chapter_number: currentChapter, session_start: sessionStart.toISOString(),
       session_end: new Date().toISOString(), words_read: chapter.word_count,
       adjusted_reading_seconds: getAdjustedSeconds(),
@@ -362,7 +399,7 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
   const handleWrittenCheckComplete = (passed) => {
     setShowWrittenCheck(false);
     readLogAPI.create({
-      student_id: student.id, narrative_id: narrative.id,
+      student_id: student.id, narrative_id: currentNarrative.id,
       chapter_number: currentChapter, session_start: sessionStart.toISOString(),
       session_end: new Date().toISOString(), words_read: 0, vision_check_passed: passed,
     }).catch(() => {});
@@ -396,7 +433,7 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
   const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
   if (showAssessment) {
-    return <VocabularyAssessment narrative={narrative} student={student} onClose={onClose} />;
+    return <VocabularyAssessment narrative={currentNarrative} student={student} onClose={onClose} />;
   }
 
   return (
@@ -412,7 +449,7 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
                 <ArrowLeft size={14} /> <span className="hidden sm:inline">Save & Exit</span>
               </button>
               <div className="min-w-0" style={{ borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '8px' }}>
-                <h1 className="text-xs sm:text-sm font-bold truncate" style={{ color: C.cream }} data-testid="story-title">{narrative.title}</h1>
+                <h1 className="text-xs sm:text-sm font-bold truncate" style={{ color: C.cream }} data-testid="story-title">{currentNarrative.title}</h1>
                 <p className="text-xs" style={{ color: C.muted }}>Ch. {currentChapter}/5</p>
               </div>
             </div>
@@ -466,8 +503,52 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
             </div>
           </div>
 
+          {/* Difficulty Feedback Panel — only on chapter 1 */}
+          {currentChapter === 1 && !difficultySubmitted && (
+            <div className="flex flex-wrap items-center gap-2 mb-4 p-3 rounded-xl"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
+              data-testid="difficulty-panel">
+              <span className="text-xs font-semibold mr-1" style={{ color: C.muted }}>How is this story?</span>
+              <button
+                onClick={handleTooHard}
+                disabled={difficultyLoading}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-105 disabled:opacity-50"
+                style={{ background: 'rgba(239,68,68,0.12)', color: '#F87171', border: '1px solid rgba(239,68,68,0.25)' }}
+                data-testid="too-hard-btn">
+                {difficultyLoading ? <Loader2 size={12} className="animate-spin" /> : <span>{'\uD83D\uDE30'}</span>}
+                {difficultyLoading ? 'Creating easier story...' : 'Too hard'}
+              </button>
+              <button
+                onClick={() => handleDifficultyFeedback('just_right')}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-105"
+                style={{ background: 'rgba(52,211,153,0.12)', color: '#34D399', border: '1px solid rgba(52,211,153,0.25)' }}
+                data-testid="just-right-btn">
+                <span>{'\uD83D\uDE0A'}</span> Just right
+              </button>
+              <button
+                onClick={() => handleDifficultyFeedback('too_easy')}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-105"
+                style={{ background: 'rgba(56,189,248,0.12)', color: '#38BDF8', border: '1px solid rgba(56,189,248,0.25)' }}
+                data-testid="too-easy-btn">
+                <span>{'\uD83D\uDE80'}</span> Too easy
+              </button>
+            </div>
+          )}
+          {currentChapter === 1 && difficultySubmitted && (
+            <div className="flex items-center gap-2 mb-4 p-2 rounded-lg"
+              style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.15)' }}
+              data-testid="difficulty-thanks">
+              <CheckCircle size={14} style={{ color: '#34D399' }} />
+              <span className="text-xs font-semibold" style={{ color: '#34D399' }}>
+                {difficultySubmitted === 'too_hard_switched' ? 'Switched to an easier story!' :
+                 difficultySubmitted === 'too_hard_easiest' ? "You're at the easiest level already." :
+                 'Thanks for your feedback!'}
+              </span>
+            </div>
+          )}
+
           {/* Listen to Story - TTS Player */}
-          <TTSPlayer narrativeId={narrative.id} chapterNumber={currentChapter} chapterText={chapter.content}
+          <TTSPlayer narrativeId={currentNarrative.id} chapterNumber={currentChapter} chapterText={chapter.content}
             onWordChange={setHighlightedWordIndex} onPlayStateChange={handleTTSPlayStateChange} />
 
           {/* Illustration Description */}
@@ -551,7 +632,7 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
                 </div>
                 <ReadAloudRecorder
                   studentId={student.id}
-                  narrativeId={narrative.id}
+                  narrativeId={currentNarrative.id}
                   chapterNumber={currentChapter}
                   requiredMode={mustRecord ? controls.recording_mode : null}
                   onRecordingComplete={(result) => {
@@ -592,7 +673,7 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
                   const mediaMatch = part.match(/^\[MEDIA:([^:]+):([^\]]+)\]$/);
                   if (mediaMatch) {
                     return <InlineMediaPlayer key={`media-${pIdx}`} mediaId={mediaMatch[1]} title={mediaMatch[2]}
-                      mediaPlacements={narrative.media_placements || []} studentId={student?.id} />;
+                      mediaPlacements={currentNarrative.media_placements || []} studentId={student?.id} />;
                   }
                   // Regular text — render words with click-to-define and TTS highlighting
                   return <React.Fragment key={`part-${pIdx}`}>{part.split(/(\s+)/).map((segment, idx) => {

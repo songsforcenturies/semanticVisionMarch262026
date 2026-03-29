@@ -1271,3 +1271,189 @@ async def get_assessment(assessment_id: str):
     return assessment
 
 
+# ==================== DIFFICULTY ADJUSTMENT ROUTES ====================
+
+# Grade ordering for difficulty comparison
+GRADE_ORDER = [
+    "pre-k", "k", "1", "2", "3", "4", "5", "6",
+    "7", "8", "9", "10", "11", "12", "college", "adult",
+]
+
+
+def _grade_to_index(grade_str: str) -> int:
+    """Convert a grade string to a numeric index for comparison."""
+    grade_str = str(grade_str).lower().strip()
+    try:
+        return GRADE_ORDER.index(grade_str)
+    except ValueError:
+        # If it looks numeric, try matching
+        for i, g in enumerate(GRADE_ORDER):
+            if g == grade_str:
+                return i
+        return 99  # Unknown grades sort to the end
+
+
+def _bank_difficulty_score(bank: dict) -> int:
+    """Score a word bank's difficulty based on its grade_range and word counts."""
+    grade_range = bank.get("grade_range", {})
+    min_grade = grade_range.get("min", "1")
+    max_grade = grade_range.get("max", "12")
+    # Use the average of min and max grade index as the primary score
+    min_idx = _grade_to_index(min_grade)
+    max_idx = _grade_to_index(max_grade)
+    # Secondary: more stretch words = harder
+    stretch_count = len(bank.get("stretch_words", []))
+    return (min_idx + max_idx) * 100 + stretch_count
+
+
+class DifficultyFeedbackRequest(BaseModel):
+    feedback: str  # "too_hard", "too_easy", "just_right"
+
+
+@router.post("/narratives/{narrative_id}/difficulty-feedback")
+async def submit_difficulty_feedback(
+    narrative_id: str,
+    data: DifficultyFeedbackRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Record difficulty feedback without regenerating the story."""
+    if data.feedback not in ("too_hard", "too_easy", "just_right"):
+        raise HTTPException(status_code=400, detail="feedback must be 'too_hard', 'too_easy', or 'just_right'")
+
+    narrative = await db.narratives.find_one({"id": narrative_id}, {"_id": 0, "student_id": 1})
+    if not narrative:
+        raise HTTPException(status_code=404, detail="Narrative not found")
+
+    await db.difficulty_feedback.insert_one({
+        "id": str(uuid.uuid4()),
+        "student_id": narrative["student_id"],
+        "narrative_id": narrative_id,
+        "feedback": data.feedback,
+        "created_date": datetime.now(timezone.utc).isoformat(),
+    })
+
+    return {"message": "Feedback recorded", "feedback": data.feedback}
+
+
+@router.post("/narratives/{narrative_id}/too-hard")
+async def report_too_hard(
+    narrative_id: str,
+    current_user: dict = Depends(get_current_user),
+):
+    """Student reports story is too hard. Find an easier word bank and regenerate."""
+    # Get the narrative
+    narrative = await db.narratives.find_one({"id": narrative_id}, {"_id": 0})
+    if not narrative:
+        raise HTTPException(status_code=404, detail="Narrative not found")
+
+    student_id = narrative["student_id"]
+    student = await db.students.find_one({"id": student_id})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    # Get all word banks assigned to this student
+    assigned_bank_ids = student.get("assigned_banks", [])
+    if not assigned_bank_ids:
+        raise HTTPException(status_code=400, detail="Student has no assigned word banks")
+
+    # Fetch all assigned banks
+    assigned_banks = []
+    for bid in assigned_bank_ids:
+        bank = await db.word_banks.find_one({"id": bid}, {"_id": 0})
+        if bank:
+            assigned_banks.append(bank)
+
+    if not assigned_banks:
+        raise HTTPException(status_code=400, detail="No valid word banks found")
+
+    # Sort banks by difficulty score
+    assigned_banks.sort(key=lambda b: _bank_difficulty_score(b))
+
+    # Determine which banks the current narrative used
+    current_bank_ids = set(narrative.get("bank_ids", []))
+    current_scores = [_bank_difficulty_score(b) for b in assigned_banks if b["id"] in current_bank_ids]
+    min_current_score = min(current_scores) if current_scores else 0
+
+    # Find an easier bank (lower difficulty score than the easiest currently used)
+    easier_bank = None
+    for bank in assigned_banks:
+        if _bank_difficulty_score(bank) < min_current_score and bank["id"] not in current_bank_ids:
+            easier_bank = bank
+            break
+
+    # If no strictly easier bank, check if the easiest assigned bank is not already in use
+    if not easier_bank:
+        easiest = assigned_banks[0]
+        if easiest["id"] not in current_bank_ids:
+            easier_bank = easiest
+
+    if not easier_bank:
+        # Record the feedback anyway
+        await db.difficulty_feedback.insert_one({
+            "id": str(uuid.uuid4()),
+            "student_id": student_id,
+            "narrative_id": narrative_id,
+            "feedback": "too_hard",
+            "action": "no_easier_bank",
+            "created_date": datetime.now(timezone.utc).isoformat(),
+        })
+        return {
+            "message": "You're already at the easiest level. Keep trying — you've got this!",
+            "new_narrative_id": None,
+            "already_easiest": True,
+        }
+
+    # Mark original narrative as difficulty-adjusted
+    await db.narratives.update_one(
+        {"id": narrative_id},
+        {"$set": {"difficulty_adjusted": True}}
+    )
+
+    # Generate a NEW story with the easier bank, same theme/prompt
+    theme = narrative.get("theme", "an adventure story")
+    try:
+        new_narrative_data = NarrativeCreate(
+            student_id=student_id,
+            prompt=theme,
+            bank_ids=[easier_bank["id"]],
+            personalized=True,
+        )
+        new_narrative = await create_narrative(new_narrative_data)
+        new_narrative_id = new_narrative.id if hasattr(new_narrative, "id") else (new_narrative.get("id") if isinstance(new_narrative, dict) else None)
+    except Exception as e:
+        logger.error(f"Easier story generation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate easier story: {str(e)}")
+
+    # Record difficulty feedback with the action taken
+    await db.difficulty_feedback.insert_one({
+        "id": str(uuid.uuid4()),
+        "student_id": student_id,
+        "narrative_id": narrative_id,
+        "feedback": "too_hard",
+        "action": "regenerated",
+        "new_narrative_id": new_narrative_id,
+        "easier_bank_id": easier_bank["id"],
+        "created_date": datetime.now(timezone.utc).isoformat(),
+    })
+
+    # Notify guardian that student found story too hard
+    guardian_id = student.get("guardian_id")
+    if guardian_id:
+        student_name = student.get("full_name", "Your child")
+        await db.notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": guardian_id,
+            "type": "difficulty_report",
+            "title": "Difficulty Adjustment",
+            "message": f"{student_name} found their story too hard and requested an easier version.",
+            "read": False,
+            "created_date": datetime.now(timezone.utc).isoformat(),
+        })
+
+    return {
+        "message": "An easier version of this story has been created!",
+        "new_narrative_id": new_narrative_id,
+        "already_easiest": False,
+    }
+
+
