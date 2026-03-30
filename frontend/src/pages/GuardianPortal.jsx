@@ -376,9 +376,9 @@ const LifeLessonsTab = () => {
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
               <input value={charForm.name} onChange={(e) => setCharForm({ ...charForm, name: e.target.value })}
-                placeholder="Name" className="px-3 py-2 rounded-lg text-sm border border-gray-300 font-bold text-gray-900" />
+                placeholder="Name" className="px-3 py-2 rounded-lg text-sm border border-gray-300 font-bold bg-white" style={{ color: '#111827' }} />
               <select value={charForm.relationship} onChange={(e) => setCharForm({ ...charForm, relationship: e.target.value })}
-                className="px-3 py-2 rounded-lg text-sm border border-gray-300 text-gray-900">
+                className="px-3 py-2 rounded-lg text-sm border border-gray-300 bg-white" style={{ color: '#111827' }}>
                 {RELATIONSHIP_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
               </select>
             </div>
@@ -392,7 +392,7 @@ const LifeLessonsTab = () => {
                 </button>
               ))}
               <select value={charForm.influence_level} onChange={(e) => setCharForm({ ...charForm, influence_level: e.target.value })}
-                className="px-3 py-1.5 rounded-lg text-xs border border-gray-300 ml-auto text-gray-900">
+                className="px-3 py-1.5 rounded-lg text-xs border border-gray-300 ml-auto bg-white" style={{ color: '#111827' }}>
                 <option value="low">Low influence</option>
                 <option value="medium">Medium influence</option>
                 <option value="high">High influence</option>
@@ -400,7 +400,7 @@ const LifeLessonsTab = () => {
             </div>
             <textarea value={charForm.description} onChange={(e) => setCharForm({ ...charForm, description: e.target.value })}
               placeholder="Brief description (e.g., 'A boy in class who teases him about reading')"
-              className="w-full px-3 py-2 rounded-lg text-sm border border-gray-300 resize-none text-gray-900 mb-3" rows={2} />
+              className="w-full px-3 py-2 rounded-lg text-sm border border-gray-300 resize-none bg-white mb-3" style={{ color: '#111827' }} rows={2} />
             <div className="flex gap-2">
               <button onClick={editingCharIdx !== null ? updateCharacter : addCharacter}
                 className="px-4 py-2 rounded-lg text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-all flex items-center gap-1.5">
@@ -501,9 +501,9 @@ const LifeLessonsTab = () => {
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
               <input value={lessonForm.topic} onChange={(e) => setLessonForm({ ...lessonForm, topic: e.target.value })}
-                placeholder="Topic (e.g., Dealing with bullies)" className="px-3 py-2 rounded-lg text-sm border border-gray-300 font-bold text-gray-900" />
+                placeholder="Topic (e.g., Dealing with bullies)" className="px-3 py-2 rounded-lg text-sm border border-gray-300 font-bold bg-white" style={{ color: '#111827' }} />
               <select value={lessonForm.character_name} onChange={(e) => setLessonForm({ ...lessonForm, character_name: e.target.value })}
-                className="px-3 py-2 rounded-lg text-sm border border-gray-300 text-gray-900">
+                className="px-3 py-2 rounded-lg text-sm border border-gray-300 bg-white" style={{ color: '#111827' }}>
                 <option value="">Related to...</option>
                 {characters.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
                 <option value="general">General life lesson</option>
@@ -511,14 +511,14 @@ const LifeLessonsTab = () => {
             </div>
             <textarea value={lessonForm.problem} onChange={(e) => setLessonForm({ ...lessonForm, problem: e.target.value })}
               placeholder="The problem (e.g., Marcus teases SJ about reading and calls him a nerd)"
-              className="w-full px-3 py-2 rounded-lg text-sm border border-gray-300 resize-none text-gray-900 mb-3" rows={2} />
+              className="w-full px-3 py-2 rounded-lg text-sm border border-gray-300 resize-none bg-white mb-3" style={{ color: '#111827' }} rows={2} />
             <textarea value={lessonForm.parent_solution} onChange={(e) => setLessonForm({ ...lessonForm, parent_solution: e.target.value })}
               placeholder="Your solution -- what you want your child to learn (e.g., Stand tall, look them in the eye...)"
-              className="w-full px-3 py-2 rounded-lg text-sm border border-gray-300 resize-none text-gray-900 mb-3" rows={3}
+              className="w-full px-3 py-2 rounded-lg text-sm border border-gray-300 resize-none bg-white mb-3" style={{ color: '#111827' }} rows={3}
               style={{ background: 'rgba(212,168,83,0.08)' }} />
             <div className="flex gap-3 mb-3">
               <select value={lessonForm.delivery_method} onChange={(e) => setLessonForm({ ...lessonForm, delivery_method: e.target.value })}
-                className="flex-1 px-3 py-2 rounded-lg text-sm border border-gray-300 text-gray-900">
+                className="flex-1 px-3 py-2 rounded-lg text-sm border border-gray-300 bg-white" style={{ color: '#111827' }}>
                 {DELIVERY_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
               </select>
             </div>
