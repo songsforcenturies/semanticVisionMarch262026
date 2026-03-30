@@ -167,6 +167,7 @@ async def create_narrative(narrative_data: NarrativeCreate):
             illustration_style=student.get("illustration_style", "storybook"),
             life_characters=student.get("life_characters", []) if use_personalization else [],
             life_lessons=student.get("life_lessons", []) if use_personalization else [],
+            accessibility_needs=student.get("accessibility_needs", []),
         )
         
         # Record brand impressions (after narrative creation so we have the real ID)

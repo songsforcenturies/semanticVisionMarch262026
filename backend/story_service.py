@@ -114,6 +114,7 @@ class StoryGenerationService:
         illustration_style: str = "storybook",
         life_characters: List[Dict[str, Any]] = [],
         life_lessons: List[Dict[str, Any]] = [],
+        accessibility_needs: List[str] = [],
     ) -> Dict[str, Any]:
         """Generate a 5-chapter educational story"""
         
@@ -277,6 +278,19 @@ HOW TO DELIVER: {method_desc}
 """
                 tdjakes_section += "\nIMPORTANT: The child should feel like they DISCOVERED the solution themselves through the story, not that they were told what to do. This is the power of storytelling as teaching."
 
+        # Dyslexia-friendly writing adjustments
+        dyslexia_section = ""
+        if "dyslexia" in accessibility_needs:
+            dyslexia_section = """
+DYSLEXIA-FRIENDLY WRITING: This student has dyslexia. Write with:
+- Shorter sentences (10-15 words max)
+- Simple, common words preferred over complex ones
+- One idea per sentence
+- Clear paragraph breaks every 2-3 sentences
+- Avoid similar-looking words close together (b/d, p/q, was/saw)
+- Use active voice
+- Repeat key vocabulary for reinforcement"""
+
         # Create the story generation prompt
         # Grade-level complexity mapping for age-appropriate language
         grade_complexity = {
@@ -334,6 +348,7 @@ Vocabulary Distribution:
 {media_section}
 {strengths_section}
 {tdjakes_section}
+{dyslexia_section}
 
 Requirements:
 1. Create exactly 5 chapters, each 300-500 words

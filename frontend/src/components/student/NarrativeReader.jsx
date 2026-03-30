@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { readLogAPI, parentalControlsAPI, mediaAPI, narrativeProgressAPI, narrativeAPI } from '@/lib/api';
-import { ArrowLeft, ArrowRight, Clock, BookOpen, CheckCircle, AlertTriangle, Eye, Mic, Lock, Video, Shield, Music, Play, Pause, Volume2, Loader2, Image } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Clock, BookOpen, CheckCircle, AlertTriangle, Eye, Mic, Lock, Video, Shield, Music, Play, Pause, Volume2, Loader2, Image, Accessibility } from 'lucide-react';
 import { toast } from 'sonner';
 import WrittenAnswerModal from './WrittenAnswerModal';
 import VocabularyAssessment from './VocabularyAssessment';
@@ -243,6 +243,13 @@ const IllustrationPanel = ({ description, preGeneratedUrl }) => {
   );
 };
 
+const DYSLEXIA_OVERLAYS = [
+  { name: 'Cream', color: '#FFF9E6' },
+  { name: 'Blue', color: '#E6F3FF' },
+  { name: 'Pink', color: '#FFE6F0' },
+  { name: 'Green', color: '#E6FFE6' },
+];
+
 const NarrativeReader = ({ narrative, student, onClose }) => {
   const queryClient = useQueryClient();
   const [currentChapter, setCurrentChapter] = useState(narrative.current_chapter || 1);
@@ -262,6 +269,28 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
   const [currentNarrative, setCurrentNarrative] = useState(narrative);
   const readingPausedSecondsRef = React.useRef(0);
   const ttsPauseStartRef = React.useRef(null);
+
+  // Dyslexia-friendly reading mode
+  const hasDyslexia = (student?.accessibility_needs || []).includes('dyslexia');
+  const [dyslexiaMode, setDyslexiaMode] = useState(hasDyslexia);
+  const [dyslexiaOverlay, setDyslexiaOverlay] = useState(DYSLEXIA_OVERLAYS[0].color);
+  const [readingRuler, setReadingRuler] = useState(false);
+  const [rulerY, setRulerY] = useState(-100);
+
+  // Reading ruler mouse/touch tracking
+  useEffect(() => {
+    if (!readingRuler) return;
+    const handleMove = (e) => {
+      const y = e.touches ? e.touches[0].clientY : e.clientY;
+      setRulerY(y);
+    };
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('touchmove', handleMove);
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('touchmove', handleMove);
+    };
+  }, [readingRuler]);
 
   // Fetch parental controls
   const { data: parentalControls } = useQuery({
@@ -471,11 +500,56 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
             </div>
           </div>
 
-          {/* Controls row: music + save offline */}
+          {/* Controls row: music + save offline + dyslexia toggle */}
           <div className="flex items-center justify-between gap-2 mt-2">
             <MusicPlayerWidget storyText={chapter?.content || ''} />
-            <SaveOfflineButton narrative={narrative} compact />
+            <div className="flex items-center gap-2">
+              <button onClick={() => setDyslexiaMode(prev => !prev)}
+                className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-105"
+                style={{
+                  background: dyslexiaMode ? 'rgba(168,85,247,0.25)' : 'rgba(255,255,255,0.06)',
+                  color: dyslexiaMode ? '#C084FC' : C.muted,
+                  border: dyslexiaMode ? '1px solid rgba(168,85,247,0.4)' : '1px solid rgba(255,255,255,0.1)',
+                }}
+                data-testid="dyslexia-toggle-btn">
+                <Accessibility size={14} />
+                <span className="hidden sm:inline">Dyslexia Mode</span>
+              </button>
+              <SaveOfflineButton narrative={narrative} compact />
+            </div>
           </div>
+
+          {/* Dyslexia Mode Controls */}
+          {dyslexiaMode && (
+            <div className="flex flex-wrap items-center gap-3 mt-2 p-2 rounded-lg"
+              style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)' }}
+              data-testid="dyslexia-controls">
+              <span className="text-[10px] font-bold uppercase" style={{ color: '#C084FC' }}>Overlay:</span>
+              <div className="flex items-center gap-1.5">
+                {DYSLEXIA_OVERLAYS.map((o) => (
+                  <button key={o.name} onClick={() => setDyslexiaOverlay(o.color)}
+                    title={o.name}
+                    className="w-5 h-5 rounded-full transition-all hover:scale-110"
+                    style={{
+                      background: o.color,
+                      border: dyslexiaOverlay === o.color ? '2px solid #C084FC' : '2px solid rgba(255,255,255,0.2)',
+                      boxShadow: dyslexiaOverlay === o.color ? '0 0 6px rgba(168,85,247,0.5)' : 'none',
+                    }}
+                    data-testid={`overlay-${o.name.toLowerCase()}`} />
+                ))}
+              </div>
+              <button onClick={() => setReadingRuler(prev => !prev)}
+                className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold transition-all hover:scale-105"
+                style={{
+                  background: readingRuler ? 'rgba(168,85,247,0.25)' : 'rgba(255,255,255,0.06)',
+                  color: readingRuler ? '#C084FC' : C.muted,
+                  border: readingRuler ? '1px solid rgba(168,85,247,0.4)' : '1px solid rgba(255,255,255,0.1)',
+                }}
+                data-testid="reading-ruler-toggle">
+                Reading Ruler {readingRuler ? 'ON' : 'OFF'}
+              </button>
+            </div>
+          )}
 
           {/* Progress bar */}
           <div className="mt-2 w-full h-1 sm:h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
@@ -659,8 +733,24 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
             filter: mustRecord && !controls.can_skip_recording && !recordingStarted ? 'blur(8px)' : 'none',
             userSelect: mustRecord && !controls.can_skip_recording && !recordingStarted ? 'none' : 'auto',
             pointerEvents: mustRecord && !controls.can_skip_recording && !recordingStarted ? 'none' : 'auto',
+            ...(dyslexiaMode ? {
+              background: dyslexiaOverlay,
+              borderRadius: '12px',
+              padding: '20px',
+            } : {}),
           }}>
-            <div className="text-base sm:text-lg leading-[1.8] sm:leading-[1.9] font-medium" style={{ color: C.reading }}>
+            <div className="text-base sm:text-lg leading-[1.8] sm:leading-[1.9] font-medium" style={{
+              color: dyslexiaMode ? '#2D2D2D' : C.reading,
+              ...(dyslexiaMode ? {
+                fontFamily: "'OpenDyslexic', 'Comic Sans MS', sans-serif",
+                fontSize: '20px',
+                letterSpacing: '0.12em',
+                wordSpacing: '0.25em',
+                lineHeight: '2.0',
+                maxWidth: '650px',
+                textAlign: 'left',
+              } : {}),
+            }}>
               {(() => {
                 // Build a global word index counter for TTS highlighting
                 // Clean text words (same as TTS uses) for matching
@@ -783,6 +873,21 @@ const NarrativeReader = ({ narrative, student, onClose }) => {
       {selectedWord && (
         <WordDefinitionModal word={selectedWord} context={wordContext}
           onClose={() => { setSelectedWord(null); setWordContext(''); }} />
+      )}
+
+      {/* Dyslexia Reading Ruler */}
+      {dyslexiaMode && readingRuler && (
+        <div style={{
+          position: 'fixed',
+          left: 0,
+          top: rulerY - 20,
+          width: '100%',
+          height: '40px',
+          background: 'rgba(255,255,200,0.4)',
+          pointerEvents: 'none',
+          zIndex: 9999,
+          transition: 'top 0.05s ease-out',
+        }} data-testid="reading-ruler" />
       )}
     </div>
   );
