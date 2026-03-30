@@ -319,15 +319,21 @@ const LifeLessonsTab = () => {
   const handleSaveAll = async () => {
     setSaving(true);
     try {
-      const promises = students.map((s) => {
+      let saved = 0;
+      for (const s of students) {
         const sid = s._id || s.id;
         const studentChars = characters.filter((c) => (c.applies_to || []).includes(sid)).map(({ applies_to, ...rest }) => rest);
         const studentLessons = lessons.filter((l) => (l.applies_to || []).includes(sid)).map(({ applies_to, ...rest }) => rest);
-        return api.patch(`/students/${sid}`, { life_characters: studentChars, life_lessons: studentLessons });
-      });
-      await Promise.all(promises);
+        // Always send update — include a dummy field so it's never empty
+        await api.patch(`/students/${sid}`, {
+          life_characters: studentChars,
+          life_lessons: studentLessons,
+          full_name: s.full_name,
+        });
+        saved++;
+      }
       queryClient.invalidateQueries({ queryKey: ['students'] });
-      toast.success('Life characters & lessons saved for all students');
+      toast.success(`Life characters & lessons saved for ${saved} students`);
     } catch (err) {
       toast.error('Failed to save: ' + (err?.response?.data?.detail || err.message));
     }
